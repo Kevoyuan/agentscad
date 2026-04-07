@@ -1,7 +1,10 @@
 """SQLite repository for DesignJob persistence."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import List, Optional
 
 import structlog
 from sqlite_utils import Database
@@ -36,6 +39,8 @@ class SQLiteJobRepository:
                     "artifacts_json": str,
                     "validation_results_json": str,
                     "execution_logs_json": str,
+                    "notes_json": str,
+                    "final_result_json": str,
                     "retry_count": int,
                     "case_id": str,
                     "created_at": str,
@@ -65,6 +70,8 @@ class SQLiteJobRepository:
                 "execution_logs_json": json.dumps(
                     [e.model_dump(mode="json") for e in job.execution_logs]
                 ),
+                "notes_json": json.dumps(job.notes),
+                "final_result_json": json.dumps(job.final_result or {}),
                 "retry_count": job.retry_count,
                 "case_id": job.case_id or "",
                 "created_at": job.created_at.isoformat(),
@@ -77,7 +84,7 @@ class SQLiteJobRepository:
             replace=True,
         )
 
-    def get(self, job_id: str) -> DesignJob | None:
+    def get(self, job_id: str) -> Optional[DesignJob]:
         """Retrieve a DesignJob by ID."""
         try:
             row = self.db["jobs"].get(job_id)
@@ -87,9 +94,9 @@ class SQLiteJobRepository:
 
     def list(
         self,
-        state: JobState | None = None,
+        state: Optional[JobState] = None,
         limit: int = 100,
-    ) -> list[DesignJob]:
+    ) -> List[DesignJob]:
         """List DesignJobs, optionally filtered by state."""
         query = self.db["jobs"].rows
         jobs = []
@@ -100,6 +107,16 @@ class SQLiteJobRepository:
                 if len(jobs) >= limit:
                     break
         return jobs
+
+    def list_jobs(
+        self,
+        state_filter: Optional[JobState] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[DesignJob]:
+        """Backward-compatible listing API with offset support."""
+        jobs = self.list(state=state_filter, limit=limit + offset)
+        return jobs[offset: offset + limit]
 
     def _row_to_job(self, row: dict) -> DesignJob:
         """Convert a database row to a DesignJob."""
@@ -148,6 +165,20 @@ class SQLiteJobRepository:
             except Exception:
                 pass
 
+        notes = []
+        if row.get("notes_json"):
+            try:
+                notes = list(json.loads(row["notes_json"]))
+            except Exception:
+                pass
+
+        final_result = None
+        if row.get("final_result_json"):
+            try:
+                final_result = json.loads(row["final_result_json"])
+            except Exception:
+                pass
+
         job = DesignJob(
             id=row["id"],
             state=JobState(row["state"]),
@@ -159,10 +190,12 @@ class SQLiteJobRepository:
             artifacts=artifacts,
             validation_results=validation_results,
             execution_logs=execution_logs,
+            notes=notes,
             retry_count=row.get("retry_count", 0),
             case_id=row.get("case_id") or None,
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),
             completed_at=row.get("completed_at") or None,
+            final_result=final_result,
         )
         return job

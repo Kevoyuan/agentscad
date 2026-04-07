@@ -1,5 +1,7 @@
 """OpenSCAD CLI executor tool."""
 
+from __future__ import annotations
+
 import asyncio
 import os
 import subprocess
@@ -26,9 +28,16 @@ class RenderResult:
 class OpenSCADExecutor:
     """Executes OpenSCAD CLI commands for SCAD source files."""
 
-    def __init__(self, openscad_path: str = "openscad"):
+    def __init__(
+        self,
+        openscad_path: str = "openscad",
+        timeout_seconds: int = 120,
+        syntax_timeout_seconds: int = 30,
+    ):
         """Initialize with OpenSCAD CLI path."""
         self.openscad_path = openscad_path
+        self.timeout_seconds = timeout_seconds
+        self.syntax_timeout_seconds = syntax_timeout_seconds
 
     async def render(
         self,
@@ -73,7 +82,7 @@ class OpenSCADExecutor:
                 ],
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=self.timeout_seconds,
             )
             stl_success = result.returncode == 0 and stl_file.exists()
             log_output = result.stdout + result.stderr
@@ -96,7 +105,7 @@ class OpenSCADExecutor:
                 ],
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=self.timeout_seconds,
             )
             png_success = png_result.returncode == 0 and png_file.exists()
 
@@ -143,7 +152,7 @@ class OpenSCADExecutor:
                 [self.openscad_path, "-o", "/dev/null", temp_path],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=self.syntax_timeout_seconds,
             )
             os.unlink(temp_path)
 

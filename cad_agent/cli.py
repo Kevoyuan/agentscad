@@ -61,7 +61,7 @@ def init_services(ctx: CliContext) -> None:
     debug_agent = DebugAgent()
     report_agent = ReportAgent(output_dir=str(settings.output_dir))
 
-    orchestrator = OrchestratorAgent(retry_policy=retry_policy)
+    orchestrator = OrchestratorAgent(retry_policy=retry_policy, case_memory=ctx.case_memory)
     orchestrator.set_agents(
         intake=intake_agent,
         template=template_agent,
@@ -83,7 +83,7 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     if verbose:
         import logging
         structlog.configure(
-            wrapper_class=structlog.make_filtering_boundger(logging.DEBUG),
+            wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
         )
     init_services(ctx.obj)
 
@@ -198,7 +198,7 @@ def status(ctx: CliContext, job_id: str, format: str) -> None:
 
     click.echo(f"Job ID: {job.id}")
     click.echo(f"State: {job.state.value}")
-    click.echo(f"Retry count: {job.retry_count}/{job.retry_policy.max_retries}")
+    click.echo(f"Retry count: {job.retry_count}/{job.max_retries}")
     click.echo(f"Created: {job.created_at}")
     click.echo(f"Updated: {job.updated_at}")
     click.echo(f"\nRequest: {job.input_request[:200]}{'...' if len(job.input_request) > 200 else ''}")
@@ -210,8 +210,8 @@ def status(ctx: CliContext, job_id: str, format: str) -> None:
         click.echo(f"  Material: {job.spec.material}")
         click.echo(f"  Confidence: {job.spec.confidence:.2f}")
 
-    if job.template:
-        click.echo(f"\nTemplate: {job.template.template_id}")
+    if job.template_choice:
+        click.echo(f"\nTemplate: {job.template_choice.template_id}")
 
     if job.artifacts:
         click.echo(f"\nArtifacts:")
@@ -229,7 +229,7 @@ def status(ctx: CliContext, job_id: str, format: str) -> None:
     if format == "full" and job.execution_logs:
         click.echo(f"\nExecution logs:")
         for log in job.execution_logs[-10:]:
-            click.echo(f"  {log}")
+            click.echo(f"  [{log.agent}] {log.action} -> {log.state_reached} ({'OK' if log.success else 'FAIL'})")
 
 
 @cli.command()
@@ -320,10 +320,11 @@ def similar(ctx: CliContext, request: str, limit: int) -> None:
     click.echo(f"Found {len(cases)} similar cases:\n")
 
     for case in cases:
-        click.echo(f"Case: {case.case_id}")
-        click.echo(f"  Template: {case.template_used}")
+        click.echo(f"Case: {case.id}")
+        click.echo(f"  Template: {case.template_name}")
         click.echo(f"  Request: {case.input_request[:100]}...")
-        click.echo(f"  Similarity: {case.similarity_score:.2f}")
+        click.echo(f"  Uses: {case.usage_count}")
+        click.echo(f"  Tags: {', '.join(case.tags) if case.tags else 'none'}")
         click.echo("")
 
 

@@ -1,5 +1,7 @@
 """Engineering rules engine for CAD validation."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any

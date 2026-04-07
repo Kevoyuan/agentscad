@@ -1,5 +1,7 @@
 """Validator agent - 3-layer validation."""
 
+from __future__ import annotations
+
 import time
 
 import structlog
@@ -15,9 +17,9 @@ logger = structlog.get_logger()
 class ValidatorAgent:
     """Validates CAD designs against 3-layer rules."""
 
-    def __init__(self):
+    def __init__(self, rules_engine: EngineeringRulesEngine | None = None):
         """Initialize validator with rules engines."""
-        self.engineering_rules = EngineeringRulesEngine()
+        self.engineering_rules = rules_engine or EngineeringRulesEngine()
 
     async def validate(self, job: DesignJob) -> AgentResult:
         """Run 3-layer validation on rendered design.

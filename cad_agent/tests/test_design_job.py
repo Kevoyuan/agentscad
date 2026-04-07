@@ -42,7 +42,6 @@ class TestJobStateTransitions:
     def test_terminal_states_reached(self):
         """Test all terminal states."""
         terminal_cases = [
-            JobState.ACCEPTED,
             JobState.DELIVERED,
             JobState.ARCHIVED,
             JobState.HUMAN_REVIEW,

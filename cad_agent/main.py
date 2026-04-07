@@ -1,10 +1,10 @@
 """FastAPI application for CAD Agent System."""
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import structlog
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -126,7 +126,7 @@ async def lifespan(app: FastAPI):
     debug_agent = DebugAgent()
     report_agent = ReportAgent(output_dir=str(settings.output_dir))
 
-    _orchestrator = OrchestratorAgent(retry_policy=retry_policy)
+    _orchestrator = OrchestratorAgent(retry_policy=retry_policy, case_memory=_case_memory)
     _orchestrator.set_agents(
         intake=intake_agent,
         template=template_agent,
@@ -242,14 +242,14 @@ async def get_job_status(job_id: str) -> JobStatusResponse:
         state=job.state.value,
         input_request=job.input_request,
         spec_summary=spec_summary,
-        template_id=job.template.template_id if job.template else None,
+        template_id=job.template_choice.template_id if job.template_choice else None,
         scad_content=job.artifacts.scad_content if job.artifacts else None,
         artifacts=job.artifacts.model_dump() if job.artifacts else None,
         validation_results=[v.model_dump() for v in job.validation_results] if job.validation_results else None,
         retry_count=job.retry_count,
         created_at=job.created_at.isoformat(),
         updated_at=job.updated_at.isoformat(),
-        logs=job.execution_logs,
+        logs=[log.model_dump(mode="json") for log in job.execution_logs],
     )
 
 
@@ -306,7 +306,7 @@ async def get_job_validations(job_id: str) -> list[ValidationResultSummary]:
         summaries.append(
             ValidationResultSummary(
                 rule_id=v.rule_id,
-                rule_name=v.rule_id,
+                rule_name=v.rule_name,
                 level=v.level.value,
                 passed=v.passed,
                 message=v.message,
@@ -318,9 +318,9 @@ async def get_job_validations(job_id: str) -> list[ValidationResultSummary]:
 
 @app.get("/jobs", response_model=list[JobStatusResponse])
 async def list_jobs(
-    state: JobState | None = None,
-    limit: int = Field(default=50, ge=1, le=100),
-    offset: int = Field(default=0, ge=0),
+    state: Optional[JobState] = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ) -> list[JobStatusResponse]:
     """List jobs with optional state filter."""
     jobs = _job_repo.list_jobs(state_filter=state, limit=limit, offset=offset)
@@ -331,14 +331,14 @@ async def list_jobs(
             state=job.state.value,
             input_request=job.input_request,
             spec_summary=f"{job.spec.geometric_type} {job.spec.dimensions}" if job.spec else None,
-            template_id=job.template.template_id if job.template else None,
+            template_id=job.template_choice.template_id if job.template_choice else None,
             scad_content=job.artifacts.scad_content if job.artifacts else None,
             artifacts=job.artifacts.model_dump() if job.artifacts else None,
             validation_results=[v.model_dump() for v in job.validation_results] if job.validation_results else None,
             retry_count=job.retry_count,
             created_at=job.created_at.isoformat(),
             updated_at=job.updated_at.isoformat(),
-            logs=job.execution_logs,
+            logs=[log.model_dump(mode="json") for log in job.execution_logs],
         )
         for job in jobs
     ]
@@ -400,7 +400,7 @@ async def health_check() -> JSONResponse:
 @app.get("/case-memory/similar")
 async def get_similar_cases(
     request: str,
-    limit: int = Field(default=5, ge=1, le=20),
+    limit: int = Query(default=5, ge=1, le=20),
 ) -> JSONResponse:
     """Find similar cases from case memory."""
     if not settings.case_memory_enabled:

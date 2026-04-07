@@ -1,11 +1,15 @@
 """DesignJob and related enums."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from cad_agent.app.models.validation import ValidationResult
 
 
 class JobState(str, Enum):
@@ -73,6 +77,11 @@ class TemplateChoice(BaseModel):
     reasoning: str = ""
     error_message: Optional[str] = None
 
+    @property
+    def template_id(self) -> str:
+        """Backward-compatible template identifier alias."""
+        return self.template_name
+
 
 class Artifacts(BaseModel):
     """Paths to generated artifacts."""
@@ -81,6 +90,12 @@ class Artifacts(BaseModel):
     stl_path: Optional[str] = None
     png_path: Optional[str] = None
     render_log: Optional[str] = None
+    report_path: Optional[str] = None
+
+    @property
+    def scad_content(self) -> Optional[str]:
+        """Backward-compatible alias for SCAD source content."""
+        return self.scad_source
 
 
 class ExecutionLog(BaseModel):
@@ -121,6 +136,7 @@ class DesignJob(BaseModel):
 
     # Business context
     business_context: dict[str, Any] = Field(default_factory=dict)
+    final_result: Optional[dict[str, Any]] = None
 
     # Spec from IntakeAgent
     spec: Optional[SpecResult] = None
@@ -135,7 +151,7 @@ class DesignJob(BaseModel):
     artifacts: Artifacts = Field(default_factory=Artifacts)
 
     # Validation results
-    validation_results: list[Any] = Field(default_factory=list)
+    validation_results: list[ValidationResult] = Field(default_factory=list)
 
     # Execution log
     execution_logs: list[ExecutionLog] = Field(default_factory=list)
@@ -158,14 +174,47 @@ class DesignJob(BaseModel):
     assigned_to: Optional[str] = None
     notes: list[str] = Field(default_factory=list)
 
+    @field_validator("priority", mode="before")
+    @classmethod
+    def _coerce_priority(cls, value: Any) -> JobPriority:
+        """Accept the API's numeric priority and convert it to the enum."""
+        if isinstance(value, JobPriority):
+            return value
+        if isinstance(value, int):
+            if value <= 2:
+                return JobPriority.URGENT
+            if value <= 4:
+                return JobPriority.HIGH
+            if value <= 7:
+                return JobPriority.NORMAL
+            return JobPriority.LOW
+        if isinstance(value, str):
+            try:
+                return JobPriority(value)
+            except ValueError:
+                return JobPriority.NORMAL
+        return JobPriority.NORMAL
+
     def transition_to(self, new_state: JobState) -> None:
         """Transition to a new state."""
         self.state = new_state
         self.updated_at = datetime.utcnow()
 
-    def add_log(self, log: ExecutionLog) -> None:
+    def add_log(self, log: Any) -> None:
         """Add an execution log entry."""
+        if isinstance(log, dict):
+            log = ExecutionLog.model_validate(log)
         self.execution_logs.append(log)
+
+    @property
+    def template(self) -> Optional[TemplateChoice]:
+        """Backward-compatible alias for template_choice."""
+        return self.template_choice
+
+    @property
+    def scad_content(self) -> Optional[str]:
+        """Backward-compatible alias for scad_source."""
+        return self.scad_source
 
     def should_retry(self) -> bool:
         """Check if job should be retried."""

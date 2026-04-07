@@ -1,9 +1,11 @@
 """Case memory service for storing and recalling successful patterns."""
 
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import structlog
 
@@ -15,9 +17,13 @@ logger = structlog.get_logger()
 class CaseMemoryService:
     """Stores successful CAD patterns for future recall."""
 
-    def __init__(self, storage_dir: str = "storage/cases"):
+    def __init__(
+        self,
+        storage_dir: str = "storage/cases",
+        db_path: str | None = None,
+    ):
         """Initialize case memory storage."""
-        self.storage_dir = Path(storage_dir)
+        self.storage_dir = Path(db_path).parent if db_path else Path(storage_dir)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.index_file = self.storage_dir / "index.json"
         self._ensure_index()
@@ -33,7 +39,7 @@ class CaseMemoryService:
         case_path.write_text(case.model_dump_json(indent=2))
         self._add_to_index(case.id)
 
-    def recall(self, case_id: str) -> Case | None:
+    def recall(self, case_id: str) -> Optional[Case]:
         """Recall a specific case by ID."""
         case_path = self.storage_dir / f"{case_id}.json"
         if not case_path.exists():
@@ -77,6 +83,21 @@ class CaseMemoryService:
 
         cases.sort(key=lambda x: x[1], reverse=True)
         return [c for c, _ in cases[:limit]]
+
+    def find_similar_cases(
+        self,
+        input_request: str,
+        geometric_type: str | None = None,
+        template_name: str | None = None,
+        limit: int = 5,
+    ) -> list[Case]:
+        """Backward-compatible alias for similar case lookup."""
+        return self.find_similar(
+            input_request=input_request,
+            geometric_type=geometric_type,
+            template_name=template_name,
+            limit=limit,
+        )
 
     def _add_to_index(self, case_id: str) -> None:
         """Add case ID to index."""

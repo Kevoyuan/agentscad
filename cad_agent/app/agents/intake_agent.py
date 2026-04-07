@@ -1,5 +1,7 @@
 """Intake agent - natural language to structured spec."""
 
+from __future__ import annotations
+
 import re
 import time
 from typing import Any

@@ -1,5 +1,7 @@
 """Retry policy and handoff logic."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from cad_agent.app.models.design_job import DesignJob, JobState
@@ -26,33 +28,22 @@ class RetryPolicy:
         if job.template_choice and job.template_choice.confidence < self.min_confidence:
             return True
 
-        spec = job.spec
-        if spec and spec.cost_target:
-            if spec.cost_target < 10.0:
-                return True
-
         return False
 
     def should_retry(self, job: DesignJob) -> bool:
         """Determine if a failed job should be retried."""
         return job.retry_count < self.max_retries
 
-    def get_next_state_after_failure(self, job: DesignJob) -> JobState:
+    def get_next_state_after_failure(
+        self,
+        job: DesignJob,
+        failed_state: str | None = None,
+    ) -> JobState:
         """Determine the next state after a failure."""
         if job.retry_count >= self.max_retries:
             return JobState.HUMAN_REVIEW
 
-        current_state = job.state
-
-        if current_state == JobState.SPEC_PARSED:
-            return JobState.SPEC_FAILED
-        elif current_state == JobState.TEMPLATE_SELECTED:
-            return JobState.TEMPLATE_FAILED
-        elif current_state == JobState.SCAD_GENERATED:
-            return JobState.RENDER_FAILED
-        elif current_state == JobState.RENDERED:
-            return JobState.VALIDATION_FAILED
-        elif current_state == JobState.VALIDATED:
+        if failed_state == JobState.VALIDATION_FAILED.value:
             return JobState.DEBUGGING
 
-        return JobState.HUMAN_REVIEW
+        return job.state

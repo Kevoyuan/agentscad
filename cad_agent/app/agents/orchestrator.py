@@ -1,15 +1,19 @@
 """Orchestrator agent - main state machine loop."""
 
+from __future__ import annotations
+
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import structlog
 
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
+from cad_agent.app.models.case import Case
 from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.rules.retry_policy import RetryPolicy
 
 if TYPE_CHECKING:
+    from cad_agent.app.services.case_memory import CaseMemoryService
     from cad_agent.app.agents.intake_agent import IntakeAgent
     from cad_agent.app.agents.template_agent import TemplateAgent
     from cad_agent.app.agents.generator_agent import GeneratorAgent
@@ -24,9 +28,14 @@ logger = structlog.get_logger()
 class OrchestratorAgent:
     """Main orchestration agent that drives the state machine."""
 
-    def __init__(self, retry_policy: RetryPolicy | None = None):
+    def __init__(
+        self,
+        retry_policy: RetryPolicy | None = None,
+        case_memory: Optional["CaseMemoryService"] = None,
+    ):
         """Initialize orchestrator."""
         self.retry_policy = retry_policy or RetryPolicy()
+        self.case_memory = case_memory
         self._agents: dict[str, object] = {}
 
     def set_agents(
@@ -50,6 +59,10 @@ class OrchestratorAgent:
             "report": report,
         }
 
+    def set_case_memory(self, case_memory: Optional["CaseMemoryService"]) -> None:
+        """Set the optional case memory service."""
+        self.case_memory = case_memory
+
     async def process(self, job: DesignJob) -> AgentResult:
         """Main orchestration loop - process a job through states.
 
@@ -71,12 +84,19 @@ class OrchestratorAgent:
 
             if not result.success and job.should_retry():
                 job.increment_retry()
-                next_state = self.retry_policy.get_next_state_after_failure(job)
+                next_state = self.retry_policy.get_next_state_after_failure(
+                    job,
+                    result.state_reached,
+                )
                 job.transition_to(next_state)
+            elif not result.success:
+                job.transition_to(JobState.HUMAN_REVIEW)
             elif result.success:
                 job.transition_to(JobState(result.state_reached))
 
         duration_ms = int((time.time() - start_time) * 1000)
+        if self._is_terminal_state(job.state):
+            self._store_success_case(job)
         return AgentResult(
             success=self._is_terminal_state(job.state),
             agent=AgentRole.ORCHESTRATOR,
@@ -101,6 +121,7 @@ class OrchestratorAgent:
             JobState.SCAD_GENERATED: ("executor", "execute"),
             JobState.RENDERED: ("validator", "validate"),
             JobState.VALIDATED: ("intake", "accept"),
+            JobState.ACCEPTED: ("report", "generate"),
             JobState.DEBUGGING: ("debug", "diagnose"),
             JobState.REPAIRING: ("generator", "repair"),
         }
@@ -147,10 +168,25 @@ class OrchestratorAgent:
 
         return result
 
+    def _store_success_case(self, job: DesignJob) -> None:
+        """Persist successful jobs into case memory for future reuse."""
+        if not self.case_memory or not job.spec or not job.template_choice:
+            return
+
+        case = Case(
+            id=job.case_id or job.id,
+            input_request=job.input_request,
+            spec_summary=f"{job.spec.geometric_type} {job.spec.dimensions}",
+            template_name=job.template_choice.template_name,
+            final_parameters=job.template_choice.parameters,
+            outcome="delivered",
+            tags=[job.spec.geometric_type, job.template_choice.template_name],
+        )
+        self.case_memory.store(case)
+
     def _is_terminal_state(self, state: JobState) -> bool:
         """Check if state is terminal (no further processing)."""
         terminal_states = {
-            JobState.ACCEPTED,
             JobState.DELIVERED,
             JobState.ARCHIVED,
             JobState.HUMAN_REVIEW,

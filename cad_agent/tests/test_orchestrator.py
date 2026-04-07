@@ -89,11 +89,11 @@ def mock_debug_agent():
 @pytest.fixture
 def mock_report_agent():
     agent = AsyncMock()
-    agent.accept.return_value = AgentResult(
+    agent.generate.return_value = AgentResult(
         success=True,
         agent=AgentRole.REPORT,
-        state_reached="ACCEPTED",
-        data={}
+        state_reached="DELIVERED",
+        data={"report": {"status": "DELIVERED"}},
     )
     return agent
 
@@ -151,7 +151,7 @@ class TestOrchestratorAgent:
         
         assert result.success is True
         assert result.agent == AgentRole.ORCHESTRATOR
-        assert sample_job.state == JobState.ACCEPTED
+        assert sample_job.state == JobState.DELIVERED
 
     @pytest.mark.asyncio
     async def test_process_with_failed_agent_retry(self, orchestrator, sample_job, mock_intake_agent):
@@ -177,7 +177,7 @@ class TestOrchestratorAgent:
         assert hasattr(result, 'data')
 
     def test_is_terminal_state(self, orchestrator):
-        assert orchestrator._is_terminal_state(JobState.ACCEPTED) is True
+        assert orchestrator._is_terminal_state(JobState.ACCEPTED) is False
         assert orchestrator._is_terminal_state(JobState.DELIVERED) is True
         assert orchestrator._is_terminal_state(JobState.ARCHIVED) is True
         assert orchestrator._is_terminal_state(JobState.HUMAN_REVIEW) is True
@@ -232,15 +232,15 @@ class TestOrchestratorAgent:
             state_reached="NEW",
             error="Temporary failure"
         )
-        
-        initial_retry = sample_job.retry_count
+
         await orchestrator.process(sample_job)
-        
-        assert sample_job.retry_count == initial_retry + 1
+
+        assert sample_job.retry_count == sample_job.max_retries
+        assert sample_job.state == JobState.HUMAN_REVIEW
 
     @pytest.mark.asyncio
     async def test_process_reaches_terminal_state(self, orchestrator, sample_job):
         result = await orchestrator.process(sample_job)
         
-        terminal_states = {"ACCEPTED", "DELIVERED", "ARCHIVED", "HUMAN_REVIEW", "CANCELLED"}
+        terminal_states = {"DELIVERED", "ARCHIVED", "HUMAN_REVIEW", "CANCELLED"}
         assert sample_job.state.value in terminal_states or result.success is True

@@ -1,5 +1,7 @@
 """Executor agent - runs OpenSCAD CLI."""
 
+from __future__ import annotations
+
 import os
 import time
 from pathlib import Path
@@ -18,11 +20,12 @@ class ExecutorAgent:
 
     def __init__(
         self,
+        executor: OpenSCADExecutor | None = None,
         openscad_path: str = "openscad",
         output_dir: str = "/tmp/cad_agent_renders",
     ):
         """Initialize executor with OpenSCAD path and output directory."""
-        self.executor = OpenSCADExecutor(openscad_path=openscad_path)
+        self.executor = executor or OpenSCADExecutor(openscad_path=openscad_path)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 

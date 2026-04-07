@@ -1,5 +1,7 @@
 """Report agent - generates delivery reports."""
 
+import json
+from pathlib import Path
 import time
 from datetime import datetime
 
@@ -13,6 +15,10 @@ logger = structlog.get_logger()
 
 class ReportAgent:
     """Generates delivery reports for completed designs."""
+
+    def __init__(self, output_dir: str = "/tmp/cad_agent_reports"):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
     async def generate(self, job: DesignJob) -> AgentResult:
         """Generate delivery report for accepted design.
@@ -34,10 +40,12 @@ class ReportAgent:
                 error="Can only generate report for ACCEPTED designs",
             )
 
-        report = self._build_report(job)
-
         job.transition_to(JobState.DELIVERED)
         job.completed_at = datetime.utcnow()
+        report = self._build_report(job)
+        report_path = self.output_dir / f"{job.id}.json"
+        report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False))
+        job.artifacts.report_path = str(report_path)
 
         result = AgentResult(
             success=True,
