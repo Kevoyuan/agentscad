@@ -1,9 +1,25 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
-storage/jobs/
-storage/cases/
-.venv
+
+# Environment
 .env
 *.env
+
+# Runtime output (never commit these)
+output/
+cad_agent/output/
+cad_agent/output-test/
+cad_agent/storage/
+storage/
+
+# Editor / IDE
+.claude/
+.codex/
+.codepilot-uploads/
+.local/
+
+# uv lock file (commit uv.lock to ensure consistent deps across machines)
+# uv.lock
