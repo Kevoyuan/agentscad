@@ -25,7 +25,7 @@ def _detect_openscad_path() -> Path:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="CAD_AGENT_",
-        env_file=".env",
+        env_file=str(Path(__file__).parent / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

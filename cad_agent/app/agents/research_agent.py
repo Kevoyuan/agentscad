@@ -34,7 +34,10 @@ class ResearchAgent:
         part_family: PartFamily | str | None = None,
     ) -> ResearchResult:
         """Return a structured research payload for the request."""
-        family = self._coerce_family(part_family) if part_family else infer_part_family(request)
+        # Treat "unknown" (persisted from a prior failed run) as if no family was set,
+        # so that infer_part_family gets a chance to re-classify the request.
+        normalized_family = None if part_family in (None, "", "unknown") else part_family
+        family = self._coerce_family(normalized_family) if normalized_family else infer_part_family(request)
         parsed = extract_numbers(request)
         object_name = self._object_name_for_family(family, request)
         search_queries = build_search_queries(request, family)

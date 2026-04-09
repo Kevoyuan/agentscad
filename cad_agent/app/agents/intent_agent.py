@@ -15,7 +15,11 @@ class IntentAgent:
         research: ResearchResult | None = None,
     ) -> IntentResult:
         """Build a normalized intent payload."""
-        family = research.part_family if research else infer_part_family(request)
+        # Re-classify if the prior step left an "unknown" sentinel instead of a real family.
+        if research and research.part_family not in (None, "", "unknown"):
+            family = research.part_family
+        else:
+            family = infer_part_family(request)
         object_name = research.object_name if research and research.object_name else self._object_name_for_family(family, request)
 
         primary_goal, secondary_goals, constraints, design_mode = self._family_intent(family, request)

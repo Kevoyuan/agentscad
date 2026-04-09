@@ -31,7 +31,7 @@ from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
-from cad_agent.app.research import AppleWebResearchAdapter
+from cad_agent.app.research import MiniMaxWebSearchAdapter
 from cad_agent.app.llm import (
     AnthropicCompatibleLLMClient,
     LLMDesignCritic,
@@ -181,7 +181,7 @@ async def lifespan(app: FastAPI):
 
     web_research_adapter = None
     if settings.web_research_enabled:
-        web_research_adapter = AppleWebResearchAdapter(
+        web_research_adapter = MiniMaxWebSearchAdapter(
             timeout_seconds=settings.web_research_timeout,
             user_agent=settings.web_research_user_agent,
         )
@@ -518,6 +518,75 @@ async def health_check() -> JSONResponse:
             },
         },
     )
+
+
+@app.get("/debug/network")
+async def debug_network_status() -> JSONResponse:
+    """Debug endpoint: probe web research connectivity and report status."""
+    import httpx
+    import time
+
+    web_research_enabled = settings.web_research_enabled
+    results: dict[str, object] = {
+        "web_research_adapter_enabled": web_research_enabled,
+        "targets": [],
+    }
+
+    # Probe 1: General internet reachability (apple.com)
+    try:
+        start = time.time()
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
+            response = await client.get("https://www.apple.com/")
+        latency_ms = int((time.time() - start) * 1000)
+        results["internet_reachable"] = True
+        results["apple_com_status"] = response.status_code
+        results["apple_com_latency_ms"] = latency_ms
+    except Exception as e:
+        results["internet_reachable"] = False
+        results["apple_com_error"] = str(e)
+        results["apple_com_latency_ms"] = None
+
+    # Probe 2: Apple device specs page (the actual research endpoint)
+    if web_research_enabled:
+        try:
+            start = time.time()
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                response = await client.get("https://www.apple.com/iphone-17-pro/specs/")
+            latency_ms = int((time.time() - start) * 1000)
+            results["targets"].append({
+                "name": "iphone_specs_page",
+                "url": "https://www.apple.com/iphone-17-pro/specs/",
+                "reachable": True,
+                "status": response.status_code,
+                "latency_ms": latency_ms,
+            })
+        except Exception as e:
+            results["targets"].append({
+                "name": "iphone_specs_page",
+                "url": "https://www.apple.com/iphone-17-pro/specs/",
+                "reachable": False,
+                "error": str(e),
+                "latency_ms": None,
+            })
+
+        # Probe 3: Web research adapter ping
+        try:
+            from cad_agent.app.research import MiniMaxWebSearchAdapter
+            adapter = MiniMaxWebSearchAdapter(timeout_seconds=5.0)
+            start = time.time()
+            await adapter.research("iPhone 17 Pro dimensions mm")
+            latency_ms = int((time.time() - start) * 1000)
+            results["web_research_adapter_usable"] = True
+            results["web_research_adapter_latency_ms"] = latency_ms
+        except Exception as e:
+            results["web_research_adapter_usable"] = False
+            results["web_research_adapter_error"] = str(e)
+            results["web_research_adapter_latency_ms"] = None
+    else:
+        results["web_research_adapter_usable"] = None
+        results["web_research_adapter_usable_note"] = "disabled by CAD_AGENT_WEB_RESEARCH_ENABLED=false"
+
+    return JSONResponse(status_code=200, content=results)
 
 
 @app.get("/case-memory/similar")
