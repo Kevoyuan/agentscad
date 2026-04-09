@@ -1,11 +1,15 @@
 """Generator agent - renders SCAD from Jinja2 templates."""
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
 
 import structlog
 
+from cad_agent.app.llm.geometry_dsl import GeometryDSLCompiler
 from cad_agent.app.llm.scad_generator import LLMScadGenerator
+from cad_agent.app.llm.pipeline_utils import has_resolved_part_family, normalize_part_family_value
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.parametric import ParametricPartEngine
@@ -22,11 +26,13 @@ class GeneratorAgent:
         templates_dir: str = "cad_agent/app/templates",
         llm_scad_generator: LLMScadGenerator | None = None,
         part_engine: ParametricPartEngine | None = None,
+        dsl_compiler: GeometryDSLCompiler | None = None,
     ):
         """Initialize generator with templates directory."""
         self.templates_dir = Path(templates_dir)
         self._llm_scad_generator = llm_scad_generator
         self._part_engine = part_engine or ParametricPartEngine()
+        self._dsl_compiler = dsl_compiler or GeometryDSLCompiler()
 
     async def generate(self, job: DesignJob) -> AgentResult:
         """Generate SCAD source from template.
@@ -45,7 +51,12 @@ class GeneratorAgent:
             part_family=job.part_family,
         )
 
-        if not job.template_choice and not job.part_family:
+        if (
+            not job.template_choice
+            and not has_resolved_part_family(job.part_family)
+            and not job.geometry_dsl
+            and not self._should_generate_dsl(job)
+        ):
             return AgentResult(
                 success=False,
                 agent=AgentRole.GENERATOR,
@@ -151,6 +162,7 @@ class GeneratorAgent:
             build_result = self._part_engine.build(job.part_family, job.get_effective_parameter_values())
             job.builder_name = type(self._part_engine._builders[job.part_family]).__name__
             job.part_family = build_result.family
+            job.generation_path = "parametric_builder"
             job.set_parameter_values(build_result.parameters)
             if not job.business_context:
                 job.business_context = {}
@@ -161,6 +173,22 @@ class GeneratorAgent:
             ]
             return build_result.scad_source
 
+        if normalize_part_family_value(job.part_family) == "phone_case" and not job.geometry_dsl:
+            job.geometry_dsl = self._dsl_compiler.build_phone_case(job.get_effective_parameter_values())
+            job.generation_path = "dsl"
+            return self._dsl_compiler.compile(job.geometry_dsl)
+
+        if job.geometry_dsl:
+            job.generation_path = "dsl"
+            return self._dsl_compiler.compile(job.geometry_dsl)
+
+        if self._should_generate_dsl(job):
+            if self._llm_scad_generator is None:
+                raise RuntimeError("DSL generation requires an LLM generator, but none is configured")
+            job.geometry_dsl = await self._llm_scad_generator.generate_geometry_dsl(job)
+            job.generation_path = "dsl"
+            return self._dsl_compiler.compile(job.geometry_dsl)
+
         if not job.template_choice:
             raise ParametricBuilderError("Missing template choice for non-parametric geometry")
 
@@ -168,13 +196,20 @@ class GeneratorAgent:
         if template_name == "llm_native_v1":
             if self._llm_scad_generator is None:
                 raise RuntimeError("Complex geometry requires an LLM generator, but none is configured")
+            job.generation_path = "llm_native_scad"
             return await self._llm_scad_generator.generate(job)
 
         from jinja2 import Environment, FileSystemLoader
 
         env = Environment(loader=FileSystemLoader(str(self.templates_dir)))
         template = env.get_template(f"{template_name}.scad.j2")
+        job.generation_path = "template"
         return template.render(**job.template_choice.parameters)
+
+    def _should_generate_dsl(self, job: DesignJob) -> bool:
+        """Return whether the job should use the DSL-first generation path."""
+        family = normalize_part_family_value(job.part_family)
+        return family in {"phone_case"} or job.generation_path == "dsl"
 
     def _success_state(self, job: DesignJob) -> JobState:
         """Return the next success state for the active generation path."""

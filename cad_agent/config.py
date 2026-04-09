@@ -145,6 +145,22 @@ class Settings(BaseSettings):
         description="Timeout for OpenSCAD rendering in seconds",
     )
 
+    web_research_enabled: bool = Field(
+        default=True,
+        description="Enable live web research for known real-world devices",
+    )
+
+    web_research_timeout: int = Field(
+        default=10,
+        ge=1,
+        description="Timeout for live web research HTTP calls in seconds",
+    )
+
+    web_research_user_agent: str = Field(
+        default="CAD-Agent/0.1 (+https://example.com)",
+        description="User-Agent header used for live web research requests",
+    )
+
     def ensure_directories(self) -> None:
         """Ensure all required directories exist."""
         for dir_path in [self.storage_dir, self.jobs_dir, self.cases_dir, self.output_dir]:

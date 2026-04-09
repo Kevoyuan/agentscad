@@ -96,10 +96,25 @@ class IntentAgent:
                 "enclosure_design",
             )
 
+        if family == PartFamily.PHONE_CASE:
+            return (
+                "Generate a fitted phone case with a printable shell, controlled openings, and protective edge geometry.",
+                [
+                    "Preserve reliable fit around the handset body and camera island.",
+                    "Expose shell thickness, screen lip, and opening controls for later tuning.",
+                    "Keep the case printable without unsupported, razor-thin features.",
+                ],
+                {
+                    "part_class": "protective_shell",
+                    "must_remain_printable": True,
+                    "requires_real_world_dimensions": True,
+                },
+                "phone_case_design",
+            )
+
         return (
             "Classify the request before committing to geometry.",
             ["More context is needed to determine the right part family."],
             {"part_class": "unknown"},
             "classification_only",
         )
-

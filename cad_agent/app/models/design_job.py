@@ -103,10 +103,13 @@ class ResearchResult(BaseModel):
     object_name: str = ""
     research_summary: str = ""
     reference_facts: list[str] = Field(default_factory=list)
+    reference_dimensions: dict[str, float] = Field(default_factory=dict)
     search_queries: list[str] = Field(default_factory=list)
     open_questions: list[str] = Field(default_factory=list)
     source_notes: list[str] = Field(default_factory=list)
+    source_urls: list[str] = Field(default_factory=list)
     needs_web_search: bool = False
+    web_research_used: bool = False
     confidence: float = 0.0
     error_message: Optional[str] = None
 
@@ -242,6 +245,8 @@ class DesignJob(BaseModel):
     parameter_values: dict[str, Any] = Field(default_factory=dict)
     part_family: Optional[str] = None
     builder_name: Optional[str] = None
+    geometry_dsl: Optional[dict[str, Any]] = None
+    generation_path: Optional[str] = None
 
     # Spec from IntakeAgent
     spec: Optional[SpecResult] = None

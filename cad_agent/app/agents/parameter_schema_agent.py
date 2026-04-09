@@ -34,6 +34,8 @@ class ParameterSchemaAgent:
         parsed = extract_numbers(request)
         family = intent.part_family
         defaults = family_default_values(family)
+        if research and getattr(research, "reference_dimensions", None):
+            defaults = {**defaults, **dict(research.reference_dimensions)}
 
         if family == PartFamily.SPUR_GEAR:
             parameters, user_params, inferred_params, design_params = self._gear_schema(parsed.values, defaults)
@@ -41,6 +43,8 @@ class ParameterSchemaAgent:
             parameters, user_params, inferred_params, design_params = self._stand_schema(parsed.values, defaults, research)
         elif family == PartFamily.ELECTRONICS_ENCLOSURE:
             parameters, user_params, inferred_params, design_params = self._enclosure_schema(parsed.values, defaults)
+        elif family == PartFamily.PHONE_CASE:
+            parameters, user_params, inferred_params, design_params = self._phone_case_schema(parsed.values, defaults)
         else:
             parameters, user_params, inferred_params, design_params = self._fallback_schema(defaults)
 
@@ -160,6 +164,31 @@ class ParameterSchemaAgent:
         params = [self._parameter(key, value, source=ParameterSource.DESIGN_DERIVED) for key, value in defaults.items()]
         return params, [], [], list(defaults.keys())
 
+    def _phone_case_schema(
+        self,
+        values: dict[str, float],
+        defaults: dict[str, float],
+    ) -> tuple[list[ParameterDefinition], list[str], list[str], list[str]]:
+        merged = {**defaults, **values}
+        params = [
+            self._parameter("body_length", merged["body_length"], source=self._source_for("body_length", values, default_source=ParameterSource.RESEARCH)),
+            self._parameter("body_width", merged["body_width"], source=self._source_for("body_width", values, default_source=ParameterSource.RESEARCH)),
+            self._parameter("body_depth", merged["body_depth"], source=self._source_for("body_depth", values, default_source=ParameterSource.RESEARCH)),
+            self._parameter("wall_thickness", merged["wall_thickness"], source=self._source_for("wall_thickness", values, default_source=ParameterSource.DESIGN_DERIVED)),
+            self._parameter("side_clearance", merged["side_clearance"], source=ParameterSource.DESIGN_DERIVED, editable=True),
+            self._parameter("camera_clearance", merged["camera_clearance"], source=ParameterSource.DESIGN_DERIVED, editable=True),
+            self._parameter("lip_height", merged["lip_height"], source=ParameterSource.DESIGN_DERIVED, editable=True),
+            self._parameter("bottom_opening_depth", merged["bottom_opening_depth"], source=ParameterSource.DESIGN_DERIVED, editable=True),
+            self._parameter("corner_bumper_thickness", merged["corner_bumper_thickness"], source=ParameterSource.DESIGN_DERIVED, editable=True),
+        ]
+        return params, list(values.keys()), ["body_length", "body_width", "body_depth"], [
+            "side_clearance",
+            "camera_clearance",
+            "lip_height",
+            "bottom_opening_depth",
+            "corner_bumper_thickness",
+        ]
+
     def _parameter(
         self,
         key: str,
@@ -240,4 +269,3 @@ class ParameterSchemaAgent:
         default_source: ParameterSource = ParameterSource.USER,
     ) -> ParameterSource:
         return ParameterSource.USER if key in values else default_source
-

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from cad_agent.app.llm.pipeline_utils import has_resolved_part_family
 from cad_agent.app.models.design_job import DesignJob, JobState
 
 
@@ -31,10 +32,10 @@ class RetryPolicy:
 
         intent_confidence = getattr(job.intent_result, "confidence", None)
         intent_part_family = getattr(job.intent_result, "part_family", None)
-        if intent_confidence is not None and intent_part_family not in (None, "", "unknown") and intent_confidence < self.min_confidence:
+        if intent_confidence is not None and has_resolved_part_family(intent_part_family) and intent_confidence < self.min_confidence:
             return True
 
-        if job.part_family is None and not job.template_choice and job.retry_count > 0:
+        if not has_resolved_part_family(job.part_family) and not job.template_choice and job.retry_count > 0:
             return True
 
         return False

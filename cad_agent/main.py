@@ -31,6 +31,7 @@ from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
+from cad_agent.app.research import AppleWebResearchAdapter
 from cad_agent.app.llm import (
     AnthropicCompatibleLLMClient,
     LLMDesignCritic,
@@ -178,8 +179,15 @@ async def lifespan(app: FastAPI):
         llm_scad_generator = None
         llm_design_critic = None
 
+    web_research_adapter = None
+    if settings.web_research_enabled:
+        web_research_adapter = AppleWebResearchAdapter(
+            timeout_seconds=settings.web_research_timeout,
+            user_agent=settings.web_research_user_agent,
+        )
+
     part_engine = ParametricPartEngine()
-    research_agent = ResearchAgent()
+    research_agent = ResearchAgent(web_research_adapter=web_research_adapter)
     intake_agent = IntakeAgent(spec_parser=llm_spec_parser)
     intent_agent = IntentAgent()
     design_agent = DesignAgent()

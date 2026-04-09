@@ -337,7 +337,7 @@ class TestOrchestratorAgent:
 
         await orchestrator.process(sample_job)
 
-        assert sample_job.retry_count == sample_job.max_retries
+        assert sample_job.retry_count == 1
         assert sample_job.state == JobState.HUMAN_REVIEW
 
     @pytest.mark.asyncio
@@ -358,3 +358,31 @@ class TestOrchestratorAgent:
         assert sample_job.state == JobState.RENDERED
         mock_validator_agent.validate.assert_not_called()
         mock_report_agent.generate.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_spec_parsed_unknown_family_routes_to_template_not_generator(
+        self,
+        orchestrator,
+        sample_job,
+        mock_template_agent,
+        mock_generator_agent,
+    ):
+        from cad_agent.app.models.design_job import SpecResult
+
+        sample_job.state = JobState.SPEC_PARSED
+        sample_job.part_family = "unknown"
+        sample_job.spec = SpecResult(
+            success=True,
+            request_summary="phone case",
+            geometric_type="phone case",
+            dimensions={"length": 150.0, "width": 75.0, "height": 10.0},
+            material="TPU",
+            tolerance=0.2,
+            functional_requirements=[],
+        )
+
+        result = await orchestrator._route_to_agent(sample_job)
+
+        assert result.agent == AgentRole.TEMPLATE
+        mock_template_agent.select.assert_awaited_once()
+        mock_generator_agent.generate.assert_not_awaited()

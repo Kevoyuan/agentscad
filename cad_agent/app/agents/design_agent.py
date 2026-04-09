@@ -112,6 +112,32 @@ class DesignAgent:
                 },
             )
 
+        if family == PartFamily.PHONE_CASE:
+            device_name = research.object_name if research else "phone"
+            return (
+                f"Create a fitted shell-style phone case for {device_name.lower()} with a protected perimeter, camera relief, and accessible openings.",
+                "Use a shell-and-cavity strategy so the case can preserve fit while exposing protection and access controls.",
+                [
+                    "outer shell",
+                    "inner cavity",
+                    "screen lip",
+                    "camera island relief",
+                    "button and port cutouts",
+                    "corner bumpers",
+                ],
+                [
+                    "Preserve a manufacturable wall around the handset body.",
+                    "Keep the camera island clear and leave enough front lip to protect the screen.",
+                    "Prefer editable relief and opening controls over hard-coded cutouts.",
+                ],
+                ["camera_clearance", "lip_height", "bottom_opening_depth", "corner_bumper_thickness"],
+                {
+                    "family": "phone_case",
+                    "geometry_class": "protective_shell",
+                    "fit_strategy": "device_envelope_plus_clearance",
+                },
+            )
+
         return (
             "The request has not yet been assigned to a supported design family.",
             "Hold design until the intent is better resolved.",
@@ -120,4 +146,3 @@ class DesignAgent:
             [],
             {"family": "unknown"},
         )
-

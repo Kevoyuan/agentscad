@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional
 
 import structlog
 
+from cad_agent.app.llm.pipeline_utils import has_resolved_part_family
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.case import Case
 from cad_agent.app.models.design_job import DesignJob, JobState, ParameterSchema
@@ -178,7 +179,7 @@ class OrchestratorAgent:
             JobState.INTENT_RESOLVED: ("design", "design"),
             JobState.DESIGN_RESOLVED: ("parameters", "build_schema"),
             JobState.PARAMETERS_GENERATED: ("intake", "process"),
-            JobState.SPEC_PARSED: ("generator", "generate") if job.part_family else ("template", "select"),
+            JobState.SPEC_PARSED: ("generator", "generate") if has_resolved_part_family(job.part_family) else ("template", "select"),
             JobState.TEMPLATE_SELECTED: ("generator", "generate"),
             JobState.GEOMETRY_BUILT: ("executor", "execute"),
             JobState.SCAD_GENERATED: ("executor", "execute"),
