@@ -55,6 +55,7 @@ const elements = {
     validationPanel: document.getElementById('validationPanel'),
     timelinePanel: document.getElementById('timelinePanel'),
     resetParametersButton: document.getElementById('resetParametersButton'),
+    copyTraceButton: document.getElementById('copyTraceButton'),
 };
 
 function init() {
@@ -71,6 +72,9 @@ function bindEvents() {
     elements.newCreationButton.addEventListener('click', focusComposer);
     elements.similarButton.addEventListener('click', handleSimilarLookup);
     elements.resetParametersButton.addEventListener('click', handleResetParameters);
+    if (elements.copyTraceButton) {
+        elements.copyTraceButton.addEventListener('click', handleCopyTrace);
+    }
 
     document.querySelectorAll('[data-filter-state]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -310,6 +314,38 @@ function handleResetParameters() {
     );
     renderParameters();
     scheduleParameterRebuild();
+}
+
+async function handleCopyTrace() {
+    const logs = state.selectedJob?.logs || [];
+    if (!logs.length) {
+        return;
+    }
+    
+    const traceText = logs.slice().reverse().map((log, index) => {
+        const title = `${log.agent || `agent-${index + 1}`} · ${log.action || 'event'}`;
+        const time = formatCompactDate(log.timestamp || log.created_at || '');
+        let bodyText = '';
+        if (log.raw_message) {
+            bodyText = log.raw_message;
+        } else if (log.output_data) {
+            bodyText = JSON.stringify(log.output_data, null, 2);
+        } else if (log.input_data) {
+            bodyText = JSON.stringify(log.input_data, null, 2);
+        }
+        return `[${time}] ${title}\n${bodyText}`;
+    }).join('\n\n---\n\n');
+
+    try {
+        await navigator.clipboard.writeText(traceText);
+        const originalText = elements.copyTraceButton.textContent;
+        elements.copyTraceButton.textContent = 'Copied';
+        setTimeout(() => {
+            elements.copyTraceButton.textContent = originalText;
+        }, 1500);
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+    }
 }
 
 function focusComposer() {
