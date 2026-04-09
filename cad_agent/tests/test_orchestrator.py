@@ -346,3 +346,15 @@ class TestOrchestratorAgent:
 
         terminal_states = {"DELIVERED", "ARCHIVED", "HUMAN_REVIEW", "CANCELLED"}
         assert sample_job.state.value in terminal_states or result.success is True
+
+    @pytest.mark.asyncio
+    async def test_process_preview_stops_after_render(self, orchestrator, sample_job, mock_validator_agent, mock_report_agent):
+        sample_job.state = JobState.SPEC_PARSED
+        sample_job.part_family = "spur_gear"
+
+        result = await orchestrator.process_preview(sample_job)
+
+        assert result.success is True
+        assert sample_job.state == JobState.RENDERED
+        mock_validator_agent.validate.assert_not_called()
+        mock_report_agent.generate.assert_not_called()

@@ -44,6 +44,7 @@ class OpenSCADExecutor:
         scad_source: str,
         output_dir: str | None = None,
         camera: str = "--viewall",
+        render_png: bool = True,
     ) -> RenderResult:
         """Render SCAD source to STL and PNG.
 
@@ -93,6 +94,14 @@ class OpenSCADExecutor:
                     success=False,
                     log_output=log_output,
                     error_message=f"STL render failed: {result.stderr}",
+                )
+
+            if not render_png:
+                return RenderResult(
+                    success=True,
+                    stl_path=str(stl_file),
+                    png_path=None,
+                    log_output=log_output,
                 )
 
             png_result = subprocess.run(

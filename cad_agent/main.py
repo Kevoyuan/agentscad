@@ -140,6 +140,10 @@ class UpdateParametersRequest(BaseModel):
         ...,
         description="Updated parameter values to rebuild the model with",
     )
+    preview_only: bool = Field(
+        default=False,
+        description="When true, rebuild only geometry and the STL preview for interactive edits",
+    )
 
 
 @asynccontextmanager
@@ -358,11 +362,15 @@ async def update_job_parameters(job_id: str, request: UpdateParametersRequest) -
     job.artifacts.scad_source = None
     job.artifacts.stl_path = None
     job.artifacts.png_path = None
+    job.artifacts.report_path = None
     job.validation_results = []
     job.transition_to(JobState.SPEC_PARSED)
 
     try:
-        result = await _orchestrator.process(job)
+        if request.preview_only:
+            result = await _orchestrator.process_preview(job)
+        else:
+            result = await _orchestrator.process(job)
         job.final_result = result.model_dump(mode="json")
     except Exception as exc:
         logger.error("parameter_rebuild_failed", job_id=job_id, error=str(exc))

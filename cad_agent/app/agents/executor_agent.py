@@ -51,10 +51,12 @@ class ExecutorAgent:
 
         job_dir = self.output_dir / job.id
         job_dir.mkdir(exist_ok=True)
+        preview_mode = bool((job.business_context or {}).get("preview_mode"))
 
         result = await self.executor.render(
             scad_source=job.scad_source,
             output_dir=str(job_dir),
+            render_png=not preview_mode,
         )
 
         if result.success:

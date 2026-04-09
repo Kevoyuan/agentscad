@@ -117,6 +117,52 @@ class OrchestratorAgent:
             duration_ms=duration_ms,
         )
 
+    async def process_preview(self, job: DesignJob) -> AgentResult:
+        """Run a lightweight preview path and stop after the render step."""
+        start_time = time.time()
+        logger.info("orchestrator_preview_started", job_id=job.id, state=job.state.value)
+
+        if not job.business_context:
+            job.business_context = {}
+        job.business_context["preview_mode"] = True
+
+        preview_terminal_states = {
+            JobState.RENDERED,
+            JobState.GEOMETRY_FAILED,
+            JobState.RENDER_FAILED,
+            JobState.SPEC_FAILED,
+            JobState.TEMPLATE_FAILED,
+            JobState.HUMAN_REVIEW,
+            JobState.CANCELLED,
+        }
+
+        try:
+            while job.state not in preview_terminal_states:
+                result = await self._route_to_agent(job)
+
+                if result.success:
+                    job.transition_to(JobState(result.state_reached))
+                    continue
+
+                if result.state_reached in JobState._value2member_map_:
+                    job.transition_to(JobState(result.state_reached))
+                else:
+                    job.transition_to(JobState.RENDER_FAILED)
+                break
+        finally:
+            job.business_context.pop("preview_mode", None)
+
+        duration_ms = int((time.time() - start_time) * 1000)
+        success = job.state == JobState.RENDERED
+        return AgentResult(
+            success=success,
+            agent=AgentRole.ORCHESTRATOR,
+            state_reached=job.state.value,
+            data={"job_id": job.id, "final_state": job.state.value, "preview_mode": True},
+            duration_ms=duration_ms,
+            error=None if success else f"Preview render stopped at {job.state.value}",
+        )
+
     async def _route_to_agent(self, job: DesignJob) -> AgentResult:
         """Route job to appropriate agent based on current state.
 

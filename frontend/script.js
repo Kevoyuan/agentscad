@@ -13,10 +13,14 @@ const state = {
     filterState: 'ALL',
     pollingHandle: null,
     viewerCleanup: null,
+    viewerInstance: null,
     isLoadingJobs: false,
     isLoadingDetail: false,
     isSubmitting: false,
     parameterOverrides: {},
+    parameterUpdateTimer: null,
+    parameterUpdateSeq: 0,
+    isUpdatingParameters: false,
 };
 
 const elements = {
@@ -66,10 +70,7 @@ function bindEvents() {
     elements.refreshButton.addEventListener('click', refreshAll);
     elements.newCreationButton.addEventListener('click', focusComposer);
     elements.similarButton.addEventListener('click', handleSimilarLookup);
-    elements.resetParametersButton.addEventListener('click', () => {
-        state.parameterOverrides = {};
-        renderParameters();
-    });
+    elements.resetParametersButton.addEventListener('click', handleResetParameters);
 
     document.querySelectorAll('[data-filter-state]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -173,6 +174,7 @@ function sortJobsByRecency(jobs) {
 }
 
 async function fetchJobDetail(jobId) {
+    cancelPendingParameterUpdate();
     state.isLoadingDetail = true;
     renderWorkspace();
 
@@ -198,10 +200,7 @@ async function fetchJobDetail(jobId) {
     } catch (error) {
         state.selectedJob = null;
         state.validations = [];
-        if (typeof state.viewerCleanup === 'function') {
-            state.viewerCleanup();
-            state.viewerCleanup = null;
-        }
+        destroyViewer();
         elements.viewerPlaceholder.classList.remove('hidden');
         elements.viewerPlaceholder.innerHTML = `<p>${escapeHtml(error.message || 'Failed to load creation.')}</p>`;
     } finally {
@@ -290,7 +289,31 @@ async function handleSimilarLookup() {
     renderConversation();
 }
 
+function handleResetParameters() {
+    const job = state.selectedJob;
+    if (!job) {
+        return;
+    }
+
+    const editableParameters = Array.isArray(job?.parameter_schema?.parameters)
+        ? job.parameter_schema.parameters.filter((parameter) => parameter && parameter.editable !== false)
+        : [];
+
+    if (!editableParameters.length) {
+        state.parameterOverrides = {};
+        renderParameters();
+        return;
+    }
+
+    state.parameterOverrides = Object.fromEntries(
+        editableParameters.map((parameter) => [parameter.key, parameter.value])
+    );
+    renderParameters();
+    scheduleParameterRebuild();
+}
+
 function focusComposer() {
+    cancelPendingParameterUpdate();
     state.selectedJobId = null;
     state.selectedJob = null;
     state.validations = [];
@@ -487,10 +510,7 @@ function renderCanvas() {
         elements.validationSummary.textContent = 'Waiting';
         elements.updatedSummary.textContent = '-';
         elements.artifactActions.innerHTML = '';
-        if (typeof state.viewerCleanup === 'function') {
-            state.viewerCleanup();
-            state.viewerCleanup = null;
-        }
+        destroyViewer();
         elements.viewerPlaceholder.classList.remove('hidden');
         elements.viewerPlaceholder.innerHTML = '<p>Select a creation to inspect the generated STL here.</p>';
         return;
@@ -501,8 +521,8 @@ function renderCanvas() {
     elements.viewerStateBadge.className = `state-chip ${badgeStateClass(job.state)}`;
     elements.viewerTemplateBadge.textContent = job.template_id || 'template pending';
     elements.viewerPromptLabel.textContent = truncate(job.input_request, 52);
-    elements.artifactSummary.textContent = summarizeArtifacts(job.artifacts);
-    elements.validationSummary.textContent = summarizeValidation(state.validations);
+    elements.artifactSummary.textContent = state.isUpdatingParameters ? 'Updating preview…' : summarizeArtifacts(job.artifacts);
+    elements.validationSummary.textContent = state.isUpdatingParameters ? 'Re-rendering' : summarizeValidation(state.validations);
     elements.updatedSummary.textContent = formatCompactDate(job.updated_at);
     elements.artifactActions.innerHTML = buildArtifactActions(job);
     initializeStlPreview(job);
@@ -525,6 +545,27 @@ function renderParameters() {
         const overrideKey = parameter.key;
         const value = state.parameterOverrides[overrideKey] ?? parameter.value;
         const range = deriveParameterRange(parameter, value);
+
+        if (parameter.editable === false) {
+            return `
+                <div class="parameter-card is-locked">
+                    <div class="parameter-head">
+                        <strong>${escapeHtml(parameter.label)}</strong>
+                        <span>${escapeHtml(parameter.description)}</span>
+                    </div>
+                    <div class="parameter-readout">
+                        <input
+                            class="parameter-value"
+                            type="number"
+                            value="${escapeHtml(String(roundNumber(value, range.step)))}"
+                            step="${escapeHtml(String(range.step))}"
+                            disabled
+                        >
+                        <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
+                    </div>
+                </div>
+            `;
+        }
 
         return `
             <div class="parameter-card">
@@ -556,15 +597,28 @@ function renderParameters() {
 
     elements.parametersPanel.querySelectorAll('[data-parameter-key]').forEach((input) => {
         input.addEventListener('input', () => {
-            state.parameterOverrides[input.dataset.parameterKey] = Number(input.value);
+            const numericValue = Number(input.value);
+            if (!Number.isFinite(numericValue)) {
+                return;
+            }
+            state.parameterOverrides[input.dataset.parameterKey] = numericValue;
             syncParameterInput(input.dataset.parameterKey, input.value);
+            scheduleParameterRebuild({ previewOnly: true, delayMs: 140 });
+        });
+        input.addEventListener('change', () => {
+            scheduleParameterRebuild({ previewOnly: true, delayMs: 40 });
         });
     });
 
     elements.parametersPanel.querySelectorAll('[data-parameter-input]').forEach((input) => {
         input.addEventListener('input', () => {
-            state.parameterOverrides[input.dataset.parameterInput] = Number(input.value);
+            const numericValue = Number(input.value);
+            if (!Number.isFinite(numericValue)) {
+                return;
+            }
+            state.parameterOverrides[input.dataset.parameterInput] = numericValue;
             syncParameterSlider(input.dataset.parameterInput, input.value);
+            scheduleParameterRebuild({ previewOnly: true, delayMs: 220 });
         });
     });
 }
@@ -658,6 +712,25 @@ function buildArtifactActions(job) {
 }
 
 function extractParameters(job) {
+    const schemaParameters = job?.parameter_schema?.parameters;
+    if (Array.isArray(schemaParameters) && schemaParameters.length) {
+        return schemaParameters
+            .filter((parameter) => parameter && parameter.editable !== false)
+            .map((parameter) => ({
+                key: parameter.key,
+                value: state.parameterOverrides[parameter.key]
+                    ?? job.parameter_values?.[parameter.key]
+                    ?? parameter.value,
+                label: parameter.label || prettyLabel(parameter.key),
+                unit: parameter.unit || inferUnit(parameter.key),
+                description: parameter.description || inferDescription(parameter.key),
+                min: parameter.min,
+                max: parameter.max,
+                step: parameter.step,
+                editable: parameter.editable !== false,
+            }));
+    }
+
     const dimensions = readStructuredDimensions(job);
     return Object.entries(dimensions)
         .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
@@ -667,6 +740,7 @@ function extractParameters(job) {
             label: prettyLabel(key),
             unit: inferUnit(key),
             description: inferDescription(key),
+            editable: true,
         }));
 }
 
@@ -696,11 +770,109 @@ function readStructuredDimensions(job) {
 function deriveParameterRange(parameter, value) {
     const magnitude = Math.max(Math.abs(value), 1);
     const isDiscrete = /teeth|count|quantity|index/i.test(parameter.key);
+    const min = typeof parameter.min === 'number' ? parameter.min : undefined;
+    const max = typeof parameter.max === 'number' ? parameter.max : undefined;
+    const step = typeof parameter.step === 'number' ? parameter.step : undefined;
     return {
-        min: isDiscrete ? Math.max(1, Math.round(value * 0.5)) : roundNumber(Math.max(0, value - magnitude * 0.5), 0.1),
-        max: isDiscrete ? Math.max(2, Math.round(value * 1.8)) : roundNumber(value + magnitude * 0.75 + 1, 0.1),
-        step: isDiscrete ? 1 : magnitude < 10 ? 0.1 : 1,
+        min: min ?? (isDiscrete ? Math.max(1, Math.round(value * 0.5)) : roundNumber(Math.max(0, value - magnitude * 0.5), 0.1)),
+        max: max ?? (isDiscrete ? Math.max(2, Math.round(value * 1.8)) : roundNumber(value + magnitude * 0.75 + 1, 0.1)),
+        step: step ?? (isDiscrete ? 1 : magnitude < 10 ? 0.1 : 1),
     };
+}
+
+function scheduleParameterRebuild({ previewOnly = true, delayMs = 160 } = {}) {
+    const jobId = state.selectedJob?.job_id;
+    if (!jobId) {
+        return;
+    }
+
+    if (state.parameterUpdateTimer) {
+        clearTimeout(state.parameterUpdateTimer);
+    }
+
+    const seq = ++state.parameterUpdateSeq;
+    state.parameterUpdateTimer = window.setTimeout(() => {
+        void rebuildJobFromParameters(jobId, seq, { previewOnly });
+    }, delayMs);
+}
+
+async function rebuildJobFromParameters(jobId, seq, { previewOnly = false } = {}) {
+    if (!state.selectedJob || state.selectedJob.job_id !== jobId) {
+        return;
+    }
+
+    const payload = collectEditableParameterValues(state.selectedJob);
+    if (!Object.keys(payload).length) {
+        return;
+    }
+
+    state.isUpdatingParameters = true;
+    renderCanvas();
+
+    try {
+        const response = await fetch(`${API_BASE}/jobs/${jobId}/parameters`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                parameter_values: payload,
+                preview_only: previewOnly,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorPayload = await response.json().catch(() => null);
+            throw new Error(errorPayload?.detail || 'Parameter rebuild failed');
+        }
+
+        const updatedJob = await response.json();
+        if (seq !== state.parameterUpdateSeq || state.selectedJobId !== jobId) {
+            return;
+        }
+
+        state.selectedJob = updatedJob;
+        state.jobs = state.jobs.map((job) => (job.job_id === jobId ? { ...job, ...updatedJob } : job));
+        state.validations = normalizeValidations(updatedJob.validation_results);
+        state.parameterOverrides = {};
+        renderStats();
+        renderJobsList();
+        renderWorkspace();
+    } catch (error) {
+        if (seq === state.parameterUpdateSeq && state.selectedJobId === jobId) {
+            elements.viewerPlaceholder.classList.remove('hidden');
+            elements.viewerPlaceholder.innerHTML = `<p>${escapeHtml(error.message || 'Parameter rebuild failed')}</p>`;
+        }
+    } finally {
+        if (seq === state.parameterUpdateSeq) {
+            state.isUpdatingParameters = false;
+            state.parameterUpdateTimer = null;
+            renderCanvas();
+        }
+    }
+}
+
+function collectEditableParameterValues(job) {
+    const values = {};
+    for (const parameter of extractParameters(job)) {
+        if (parameter.editable === false) {
+            continue;
+        }
+        const value = state.parameterOverrides[parameter.key]
+            ?? job.parameter_values?.[parameter.key]
+            ?? parameter.value;
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            values[parameter.key] = value;
+        }
+    }
+    return values;
+}
+
+function cancelPendingParameterUpdate() {
+    if (state.parameterUpdateTimer) {
+        clearTimeout(state.parameterUpdateTimer);
+    }
+    state.parameterUpdateTimer = null;
+    state.parameterUpdateSeq += 1;
+    state.isUpdatingParameters = false;
 }
 
 function syncParameterInput(key, value) {
@@ -726,36 +898,18 @@ function linkCard(label, href, copy) {
     `;
 }
 
-function initializeStlPreview(job) {
+function destroyViewer() {
     if (typeof state.viewerCleanup === 'function') {
         state.viewerCleanup();
-        state.viewerCleanup = null;
     }
+    state.viewerCleanup = null;
+    state.viewerInstance = null;
+}
 
-    const container = elements.stlViewer;
-    const placeholder = elements.viewerPlaceholder;
-    const stlUrl = job?.artifacts?.stl_path ? `${API_BASE}/jobs/${job.job_id}/artifacts/stl` : null;
-
-    if (!container || !placeholder) {
-        return;
+function ensureViewerInstance(container) {
+    if (state.viewerInstance) {
+        return state.viewerInstance;
     }
-
-    if (!stlUrl) {
-        container.innerHTML = '';
-        placeholder.classList.remove('hidden');
-        placeholder.innerHTML = '<p>Rendering has not produced an STL yet. The viewport will light up as soon as the artifact is ready.</p>';
-        return;
-    }
-
-    if (!window.THREE || !window.THREE.STLLoader || !window.THREE.OrbitControls) {
-        container.innerHTML = '';
-        placeholder.classList.remove('hidden');
-        placeholder.innerHTML = '<p>The browser preview engine is unavailable, but the STL is ready to download.</p>';
-        return;
-    }
-
-    placeholder.classList.add('hidden');
-    container.innerHTML = '';
 
     const scene = new window.THREE.Scene();
     scene.background = new window.THREE.Color(0x2f2f2f);
@@ -765,7 +919,8 @@ function initializeStlPreview(job) {
 
     const renderer = new window.THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio || 1);
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(container.clientWidth || 1, container.clientHeight || 1);
+    container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     const controls = new window.THREE.OrbitControls(camera, renderer.domElement);
@@ -789,72 +944,143 @@ function initializeStlPreview(job) {
     const axes = new window.THREE.AxesHelper(28);
     scene.add(axes);
 
-    let mesh = null;
-    let animationFrameId = null;
+    const viewer = {
+        scene,
+        camera,
+        renderer,
+        controls,
+        mesh: null,
+        loadSeq: 0,
+        currentUrl: null,
+        animationFrameId: null,
+        handleResize: null,
+    };
+
+    function animate() {
+        viewer.animationFrameId = window.requestAnimationFrame(animate);
+        viewer.controls.update();
+        viewer.renderer.render(viewer.scene, viewer.camera);
+    }
+
+    viewer.handleResize = () => {
+        const width = container.clientWidth || 1;
+        const height = container.clientHeight || 1;
+        viewer.camera.aspect = width / height;
+        viewer.camera.updateProjectionMatrix();
+        viewer.renderer.setSize(width, height);
+    };
+
+    window.addEventListener('resize', viewer.handleResize);
+    animate();
+
+    state.viewerInstance = viewer;
+    state.viewerCleanup = () => {
+        window.removeEventListener('resize', viewer.handleResize);
+        if (viewer.animationFrameId) {
+            window.cancelAnimationFrame(viewer.animationFrameId);
+        }
+        viewer.controls.dispose();
+        viewer.renderer.dispose();
+        if (viewer.mesh) {
+            viewer.mesh.geometry.dispose();
+            viewer.mesh.material.dispose();
+        }
+        container.innerHTML = '';
+    };
+
+    return viewer;
+}
+
+function frameViewerToGeometry(viewer, geometry) {
+    const size = new window.THREE.Vector3();
+    geometry.boundingBox.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z, 1);
+    viewer.camera.position.set(maxDim * 1.9, maxDim * 1.35, maxDim * 1.9);
+    viewer.controls.target.set(0, 0, 0);
+    viewer.controls.update();
+}
+
+function loadStlIntoViewer(viewer, stlUrl, placeholder) {
+    if (viewer.currentUrl === stlUrl && viewer.mesh) {
+        placeholder.classList.add('hidden');
+        return;
+    }
+
+    const loadSeq = ++viewer.loadSeq;
+    viewer.currentUrl = stlUrl;
 
     const loader = new window.THREE.STLLoader();
     loader.load(
         stlUrl,
         (geometry) => {
+            if (state.viewerInstance !== viewer || loadSeq !== viewer.loadSeq) {
+                geometry.dispose();
+                return;
+            }
+
             geometry.computeBoundingBox();
             geometry.computeVertexNormals();
             geometry.center();
 
-            const material = new window.THREE.MeshStandardMaterial({
-                color: 0x39a7ff,
-                metalness: 0.14,
-                roughness: 0.5,
-            });
+            if (viewer.mesh) {
+                const oldGeometry = viewer.mesh.geometry;
+                viewer.mesh.geometry = geometry;
+                oldGeometry.dispose();
+            } else {
+                const material = new window.THREE.MeshStandardMaterial({
+                    color: 0x39a7ff,
+                    metalness: 0.14,
+                    roughness: 0.5,
+                });
 
-            mesh = new window.THREE.Mesh(geometry, material);
-            mesh.rotation.x = -Math.PI / 2;
-            scene.add(mesh);
+                viewer.mesh = new window.THREE.Mesh(geometry, material);
+                viewer.mesh.rotation.x = -Math.PI / 2;
+                viewer.scene.add(viewer.mesh);
+            }
 
-            const size = new window.THREE.Vector3();
-            geometry.boundingBox.getSize(size);
-            const maxDim = Math.max(size.x, size.y, size.z, 1);
-            camera.position.set(maxDim * 1.9, maxDim * 1.35, maxDim * 1.9);
-            controls.target.set(0, 0, 0);
-            controls.update();
+            frameViewerToGeometry(viewer, geometry);
+            placeholder.classList.add('hidden');
         },
         undefined,
         () => {
-            placeholder.classList.remove('hidden');
-            placeholder.innerHTML = '<p>The STL exists, but the browser could not render it. Download is still available below.</p>';
+            if (state.viewerInstance !== viewer || loadSeq !== viewer.loadSeq) {
+                return;
+            }
+            if (!viewer.mesh) {
+                placeholder.classList.remove('hidden');
+                placeholder.innerHTML = '<p>The STL exists, but the browser could not render it. Download is still available below.</p>';
+            }
         }
     );
+}
 
-    function animate() {
-        animationFrameId = window.requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
+function initializeStlPreview(job) {
+    const container = elements.stlViewer;
+    const placeholder = elements.viewerPlaceholder;
+    const stlUrl = job?.artifacts?.stl_path
+        ? `${API_BASE}/jobs/${job.job_id}/artifacts/stl?ts=${encodeURIComponent(job.updated_at || Date.now())}`
+        : null;
+
+    if (!container || !placeholder) {
+        return;
     }
 
-    animate();
+    if (!stlUrl) {
+        destroyViewer();
+        placeholder.classList.remove('hidden');
+        placeholder.innerHTML = '<p>Rendering has not produced an STL yet. The viewport will light up as soon as the artifact is ready.</p>';
+        return;
+    }
 
-    const handleResize = () => {
-        const width = container.clientWidth || 1;
-        const height = container.clientHeight || 1;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
-    };
+    if (!window.THREE || !window.THREE.STLLoader || !window.THREE.OrbitControls) {
+        destroyViewer();
+        placeholder.classList.remove('hidden');
+        placeholder.innerHTML = '<p>The browser preview engine is unavailable, but the STL is ready to download.</p>';
+        return;
+    }
 
-    window.addEventListener('resize', handleResize);
-
-    state.viewerCleanup = () => {
-        window.removeEventListener('resize', handleResize);
-        if (animationFrameId) {
-            window.cancelAnimationFrame(animationFrameId);
-        }
-        controls.dispose();
-        renderer.dispose();
-        if (mesh) {
-            mesh.geometry.dispose();
-            mesh.material.dispose();
-        }
-        container.innerHTML = '';
-    };
+    const viewer = ensureViewerInstance(container);
+    loadStlIntoViewer(viewer, stlUrl, placeholder);
 }
 
 function normalizeValidations(validations) {

@@ -60,6 +60,26 @@ class TestOpenSCADExecutor:
 
     @pytest.mark.asyncio
     @patch("cad_agent.app.tools.openscad_executor.subprocess.run")
+    @patch("cad_agent.app.tools.openscad_executor.Path.exists")
+    @patch("cad_agent.app.tools.openscad_executor.Path.write_text")
+    async def test_render_can_skip_png_for_preview(self, mock_write, mock_exists, mock_run, temp_output_dir):
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_exists.return_value = True
+
+        executor = OpenSCADExecutor()
+        result = await executor.render(
+            scad_source="$fn=50;\ncube([10, 5, 3]);",
+            output_dir=temp_output_dir,
+            render_png=False,
+        )
+
+        assert result.success is True
+        assert result.stl_path is not None
+        assert result.png_path is None
+        assert mock_run.call_count == 1
+
+    @pytest.mark.asyncio
+    @patch("cad_agent.app.tools.openscad_executor.subprocess.run")
     @patch("cad_agent.app.tools.openscad_executor.Path.write_text")
     async def test_render_timeout(self, mock_write, mock_run, temp_output_dir):
         import subprocess
@@ -116,7 +136,7 @@ class TestExecutorAgent:
             def __init__(self):
                 self.render_calls = 0
 
-            async def render(self, scad_source: str, output_dir=None, camera: str = "--viewall"):
+            async def render(self, scad_source: str, output_dir=None, camera: str = "--viewall", render_png: bool = True):
                 self.render_calls += 1
                 return RenderResult(
                     success=True,
@@ -133,6 +153,41 @@ class TestExecutorAgent:
 
         assert result.success is True
         assert stub.render_calls == 1
+
+    @pytest.mark.asyncio
+    async def test_execute_skips_png_during_preview_mode(self, tmp_path):
+        from cad_agent.app.agents.executor_agent import ExecutorAgent
+        from cad_agent.app.models.design_job import DesignJob
+
+        class StubExecutor:
+            def __init__(self):
+                self.render_kwargs = None
+
+            async def render(self, scad_source: str, output_dir=None, camera: str = "--viewall", render_png: bool = True):
+                self.render_kwargs = {
+                    "output_dir": output_dir,
+                    "camera": camera,
+                    "render_png": render_png,
+                }
+                return RenderResult(
+                    success=True,
+                    stl_path=str(tmp_path / "design.stl"),
+                    png_path=None,
+                    log_output="ok",
+                )
+
+        stub = StubExecutor()
+        agent = ExecutorAgent(executor=stub, output_dir=str(tmp_path))
+        job = DesignJob(
+            input_request="gear",
+            scad_source="cube([1,1,1]);",
+            business_context={"preview_mode": True},
+        )
+
+        result = await agent.execute(job)
+
+        assert result.success is True
+        assert stub.render_kwargs["render_png"] is False
 
     def test_render_result_model(self):
         result = RenderResult(
