@@ -3,7 +3,7 @@
 import pytest
 
 from cad_agent.app.agents.intake_agent import IntakeAgent
-from cad_agent.app.models.design_job import DesignJob, JobState
+from cad_agent.app.models.design_job import DesignJob, JobState, SpecResult
 
 
 class TestIntakeAgentProcess:
@@ -42,6 +42,50 @@ class TestIntakeAgentProcess:
         assert job.spec is not None
         assert 0.0 <= job.spec.confidence <= 1.0
 
+    @pytest.mark.asyncio
+    async def test_process_uses_llm_spec_parser_when_available(self):
+        """Process should use the injected LLM parser before regex fallback."""
+
+        class StubSpecParser:
+            async def parse(self, request: str) -> SpecResult:
+                return SpecResult(
+                    success=True,
+                    request_summary=request,
+                    geometric_type="bracket",
+                    dimensions={"length": 42.0},
+                    material="PETG",
+                    tolerance=0.2,
+                    surface_finish="matte",
+                    functional_requirements=["mountable"],
+                    raw_request=request,
+                    confidence=0.91,
+                )
+
+        agent = IntakeAgent(spec_parser=StubSpecParser())
+        job = DesignJob(input_request="Create a mounting bracket")
+
+        await agent.process(job)
+
+        assert job.spec is not None
+        assert job.spec.geometric_type == "bracket"
+        assert job.spec.material == "PETG"
+
+    @pytest.mark.asyncio
+    async def test_process_falls_back_when_llm_spec_parser_fails(self):
+        """Process should fall back to regex parsing when the LLM parser fails."""
+
+        class FailingSpecParser:
+            async def parse(self, request: str) -> SpecResult:
+                raise RuntimeError("provider unavailable")
+
+        agent = IntakeAgent(spec_parser=FailingSpecParser())
+        job = DesignJob(input_request="Create a hook with 30mm length")
+
+        await agent.process(job)
+
+        assert job.spec is not None
+        assert job.spec.geometric_type == "hook"
+
 
 class TestParseExtractions:
     """Test individual extraction methods."""
@@ -63,6 +107,12 @@ class TestParseExtractions:
         agent = IntakeAgent()
         result = agent._parse_request("Make a clip to hold cables")
         assert result.geometric_type == "clip"
+
+    def test_extract_type_gear_from_chinese(self):
+        """Should extract gear type from Chinese requests."""
+        agent = IntakeAgent()
+        result = agent._parse_request("做一个17齿的齿轮")
+        assert result.geometric_type == "gear"
 
     def test_extract_type_defaults_to_box(self):
         """Should default to 'box' if no type found."""
@@ -98,6 +148,16 @@ class TestParseExtractions:
         assert dims.get("length") == 30.0
         assert dims.get("width") == 20.0
         assert dims.get("height") == 15.0
+
+    def test_extract_gear_dimensions_from_chinese(self):
+        """Should map Chinese gear dimensions into gear-specific fields."""
+        agent = IntakeAgent()
+        result = agent._parse_request("做一个17齿，10mm外径，5mm内径，高3mm的齿轮")
+        dims = result.dimensions
+        assert dims.get("outer_diameter") == 10.0
+        assert dims.get("inner_diameter") == 5.0
+        assert dims.get("height") == 3.0
+        assert "length" not in dims
 
     def test_extract_dimensions_with_unit_millimeter(self):
         """Should handle millimeter unit."""

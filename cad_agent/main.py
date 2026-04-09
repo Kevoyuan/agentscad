@@ -14,18 +14,29 @@ from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.models.agent_result import AgentRole
 from cad_agent.app.models.validation import ValidationLevel
 from cad_agent.app.agents.orchestrator import OrchestratorAgent
+from cad_agent.app.agents.research_agent import ResearchAgent
 from cad_agent.app.agents.intake_agent import IntakeAgent
+from cad_agent.app.agents.intent_agent import IntentAgent
+from cad_agent.app.agents.design_agent import DesignAgent
+from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
 from cad_agent.app.agents.template_agent import TemplateAgent
 from cad_agent.app.agents.generator_agent import GeneratorAgent
 from cad_agent.app.agents.executor_agent import ExecutorAgent
 from cad_agent.app.agents.validator_agent import ValidatorAgent
 from cad_agent.app.agents.debug_agent import DebugAgent
 from cad_agent.app.agents.report_agent import ReportAgent
+from cad_agent.app.parametric import ParametricPartEngine
 from cad_agent.app.rules.engineering_rules import EngineeringRulesEngine
 from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
+from cad_agent.app.llm import (
+    AnthropicCompatibleLLMClient,
+    LLMDesignCritic,
+    LLMScadGenerator,
+    LLMSpecParser,
+)
 
 settings = get_settings()
 logger = structlog.get_logger()
@@ -33,6 +44,20 @@ logger = structlog.get_logger()
 _orchestrator: OrchestratorAgent | None = None
 _job_repo: SQLiteJobRepository | None = None
 _case_memory: CaseMemoryService | None = None
+
+
+def _safe_settings_for_log() -> dict[str, Any]:
+    """Redact secrets before logging configuration."""
+    redacted = settings.model_dump()
+    for key in (
+        "anthropic_api_key",
+        "openai_api_key",
+        "azure_openai_key",
+        "minimax_api_key",
+    ):
+        if redacted.get(key):
+            redacted[key] = "***"
+    return redacted
 
 
 class CreateJobRequest(BaseModel):
@@ -72,6 +97,13 @@ class JobStatusResponse(BaseModel):
     input_request: str
     spec_summary: str | None
     template_id: str | None
+    part_family: str | None
+    builder_name: str | None
+    research_result: dict[str, Any] | None
+    intent_result: dict[str, Any] | None
+    design_result: dict[str, Any] | None
+    parameter_schema: dict[str, Any] | None
+    parameter_values: dict[str, Any] | None
     scad_content: str | None
     artifacts: dict[str, Any] | None
     validation_results: list[dict[str, Any]] | None
@@ -101,6 +133,15 @@ class JobDeliveryResponse(BaseModel):
     delivery_message: str
 
 
+class UpdateParametersRequest(BaseModel):
+    """Patch request for parametric design controls."""
+
+    parameter_values: dict[str, Any] = Field(
+        ...,
+        description="Updated parameter values to rebuild the model with",
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
@@ -118,17 +159,48 @@ async def lifespan(app: FastAPI):
         timeout_seconds=settings.render_timeout,
     )
 
-    intake_agent = IntakeAgent()
-    template_agent = TemplateAgent(templates_dir=str(settings.templates_dir))
-    generator_agent = GeneratorAgent(templates_dir=str(settings.templates_dir))
+    llm_spec_parser = None
+    llm_scad_generator = None
+    llm_design_critic = None
+    try:
+        provider_config = settings.resolve_llm_provider_config()
+        if provider_config.is_anthropic_compatible:
+            llm_client = AnthropicCompatibleLLMClient(provider_config)
+            llm_spec_parser = LLMSpecParser(llm_client)
+            llm_scad_generator = LLMScadGenerator(llm_client)
+            llm_design_critic = LLMDesignCritic(llm_client)
+    except ValueError:
+        llm_spec_parser = None
+        llm_scad_generator = None
+        llm_design_critic = None
+
+    part_engine = ParametricPartEngine()
+    research_agent = ResearchAgent()
+    intake_agent = IntakeAgent(spec_parser=llm_spec_parser)
+    intent_agent = IntentAgent()
+    design_agent = DesignAgent()
+    parameter_schema_agent = ParameterSchemaAgent()
+    template_agent = TemplateAgent()
+    generator_agent = GeneratorAgent(
+        templates_dir=str(settings.templates_dir),
+        llm_scad_generator=llm_scad_generator,
+        part_engine=part_engine,
+    )
     executor_agent = ExecutorAgent(executor=openscad_executor)
-    validator_agent = ValidatorAgent(rules_engine=rules_engine)
+    validator_agent = ValidatorAgent(
+        rules_engine=rules_engine,
+        design_critic=llm_design_critic,
+    )
     debug_agent = DebugAgent()
     report_agent = ReportAgent(output_dir=str(settings.output_dir))
 
     _orchestrator = OrchestratorAgent(retry_policy=retry_policy, case_memory=_case_memory)
     _orchestrator.set_agents(
+        research=research_agent,
         intake=intake_agent,
+        intent=intent_agent,
+        design=design_agent,
+        parameters=parameter_schema_agent,
         template=template_agent,
         generator=generator_agent,
         executor=executor_agent,
@@ -137,7 +209,7 @@ async def lifespan(app: FastAPI):
         report=report_agent,
     )
 
-    logger.info("app_startup_complete", settings=dict(settings.model_dump()))
+    logger.info("app_startup_complete", settings=_safe_settings_for_log())
     yield
 
     logger.info("app_shutdown_complete")
@@ -186,7 +258,7 @@ async def process_job(job_id: str, background_tasks: BackgroundTasks) -> JSONRes
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    if job.state not in {JobState.NEW, JobState.SPEC_FAILED}:
+    if job.state not in {JobState.NEW, JobState.RESEARCH_FAILED, JobState.INTENT_FAILED, JobState.DESIGN_FAILED, JobState.PARAMETER_FAILED, JobState.SPEC_FAILED, JobState.GEOMETRY_FAILED, JobState.REVIEW_FAILED}:
         return JSONResponse(
             status_code=400,
             content={"detail": f"Job {job_id} is in state {job.state.value}, cannot process from this state"},
@@ -217,7 +289,7 @@ async def _run_orchestrator(job_id: str) -> None:
 
     try:
         result = await _orchestrator.process(job)
-        job.final_result = result.model_dump()
+        job.final_result = result.model_dump(mode="json")
         _job_repo.save(job)
         logger.info("orchestrator_completed", job_id=job_id, success=result.success, final_state=job.state.value)
     except Exception as e:
@@ -237,12 +309,28 @@ async def get_job_status(job_id: str) -> JobStatusResponse:
     if job.spec:
         spec_summary = f"{job.spec.geometric_type} {job.spec.dimensions}"
 
+    return _job_to_status_response(job)
+
+
+def _job_to_status_response(job: DesignJob) -> JobStatusResponse:
+    """Serialize a job into the public status payload."""
+    spec_summary = None
+    if job.spec:
+        spec_summary = f"{job.spec.geometric_type} {job.spec.dimensions}"
+
     return JobStatusResponse(
         job_id=job.id,
         state=job.state.value,
         input_request=job.input_request,
         spec_summary=spec_summary,
         template_id=job.template_choice.template_id if job.template_choice else None,
+        part_family=job.part_family,
+        builder_name=job.builder_name,
+        research_result=job.research_result.model_dump(mode="json") if job.research_result else None,
+        intent_result=job.intent_result.model_dump(mode="json") if job.intent_result else None,
+        design_result=job.design_result.model_dump(mode="json") if job.design_result else None,
+        parameter_schema=job.parameter_schema.model_dump(mode="json") if job.parameter_schema else None,
+        parameter_values=job.get_effective_parameter_values() or None,
         scad_content=job.artifacts.scad_content if job.artifacts else None,
         artifacts=job.artifacts.model_dump() if job.artifacts else None,
         validation_results=[v.model_dump() for v in job.validation_results] if job.validation_results else None,
@@ -251,6 +339,38 @@ async def get_job_status(job_id: str) -> JobStatusResponse:
         updated_at=job.updated_at.isoformat(),
         logs=[log.model_dump(mode="json") for log in job.execution_logs],
     )
+
+
+@app.patch("/jobs/{job_id}/parameters", response_model=JobStatusResponse)
+async def update_job_parameters(job_id: str, request: UpdateParametersRequest) -> JobStatusResponse:
+    """Update parameter values and rebuild a parametric design."""
+    job = _job_repo.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    if not job.part_family or not job.parameter_schema:
+        raise HTTPException(status_code=400, detail="This job does not expose editable parametric controls")
+
+    updated_values = job.get_effective_parameter_values()
+    updated_values.update(request.parameter_values)
+    job.set_parameter_values(updated_values)
+    job.scad_source = None
+    job.artifacts.scad_source = None
+    job.artifacts.stl_path = None
+    job.artifacts.png_path = None
+    job.validation_results = []
+    job.transition_to(JobState.SPEC_PARSED)
+
+    try:
+        result = await _orchestrator.process(job)
+        job.final_result = result.model_dump(mode="json")
+    except Exception as exc:
+        logger.error("parameter_rebuild_failed", job_id=job_id, error=str(exc))
+        _job_repo.save(job)
+        raise HTTPException(status_code=500, detail=f"Parameter rebuild failed: {exc}") from exc
+
+    _job_repo.save(job)
+    return _job_to_status_response(job)
 
 
 @app.get("/jobs/{job_id}/artifacts/{artifact_type}")
@@ -326,20 +446,7 @@ async def list_jobs(
     jobs = _job_repo.list_jobs(state_filter=state, limit=limit, offset=offset)
 
     return [
-        JobStatusResponse(
-            job_id=job.id,
-            state=job.state.value,
-            input_request=job.input_request,
-            spec_summary=f"{job.spec.geometric_type} {job.spec.dimensions}" if job.spec else None,
-            template_id=job.template_choice.template_id if job.template_choice else None,
-            scad_content=job.artifacts.scad_content if job.artifacts else None,
-            artifacts=job.artifacts.model_dump() if job.artifacts else None,
-            validation_results=[v.model_dump() for v in job.validation_results] if job.validation_results else None,
-            retry_count=job.retry_count,
-            created_at=job.created_at.isoformat(),
-            updated_at=job.updated_at.isoformat(),
-            logs=[log.model_dump(mode="json") for log in job.execution_logs],
-        )
+        _job_to_status_response(job)
         for job in jobs
     ]
 

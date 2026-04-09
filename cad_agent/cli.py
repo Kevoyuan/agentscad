@@ -10,18 +10,29 @@ import structlog
 from cad_agent.config import get_settings
 from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.agents.orchestrator import OrchestratorAgent
+from cad_agent.app.agents.research_agent import ResearchAgent
 from cad_agent.app.agents.intake_agent import IntakeAgent
+from cad_agent.app.agents.intent_agent import IntentAgent
+from cad_agent.app.agents.design_agent import DesignAgent
+from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
 from cad_agent.app.agents.template_agent import TemplateAgent
 from cad_agent.app.agents.generator_agent import GeneratorAgent
 from cad_agent.app.agents.executor_agent import ExecutorAgent
 from cad_agent.app.agents.validator_agent import ValidatorAgent
 from cad_agent.app.agents.debug_agent import DebugAgent
 from cad_agent.app.agents.report_agent import ReportAgent
+from cad_agent.app.parametric import ParametricPartEngine
 from cad_agent.app.rules.engineering_rules import EngineeringRulesEngine
 from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
+from cad_agent.app.llm import (
+    AnthropicCompatibleLLMClient,
+    LLMDesignCritic,
+    LLMScadGenerator,
+    LLMSpecParser,
+)
 
 settings = get_settings()
 logger = structlog.get_logger()
@@ -53,17 +64,48 @@ def init_services(ctx: CliContext) -> None:
         timeout_seconds=settings.render_timeout,
     )
 
-    intake_agent = IntakeAgent()
-    template_agent = TemplateAgent(templates_dir=str(settings.templates_dir))
-    generator_agent = GeneratorAgent(templates_dir=str(settings.templates_dir))
+    llm_spec_parser = None
+    llm_scad_generator = None
+    llm_design_critic = None
+    try:
+        provider_config = settings.resolve_llm_provider_config()
+        if provider_config.is_anthropic_compatible:
+            llm_client = AnthropicCompatibleLLMClient(provider_config)
+            llm_spec_parser = LLMSpecParser(llm_client)
+            llm_scad_generator = LLMScadGenerator(llm_client)
+            llm_design_critic = LLMDesignCritic(llm_client)
+    except ValueError:
+        llm_spec_parser = None
+        llm_scad_generator = None
+        llm_design_critic = None
+
+    part_engine = ParametricPartEngine()
+    research_agent = ResearchAgent()
+    intake_agent = IntakeAgent(spec_parser=llm_spec_parser)
+    intent_agent = IntentAgent()
+    design_agent = DesignAgent()
+    parameter_schema_agent = ParameterSchemaAgent()
+    template_agent = TemplateAgent()
+    generator_agent = GeneratorAgent(
+        templates_dir=str(settings.templates_dir),
+        llm_scad_generator=llm_scad_generator,
+        part_engine=part_engine,
+    )
     executor_agent = ExecutorAgent(executor=openscad_executor)
-    validator_agent = ValidatorAgent(rules_engine=rules_engine)
+    validator_agent = ValidatorAgent(
+        rules_engine=rules_engine,
+        design_critic=llm_design_critic,
+    )
     debug_agent = DebugAgent()
     report_agent = ReportAgent(output_dir=str(settings.output_dir))
 
     orchestrator = OrchestratorAgent(retry_policy=retry_policy, case_memory=ctx.case_memory)
     orchestrator.set_agents(
+        research=research_agent,
         intake=intake_agent,
+        intent=intent_agent,
+        design=design_agent,
+        parameters=parameter_schema_agent,
         template=template_agent,
         generator=generator_agent,
         executor=executor_agent,
@@ -152,7 +194,7 @@ def process(ctx: CliContext, job_id: str) -> None:
         click.echo(f"Error: Job {job_id} not found", err=True)
         sys.exit(1)
 
-    if job.state not in {JobState.NEW, JobState.SPEC_FAILED}:
+    if job.state not in {JobState.NEW, JobState.RESEARCH_FAILED, JobState.INTENT_FAILED, JobState.DESIGN_FAILED, JobState.PARAMETER_FAILED, JobState.SPEC_FAILED, JobState.GEOMETRY_FAILED, JobState.REVIEW_FAILED}:
         click.echo(f"Error: Job is in state {job.state.value}, cannot process", err=True)
         sys.exit(1)
 
@@ -209,6 +251,13 @@ def status(ctx: CliContext, job_id: str, format: str) -> None:
         click.echo(f"  Dimensions: {job.spec.dimensions}")
         click.echo(f"  Material: {job.spec.material}")
         click.echo(f"  Confidence: {job.spec.confidence:.2f}")
+
+    if job.part_family:
+        click.echo(f"\nPart family: {job.part_family}")
+    if job.builder_name:
+        click.echo(f"Builder: {job.builder_name}")
+    if job.parameter_schema:
+        click.echo(f"Parameters: {len(job.parameter_schema.parameters)} exposed")
 
     if job.template_choice:
         click.echo(f"\nTemplate: {job.template_choice.template_id}")
@@ -373,6 +422,7 @@ def templates() -> None:
 @cli.command()
 def info() -> None:
     """Show system information."""
+    provider_config = settings.resolve_llm_provider_config(validate_api_key=False)
     click.echo("CAD Agent System Configuration:")
     click.echo(f"  OpenSCAD path: {settings.openSCAD_path}")
     click.echo(f"  Storage dir: {settings.storage_dir}")
@@ -380,8 +430,9 @@ def info() -> None:
     click.echo(f"  Templates dir: {settings.templates_dir}")
     click.echo(f"  Max retries: {settings.max_retries}")
     click.echo(f"  Case memory: {'enabled' if settings.case_memory_enabled else 'disabled'}")
-    click.echo(f"  LLM provider: {settings.llm_provider}")
-    click.echo(f"  LLM model: {settings.llm_model}")
+    click.echo(f"  LLM provider: {provider_config.provider}")
+    click.echo(f"  LLM model: {provider_config.model}")
+    click.echo(f"  LLM base URL: {provider_config.base_url}")
 
 
 def main():

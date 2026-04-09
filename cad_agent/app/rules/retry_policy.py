@@ -25,7 +25,16 @@ class RetryPolicy:
         if job.retry_count >= self.max_retries:
             return True
 
-        if job.template_choice and job.template_choice.confidence < self.min_confidence:
+        template_confidence = getattr(job.template_choice, "confidence", None)
+        if template_confidence is not None and template_confidence < self.min_confidence:
+            return True
+
+        intent_confidence = getattr(job.intent_result, "confidence", None)
+        intent_part_family = getattr(job.intent_result, "part_family", None)
+        if intent_confidence is not None and intent_part_family not in (None, "", "unknown") and intent_confidence < self.min_confidence:
+            return True
+
+        if job.part_family is None and not job.template_choice and job.retry_count > 0:
             return True
 
         return False
@@ -43,7 +52,19 @@ class RetryPolicy:
         if job.retry_count >= self.max_retries:
             return JobState.HUMAN_REVIEW
 
-        if failed_state == JobState.VALIDATION_FAILED.value:
+        if failed_state in {JobState.VALIDATION_FAILED.value, JobState.REVIEW_FAILED.value}:
             return JobState.DEBUGGING
+
+        if failed_state == JobState.GEOMETRY_FAILED.value:
+            return JobState.REPAIRING
+
+        if failed_state == JobState.PARAMETER_FAILED.value:
+            return JobState.DESIGN_RESOLVED
+
+        if failed_state == JobState.DESIGN_FAILED.value:
+            return JobState.INTENT_RESOLVED
+
+        if failed_state == JobState.INTENT_FAILED.value:
+            return JobState.RESEARCHED
 
         return job.state

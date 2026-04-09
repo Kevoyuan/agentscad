@@ -27,6 +27,7 @@ class RuleType(str, Enum):
     RENDER = "render"
     COST = "cost"
     TOLERANCE = "tolerance"
+    SEMANTIC = "semantic"
 
 
 class ValidationResult(BaseModel):

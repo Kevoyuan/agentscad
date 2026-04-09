@@ -11,7 +11,11 @@ class AgentRole(str, Enum):
     """Roles for agents in the system."""
 
     ORCHESTRATOR = "orchestrator"
+    RESEARCH = "research"
     INTAKE = "intake"
+    INTENT = "intent"
+    DESIGN = "design"
+    PARAMETERS = "parameters"
     TEMPLATE = "template"
     GENERATOR = "generator"
     EXECUTOR = "executor"

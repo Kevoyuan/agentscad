@@ -142,19 +142,18 @@ class OpenSCADExecutor:
             Tuple of (is_valid, error_message)
         """
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".scad", delete=False
-            ) as f:
-                f.write(scad_source)
-                temp_path = f.name
+            with tempfile.TemporaryDirectory(prefix="openscad_validate_") as temp_dir:
+                temp_dir_path = Path(temp_dir)
+                temp_path = temp_dir_path / "validation.scad"
+                temp_output = temp_dir_path / "validation.stl"
+                temp_path.write_text(scad_source)
 
-            result = subprocess.run(
-                [self.openscad_path, "-o", "/dev/null", temp_path],
-                capture_output=True,
-                text=True,
-                timeout=self.syntax_timeout_seconds,
-            )
-            os.unlink(temp_path)
+                result = subprocess.run(
+                    [self.openscad_path, "-o", str(temp_output), str(temp_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=self.syntax_timeout_seconds,
+                )
 
             if result.returncode == 0:
                 return True, ""

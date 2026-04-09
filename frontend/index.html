@@ -3,67 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAD Agent</title>
+    <title>CAD Agent Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <h1 class="logo">CAD Agent</h1>
-            <p class="tagline">Transform natural language into 3D models</p>
-        </div>
-    </header>
-
-    <main class="container">
-        <section class="create-section">
-            <h2>Create New Job</h2>
-            <form id="jobForm" class="job-form">
-                <div class="form-group">
-                    <label for="requestInput">Describe your CAD request</label>
-                    <textarea 
-                        id="requestInput" 
-                        name="input_request" 
-                        rows="3" 
-                        placeholder="e.g., A 20mm cube with a 10mm cylindrical hole through the center"
-                        required
-                    ></textarea>
+    <div class="shell">
+        <aside class="rail">
+            <div class="brand">
+                <div class="brand-mark">CA</div>
+                <div class="brand-copy">
+                    <h1>CAD Agent</h1>
+                    <p>AI-native modeling workspace for promptable, inspectable, parameter-aware geometry.</p>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Job</button>
-            </form>
-        </section>
-
-        <section class="jobs-section">
-            <h2>Jobs</h2>
-            <div class="table-wrapper">
-                <table class="jobs-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Request</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="jobsTableBody">
-                        <tr class="loading-row">
-                            <td colspan="5">Loading...</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
-        </section>
 
-        <section id="detailSection" class="detail-section hidden">
-            <div class="detail-header">
-                <h2>Job Details</h2>
-                <button id="closeDetail" class="btn btn-close">&times;</button>
-            </div>
-            <div id="detailContent" class="detail-content">
-            </div>
-        </section>
-    </main>
+            <button id="newCreationButton" class="primary-rail-button" type="button">+ New Creation</button>
 
+            <section class="rail-section">
+                <div class="rail-heading">
+                    <span>Runtime</span>
+                    <span id="refreshStatus">syncing</span>
+                </div>
+                <div id="healthCard" class="health-card">
+                    <div class="status-lamp"></div>
+                    <div>
+                        <strong>Connecting</strong>
+                        <p>Checking API and OpenSCAD runtime.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rail-section">
+                <div class="rail-heading">
+                    <span>Creations</span>
+                    <span id="jobCountBadge">0</span>
+                </div>
+                <div class="filter-row">
+                    <button class="filter-pill is-active" data-filter-state="ALL" type="button">All</button>
+                    <button class="filter-pill" data-filter-state="ACTIVE" type="button">Active</button>
+                    <button class="filter-pill" data-filter-state="DELIVERED" type="button">Done</button>
+                    <button class="filter-pill" data-filter-state="BLOCKED" type="button">Blocked</button>
+                </div>
+                <div id="jobsList" class="creation-list">
+                    <div class="empty-copy">No creations yet.</div>
+                </div>
+            </section>
+
+            <section class="rail-section rail-footer">
+                <div class="mini-stat">
+                    <span>Templates</span>
+                    <strong id="templateCount">0</strong>
+                </div>
+                <div class="mini-stat">
+                    <span>Delivered</span>
+                    <strong id="deliveredCount">0</strong>
+                </div>
+            </section>
+        </aside>
+
+        <main class="workspace">
+            <section class="conversation-column">
+                <header class="conversation-header">
+                    <div>
+                        <p class="section-kicker">Creation Thread</p>
+                        <h2 id="threadTitle">Start a new CAD creation</h2>
+                    </div>
+                    <div class="header-actions">
+                        <button id="refreshButton" class="ghost-button" type="button">Refresh</button>
+                        <button id="similarButton" class="ghost-button" type="button">Similar</button>
+                    </div>
+                </header>
+
+                <div id="conversationStream" class="conversation-stream">
+                    <div class="empty-thread">
+                        <h3>Describe the part you want.</h3>
+                        <p>Use natural language with dimensions, material, tolerances, and intended function. The workspace will turn the request into a live model thread.</p>
+                    </div>
+                </div>
+
+                <section class="composer-card">
+                    <form id="jobForm" class="composer-form">
+                        <textarea
+                            id="requestInput"
+                            name="input_request"
+                            rows="4"
+                            placeholder="Design a 17 tooth spur gear, outer diameter 30 mm, inner diameter 10 mm, thickness 3 mm."
+                            required
+                        ></textarea>
+
+                        <div class="composer-meta">
+                            <label class="meta-field">
+                                <span>Memory Scope</span>
+                                <input id="customerId" name="customer_id" type="text" placeholder="optional case key">
+                            </label>
+
+                            <label class="meta-field meta-field-range">
+                                <span>Priority <strong id="priorityValue">5</strong></span>
+                                <input id="priorityInput" name="priority" type="range" min="1" max="10" value="5">
+                            </label>
+                        </div>
+
+                        <div class="composer-actions">
+                            <button id="submitButton" class="submit-button" type="submit">Generate creation</button>
+                            <div class="composer-hint">Prompt first, then inspect, tune, and export.</div>
+                        </div>
+                    </form>
+                </section>
+            </section>
+
+            <section class="canvas-column">
+                <header class="canvas-header">
+                    <div>
+                        <p class="section-kicker">Model Canvas</p>
+                        <h2 id="viewerTitle">Viewport ready</h2>
+                    </div>
+                    <div class="canvas-badges">
+                        <span id="viewerStateBadge" class="state-chip">IDLE</span>
+                        <span id="viewerTemplateBadge" class="soft-chip">template pending</span>
+                    </div>
+                </header>
+
+                <div class="viewer-shell">
+                    <div id="stlViewer" class="viewer-canvas"></div>
+                    <div id="viewerPlaceholder" class="viewer-placeholder">
+                        <p>Select a creation to inspect the generated STL here.</p>
+                    </div>
+
+                    <div class="viewer-hud top">
+                        <div class="hud-card">
+                            <span>Preview</span>
+                            <strong id="viewerPromptLabel">No active creation</strong>
+                        </div>
+                        <div class="hud-card">
+                            <span>Artifacts</span>
+                            <strong id="artifactSummary">Pending</strong>
+                        </div>
+                    </div>
+
+                    <div class="viewer-hud bottom">
+                        <div class="hud-card">
+                            <span>Validation</span>
+                            <strong id="validationSummary">Waiting</strong>
+                        </div>
+                        <div class="hud-card">
+                            <span>Last update</span>
+                            <strong id="updatedSummary">-</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <section id="artifactActions" class="artifact-actions"></section>
+            </section>
+
+            <aside class="inspector-column">
+                <section class="inspector-panel">
+                    <div class="inspector-header">
+                        <div>
+                            <p class="section-kicker">Parameters</p>
+                            <h3>Editable model inputs</h3>
+                        </div>
+                        <button id="resetParametersButton" class="icon-button" type="button">Reset</button>
+                    </div>
+                    <div id="parametersPanel" class="parameters-panel">
+                        <div class="empty-copy">Generated parameters will appear here after the request is parsed.</div>
+                    </div>
+                </section>
+
+                <section class="inspector-panel">
+                    <div class="inspector-header">
+                        <div>
+                            <p class="section-kicker">Validation</p>
+                            <h3>Design review</h3>
+                        </div>
+                    </div>
+                    <div id="validationPanel" class="validation-panel">
+                        <div class="empty-copy">No validation results yet.</div>
+                    </div>
+                </section>
+
+                <section class="inspector-panel">
+                    <div class="inspector-header">
+                        <div>
+                            <p class="section-kicker">Execution</p>
+                            <h3>System trace</h3>
+                        </div>
+                    </div>
+                    <div id="timelinePanel" class="timeline-panel">
+                        <div class="empty-copy">Execution logs will appear here.</div>
+                    </div>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/three@0.124.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.124.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.124.0/examples/js/loaders/STLLoader.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

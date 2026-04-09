@@ -16,6 +16,12 @@ class JobState(str, Enum):
     """State machine states for DesignJob."""
 
     NEW = "NEW"
+    RESEARCHED = "RESEARCHED"
+    INTENT_RESOLVED = "INTENT_RESOLVED"
+    DESIGN_RESOLVED = "DESIGN_RESOLVED"
+    PARAMETERS_GENERATED = "PARAMETERS_GENERATED"
+    GEOMETRY_BUILT = "GEOMETRY_BUILT"
+    REVIEWED = "REVIEWED"
     SPEC_PARSED = "SPEC_PARSED"
     TEMPLATE_SELECTED = "TEMPLATE_SELECTED"
     SCAD_GENERATED = "SCAD_GENERATED"
@@ -27,6 +33,12 @@ class JobState(str, Enum):
     ARCHIVED = "ARCHIVED"
 
     # Failure states
+    RESEARCH_FAILED = "RESEARCH_FAILED"
+    INTENT_FAILED = "INTENT_FAILED"
+    DESIGN_FAILED = "DESIGN_FAILED"
+    PARAMETER_FAILED = "PARAMETER_FAILED"
+    GEOMETRY_FAILED = "GEOMETRY_FAILED"
+    REVIEW_FAILED = "REVIEW_FAILED"
     SPEC_FAILED = "SPEC_FAILED"
     TEMPLATE_FAILED = "TEMPLATE_FAILED"
     RENDER_FAILED = "RENDER_FAILED"
@@ -83,6 +95,90 @@ class TemplateChoice(BaseModel):
         return self.template_name
 
 
+class ResearchResult(BaseModel):
+    """Structured output from ResearchAgent."""
+
+    request: str = ""
+    part_family: str = ""
+    object_name: str = ""
+    research_summary: str = ""
+    reference_facts: list[str] = Field(default_factory=list)
+    search_queries: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    source_notes: list[str] = Field(default_factory=list)
+    needs_web_search: bool = False
+    confidence: float = 0.0
+    error_message: Optional[str] = None
+
+
+class IntentResult(BaseModel):
+    """Structured output from IntentAgent."""
+
+    request: str = ""
+    part_family: str = ""
+    object_name: str = ""
+    design_mode: str = ""
+    primary_goal: str = ""
+    secondary_goals: list[str] = Field(default_factory=list)
+    constraints: dict[str, Any] = Field(default_factory=dict)
+    missing_inputs: list[str] = Field(default_factory=list)
+    confidence: float = 0.0
+    error_message: Optional[str] = None
+
+
+class DesignResult(BaseModel):
+    """Structured output from DesignAgent."""
+
+    request: str = ""
+    part_family: str = ""
+    design_intent_summary: str = ""
+    design_strategy: str = ""
+    structural_features: list[str] = Field(default_factory=list)
+    manufacturability_notes: list[str] = Field(default_factory=list)
+    parameter_inventions: list[str] = Field(default_factory=list)
+    derived_constraints: dict[str, Any] = Field(default_factory=dict)
+    confidence: float = 0.0
+    error_message: Optional[str] = None
+
+
+class ParameterDefinition(BaseModel):
+    """Single editable parameter exposed to the UI and builders."""
+
+    key: str
+    label: str
+    kind: str = "number"
+    unit: str = ""
+    value: Any = None
+    min: float | None = None
+    max: float | None = None
+    step: float | None = None
+    source: str = "inferred"
+    editable: bool = True
+    description: str = ""
+    group: str = "general"
+    choices: list[str] = Field(default_factory=list)
+    derived_from: list[str] = Field(default_factory=list)
+
+
+class ParameterSchema(BaseModel):
+    """Editable parameter schema for a part family."""
+
+    request: str = ""
+    part_family: str = ""
+    schema_version: str = "v1"
+    design_summary: str = ""
+    parameters: list[ParameterDefinition] = Field(default_factory=list)
+    user_parameters: list[str] = Field(default_factory=list)
+    inferred_parameters: list[str] = Field(default_factory=list)
+    design_derived_parameters: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    error_message: Optional[str] = None
+
+    def parameter_values(self) -> dict[str, Any]:
+        """Return key-value mapping from parameter definitions."""
+        return {parameter.key: parameter.value for parameter in self.parameters}
+
+
 class Artifacts(BaseModel):
     """Paths to generated artifacts."""
 
@@ -137,6 +233,15 @@ class DesignJob(BaseModel):
     # Business context
     business_context: dict[str, Any] = Field(default_factory=dict)
     final_result: Optional[dict[str, Any]] = None
+
+    # Research and intent layers
+    research_result: Optional[ResearchResult] = None
+    intent_result: Optional[IntentResult] = None
+    design_result: Optional[DesignResult] = None
+    parameter_schema: Optional[ParameterSchema] = None
+    parameter_values: dict[str, Any] = Field(default_factory=dict)
+    part_family: Optional[str] = None
+    builder_name: Optional[str] = None
 
     # Spec from IntakeAgent
     spec: Optional[SpecResult] = None
@@ -224,3 +329,16 @@ class DesignJob(BaseModel):
         """Increment retry counter."""
         self.retry_count += 1
         self.updated_at = datetime.utcnow()
+
+    def set_parameter_values(self, values: dict[str, Any]) -> None:
+        """Store mutable parameter values separately from the schema defaults."""
+        self.parameter_values = values
+        self.updated_at = datetime.utcnow()
+
+    def get_effective_parameter_values(self) -> dict[str, Any]:
+        """Return merged parameter values, preferring explicit overrides."""
+        values = {}
+        if self.parameter_schema:
+            values.update(self.parameter_schema.parameter_values())
+        values.update(self.parameter_values)
+        return values

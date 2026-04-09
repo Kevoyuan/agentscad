@@ -13,9 +13,25 @@ logger = structlog.get_logger()
 class TemplateAgent:
     """Selects appropriate Jinja2 SCAD template based on spec."""
 
+    COMPLEX_KEYWORDS = (
+        "gear",
+        "spur gear",
+        "helical gear",
+        "bevel gear",
+        "worm gear",
+        "sprocket",
+        "threaded",
+        "thread",
+        "bearing",
+        "cam",
+    )
+
     TEMPLATES = {
         "hook": {"name": "hook_basic_v1", "score": 0.9},
         "box": {"name": "box_basic_v1", "score": 0.9},
+        "cube": {"name": "rounded_block_v1", "score": 0.95},
+        "rounded": {"name": "rounded_block_v1", "score": 0.95},
+        "fillet": {"name": "rounded_block_v1", "score": 0.95},
         "clip": {"name": "clip_basic_v1", "score": 0.9},
         "bracket": {"name": "box_basic_v1", "score": 0.7},
         "mount": {"name": "box_basic_v1", "score": 0.7},
@@ -69,12 +85,20 @@ class TemplateAgent:
 
     def _select_template(self, geometric_type: str) -> str:
         """Select best template for geometric type."""
-        template = self.TEMPLATES.get(geometric_type.lower())
+        geometric_type_lower = geometric_type.lower()
+
+        if any(keyword in geometric_type_lower for keyword in self.COMPLEX_KEYWORDS):
+            return "llm_native_v1"
+
+        if any(keyword in geometric_type_lower for keyword in ("cube", "rounded", "fillet")):
+            return "rounded_block_v1"
+
+        template = self.TEMPLATES.get(geometric_type_lower)
         if template:
             return template["name"]
 
         for geo_type, info in self.TEMPLATES.items():
-            if geo_type in geometric_type.lower():
+            if geo_type in geometric_type_lower:
                 return info["name"]
 
         return "box_basic_v1"
@@ -88,9 +112,13 @@ class TemplateAgent:
             "width": dims.get("width", 20.0),
             "height": dims.get("height", 15.0),
             "wall_thickness": dims.get("wall_thickness", 2.0),
+            "fillet_radius": dims.get("fillet_radius", dims.get("edge_fillet_radius", 0.0)),
             "tolerance": job.spec.tolerance,
             "material": job.spec.material,
         }
+
+        for key, value in dims.items():
+            base_params.setdefault(key, value)
 
         if job.spec.geometric_type == "hook":
             base_params.update({

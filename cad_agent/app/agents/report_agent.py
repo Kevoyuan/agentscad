@@ -70,6 +70,16 @@ class ReportAgent:
                 "material": job.spec.material if job.spec else "PLA",
                 "tolerance": job.spec.tolerance if job.spec else 0.1,
             },
+            "design_pipeline": {
+                "part_family": job.part_family,
+                "builder_name": job.builder_name,
+                "research_result": job.research_result.model_dump(mode="json") if job.research_result else None,
+                "intent_result": job.intent_result.model_dump(mode="json") if job.intent_result else None,
+                "design_result": job.design_result.model_dump(mode="json") if job.design_result else None,
+                "parameter_schema": job.parameter_schema.model_dump(mode="json") if job.parameter_schema else None,
+                "parameter_values": job.get_effective_parameter_values(),
+                "derived_parameters": (job.business_context or {}).get("derived_parameters", {}),
+            },
             "template_used": job.template_choice.template_name if job.template_choice else "unknown",
             "artifacts": {
                 "stl_path": job.artifacts.stl_path,

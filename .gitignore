@@ -5,3 +5,5 @@ __pycache__/
 storage/jobs/
 storage/cases/
 .venv
+.env
+*.env

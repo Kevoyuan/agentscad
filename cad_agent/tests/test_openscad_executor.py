@@ -105,6 +105,35 @@ class TestOpenSCADExecutor:
         assert is_valid is False
         assert error != ""
 
+
+class TestExecutorAgent:
+    @pytest.mark.asyncio
+    async def test_execute_renders_without_separate_syntax_validation(self, tmp_path):
+        from cad_agent.app.agents.executor_agent import ExecutorAgent
+        from cad_agent.app.models.design_job import DesignJob
+
+        class StubExecutor:
+            def __init__(self):
+                self.render_calls = 0
+
+            async def render(self, scad_source: str, output_dir=None, camera: str = "--viewall"):
+                self.render_calls += 1
+                return RenderResult(
+                    success=True,
+                    stl_path=str(tmp_path / "design.stl"),
+                    png_path=str(tmp_path / "design.png"),
+                    log_output="ok",
+                )
+
+        stub = StubExecutor()
+        agent = ExecutorAgent(executor=stub, output_dir=str(tmp_path))
+        job = DesignJob(input_request="gear", scad_source="cube([1,1,1]);")
+
+        result = await agent.execute(job)
+
+        assert result.success is True
+        assert stub.render_calls == 1
+
     def test_render_result_model(self):
         result = RenderResult(
             success=True,

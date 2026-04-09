@@ -9,12 +9,16 @@ import structlog
 
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.case import Case
-from cad_agent.app.models.design_job import DesignJob, JobState
+from cad_agent.app.models.design_job import DesignJob, JobState, ParameterSchema
 from cad_agent.app.rules.retry_policy import RetryPolicy
 
 if TYPE_CHECKING:
     from cad_agent.app.services.case_memory import CaseMemoryService
+    from cad_agent.app.agents.research_agent import ResearchAgent
     from cad_agent.app.agents.intake_agent import IntakeAgent
+    from cad_agent.app.agents.intent_agent import IntentAgent
+    from cad_agent.app.agents.design_agent import DesignAgent
+    from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
     from cad_agent.app.agents.template_agent import TemplateAgent
     from cad_agent.app.agents.generator_agent import GeneratorAgent
     from cad_agent.app.agents.executor_agent import ExecutorAgent
@@ -40,7 +44,11 @@ class OrchestratorAgent:
 
     def set_agents(
         self,
+        research: "ResearchAgent",
         intake: "IntakeAgent",
+        intent: "IntentAgent",
+        design: "DesignAgent",
+        parameters: "ParameterSchemaAgent",
         template: "TemplateAgent",
         generator: "GeneratorAgent",
         executor: "ExecutorAgent",
@@ -50,7 +58,11 @@ class OrchestratorAgent:
     ) -> None:
         """Set all agent references for delegation."""
         self._agents = {
+            "research": research,
             "intake": intake,
+            "intent": intent,
+            "design": design,
+            "parameters": parameters,
             "template": template,
             "generator": generator,
             "executor": executor,
@@ -115,11 +127,17 @@ class OrchestratorAgent:
             AgentResult from the called agent
         """
         state_to_agent = {
-            JobState.NEW: ("intake", "process"),
-            JobState.SPEC_PARSED: ("template", "select"),
+            JobState.NEW: ("research", "research"),
+            JobState.RESEARCHED: ("intent", "resolve"),
+            JobState.INTENT_RESOLVED: ("design", "design"),
+            JobState.DESIGN_RESOLVED: ("parameters", "build_schema"),
+            JobState.PARAMETERS_GENERATED: ("intake", "process"),
+            JobState.SPEC_PARSED: ("generator", "generate") if job.part_family else ("template", "select"),
             JobState.TEMPLATE_SELECTED: ("generator", "generate"),
+            JobState.GEOMETRY_BUILT: ("executor", "execute"),
             JobState.SCAD_GENERATED: ("executor", "execute"),
             JobState.RENDERED: ("validator", "validate"),
+            JobState.REVIEWED: ("intake", "accept"),
             JobState.VALIDATED: ("intake", "accept"),
             JobState.ACCEPTED: ("report", "generate"),
             JobState.DEBUGGING: ("debug", "diagnose"),
@@ -155,7 +173,53 @@ class OrchestratorAgent:
             )
 
         logger.info("routing_to_agent", job_id=job.id, agent=agent_name, state=job.state.value)
-        result = await method(job)
+        if agent_name == "research":
+            payload = await method(job.input_request, job.part_family)
+            job.research_result = payload
+            if getattr(payload, "part_family", None):
+                job.part_family = str(payload.part_family.value if hasattr(payload.part_family, "value") else payload.part_family)
+            result = AgentResult(
+                success=not bool(getattr(payload, "error_message", None)),
+                agent=AgentRole.RESEARCH,
+                state_reached=JobState.RESEARCHED.value if not getattr(payload, "error_message", None) else JobState.RESEARCH_FAILED.value,
+                data={"research_result": payload.model_dump(mode="json")},
+                error=getattr(payload, "error_message", None),
+            )
+        elif agent_name == "intent":
+            payload = await method(job.input_request, job.research_result)
+            job.intent_result = payload
+            if getattr(payload, "part_family", None):
+                job.part_family = str(payload.part_family.value if hasattr(payload.part_family, "value") else payload.part_family)
+            result = AgentResult(
+                success=not bool(getattr(payload, "error_message", None)),
+                agent=AgentRole.INTENT,
+                state_reached=JobState.INTENT_RESOLVED.value if not getattr(payload, "error_message", None) else JobState.INTENT_FAILED.value,
+                data={"intent_result": payload.model_dump(mode="json")},
+                error=getattr(payload, "error_message", None),
+            )
+        elif agent_name == "design":
+            payload = await method(job.intent_result, job.research_result)
+            job.design_result = payload
+            result = AgentResult(
+                success=not bool(getattr(payload, "error_message", None)),
+                agent=AgentRole.DESIGN,
+                state_reached=JobState.DESIGN_RESOLVED.value if not getattr(payload, "error_message", None) else JobState.DESIGN_FAILED.value,
+                data={"design_result": payload.model_dump(mode="json")},
+                error=getattr(payload, "error_message", None),
+            )
+        elif agent_name == "parameters":
+            payload = await method(job.input_request, job.intent_result, job.design_result, job.research_result)
+            job.parameter_schema = ParameterSchema.model_validate(payload.model_dump(mode="json"))
+            job.set_parameter_values(job.parameter_schema.parameter_values())
+            result = AgentResult(
+                success=not bool(getattr(payload, "error_message", None)),
+                agent=AgentRole.PARAMETERS,
+                state_reached=JobState.PARAMETERS_GENERATED.value if not getattr(payload, "error_message", None) else JobState.PARAMETER_FAILED.value,
+                data={"parameter_schema": payload.model_dump(mode="json")},
+                error=getattr(payload, "error_message", None),
+            )
+        else:
+            result = await method(job)
 
         job.add_log(
             {
@@ -163,6 +227,9 @@ class OrchestratorAgent:
                 "action": method_name,
                 "success": result.success,
                 "state_reached": result.state_reached,
+                "error_message": result.error,
+                "output_data": result.data,
+                "duration_ms": result.duration_ms,
             }
         )
 
@@ -170,17 +237,33 @@ class OrchestratorAgent:
 
     def _store_success_case(self, job: DesignJob) -> None:
         """Persist successful jobs into case memory for future reuse."""
-        if not self.case_memory or not job.spec or not job.template_choice:
+        if not self.case_memory:
             return
+
+        template_name = "unknown"
+        final_parameters: dict[str, object] = {}
+        tags: list[str] = []
+
+        if job.template_choice:
+            template_name = job.template_choice.template_name
+            final_parameters = job.template_choice.parameters
+        elif job.part_family:
+            template_name = job.builder_name or job.part_family
+            final_parameters = job.get_effective_parameter_values()
+
+        if job.spec:
+            tags.append(job.spec.geometric_type)
+        if template_name:
+            tags.append(template_name)
 
         case = Case(
             id=job.case_id or job.id,
             input_request=job.input_request,
-            spec_summary=f"{job.spec.geometric_type} {job.spec.dimensions}",
-            template_name=job.template_choice.template_name,
-            final_parameters=job.template_choice.parameters,
+            spec_summary=f"{job.spec.geometric_type} {job.spec.dimensions}" if job.spec else (job.part_family or "unknown"),
+            template_name=template_name,
+            final_parameters=final_parameters,
             outcome="delivered",
-            tags=[job.spec.geometric_type, job.template_choice.template_name],
+            tags=tags,
         )
         self.case_memory.store(case)
 

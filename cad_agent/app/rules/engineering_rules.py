@@ -33,6 +33,17 @@ class Rule:
 class EngineeringRulesEngine:
     """Validates CAD designs against engineering rules."""
 
+    @staticmethod
+    def _requires_thread_rule(dimensions: dict[str, Any], geometric_type: str) -> bool:
+        """Apply thread checks only to parts that actually include threads."""
+        geometric_type_lower = geometric_type.lower()
+        if "thread" in geometric_type_lower:
+            return True
+        return any(
+            key in dimensions
+            for key in ("thread_wall_thickness", "thread_diameter", "thread_pitch")
+        )
+
     RULES = [
         Rule(
             id="R001",
@@ -98,7 +109,10 @@ class EngineeringRulesEngine:
 
         for rule in self.RULES:
             try:
-                passed = rule.check_fn(dimensions)
+                if rule.id == "R004" and not self._requires_thread_rule(dimensions, geometric_type):
+                    passed = True
+                else:
+                    passed = rule.check_fn(dimensions)
                 measured = self._extract_measured_value(rule.id, dimensions)
 
                 results.append(

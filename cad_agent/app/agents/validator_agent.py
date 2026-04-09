@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import structlog
 
+from cad_agent.app.llm.design_critic import LLMDesignCritic
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.models.validation import ValidationLevel, ValidationResult, RuleType
@@ -17,9 +19,25 @@ logger = structlog.get_logger()
 class ValidatorAgent:
     """Validates CAD designs against 3-layer rules."""
 
-    def __init__(self, rules_engine: EngineeringRulesEngine | None = None):
+    COMPLEX_KEYWORDS = (
+        "gear",
+        "sprocket",
+        "bearing",
+        "thread",
+        "cam",
+        "helical",
+        "bevel",
+        "worm",
+    )
+
+    def __init__(
+        self,
+        rules_engine: EngineeringRulesEngine | None = None,
+        design_critic: LLMDesignCritic | None = None,
+    ):
         """Initialize validator with rules engines."""
         self.engineering_rules = rules_engine or EngineeringRulesEngine()
+        self.design_critic = design_critic
 
     async def validate(self, job: DesignJob) -> AgentResult:
         """Run 3-layer validation on rendered design.
@@ -45,6 +63,9 @@ class ValidatorAgent:
         layer2_results = self._validate_engineering_layer(job)
         validation_results.extend(layer2_results)
 
+        layer25_results = await self._validate_semantic_layer(job)
+        validation_results.extend(layer25_results)
+
         layer3_results = self._validate_business_layer(job)
         validation_results.extend(layer3_results)
 
@@ -52,20 +73,22 @@ class ValidatorAgent:
 
         critical_failures = [v for v in validation_results if v.is_critical]
 
+        review_state = JobState.REVIEWED if job.part_family else JobState.VALIDATED
+
         if critical_failures:
             result = AgentResult(
                 success=False,
                 agent=AgentRole.VALIDATOR,
-                state_reached=JobState.VALIDATION_FAILED.value,
+                state_reached=JobState.REVIEW_FAILED.value if job.part_family else JobState.VALIDATION_FAILED.value,
                 data={"validation_results": [v.model_dump() for v in validation_results]},
                 error=f"Critical validation failure: {critical_failures[0].rule_id}",
             )
         else:
-            job.transition_to(JobState.VALIDATED)
+            job.transition_to(review_state)
             result = AgentResult(
                 success=True,
                 agent=AgentRole.VALIDATOR,
-                state_reached=JobState.VALIDATED.value,
+                state_reached=review_state.value,
                 data={"validation_results": [v.model_dump() for v in validation_results]},
             )
 
@@ -119,6 +142,22 @@ class ValidatorAgent:
             geometric_type=job.spec.geometric_type,
         )
 
+    async def _validate_semantic_layer(self, job: DesignJob) -> list[ValidationResult]:
+        """Ensure generated geometry matches the intended object class."""
+        if not job.spec or not job.scad_source:
+            return []
+        if not self._requires_semantic_review(job):
+            return []
+
+        if self.design_critic is not None:
+            try:
+                review = await self.design_critic.review(job)
+                return [self._semantic_result_from_review(review)]
+            except Exception as exc:
+                logger.warning("semantic_review_failed", job_id=job.id, error=str(exc))
+
+        return [self._heuristic_semantic_result(job)]
+
     def _validate_business_layer(self, job: DesignJob) -> list[ValidationResult]:
         """Layer 3: Validate business acceptance criteria."""
         results = []
@@ -168,3 +207,113 @@ class ValidatorAgent:
 
         material_cost = volume_mm3 * 0.0005
         return base_cost + material_cost
+
+    def _requires_semantic_review(self, job: DesignJob) -> bool:
+        """Review LLM-native and complex geometry requests more strictly."""
+        if job.template_choice and job.template_choice.template_name == "llm_native_v1":
+            return True
+        geometric_type = (job.spec.geometric_type or "").lower()
+        return any(keyword in geometric_type for keyword in self.COMPLEX_KEYWORDS)
+
+    def _semantic_result_from_review(self, review: dict[str, Any]) -> ValidationResult:
+        """Convert an LLM review payload into a validation result."""
+        issues = [str(item) for item in review.get("issues", []) if item]
+        suggested_fixes = [str(item) for item in review.get("suggested_fixes", []) if item]
+        passed = bool(review.get("passed"))
+        confidence = self._coerce_float(review.get("confidence"))
+        summary = str(review.get("summary") or "").strip()
+        if not summary:
+            summary = "Generated CAD matches the requested geometry." if passed else "Generated CAD does not match the requested geometry."
+
+        details: dict[str, Any] = {}
+        if issues:
+            details["issues"] = issues
+        if suggested_fixes:
+            details["suggested_fixes"] = suggested_fixes
+
+        return ValidationResult(
+            rule_id="S001",
+            rule_name="Semantic Geometry Match",
+            level=ValidationLevel.ENGINEERING,
+            rule_type=RuleType.SEMANTIC,
+            passed=passed,
+            severity="error",
+            message=summary,
+            measured_value=confidence,
+            threshold_value=0.75,
+            details=details,
+        )
+
+    def _heuristic_semantic_result(self, job: DesignJob) -> ValidationResult:
+        """Fallback semantic validation when an LLM critic is unavailable."""
+        geometric_type = (job.spec.geometric_type or "").lower()
+        scad_source = job.scad_source.lower()
+
+        if "gear" in geometric_type:
+            matched, message, details = self._check_gear_semantics(scad_source)
+            return ValidationResult(
+                rule_id="S001",
+                rule_name="Semantic Geometry Match",
+                level=ValidationLevel.ENGINEERING,
+                rule_type=RuleType.SEMANTIC,
+                passed=matched,
+                severity="error",
+                message=message,
+                details=details,
+            )
+
+        return ValidationResult(
+            rule_id="S001",
+            rule_name="Semantic Geometry Match",
+            level=ValidationLevel.ENGINEERING,
+            rule_type=RuleType.SEMANTIC,
+            passed=True,
+            severity="error",
+            message="No semantic mismatch detected for complex geometry.",
+        )
+
+    def _check_gear_semantics(self, scad_source: str) -> tuple[bool, str, dict[str, Any]]:
+        """Heuristically confirm a gear request looks like gear code, not a box fallback."""
+        positive_markers = [
+            "teeth",
+            "tooth",
+            "gear",
+            "pitch_dia",
+            "pitch_radius",
+            "module_value",
+            "for (i = [0 : teeth - 1])",
+        ]
+        negative_markers = [
+            "box basic template",
+            "finger notch",
+            "lid groove",
+        ]
+
+        missing = [marker for marker in positive_markers if marker not in scad_source]
+        found_negative = [marker for marker in negative_markers if marker in scad_source]
+
+        passed = len(missing) <= 3 and not found_negative
+        if passed:
+            return (
+                True,
+                "Generated CAD reads like a gear model rather than a fallback primitive.",
+                {"matched_markers": [marker for marker in positive_markers if marker not in missing]},
+            )
+
+        return (
+            False,
+            "Generated CAD does not look like a gear-specific design and likely mismatches the request.",
+            {
+                "missing_markers": missing,
+                "unexpected_markers": found_negative,
+            },
+        )
+
+    def _coerce_float(self, value: Any) -> float | None:
+        """Best-effort float coercion for optional review metadata."""
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None

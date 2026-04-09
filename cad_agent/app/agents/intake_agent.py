@@ -8,6 +8,7 @@ from typing import Any
 
 import structlog
 
+from cad_agent.app.llm.spec_parser import LLMSpecParser
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.design_job import DesignJob, SpecResult, JobState
 
@@ -16,6 +17,9 @@ logger = structlog.get_logger()
 
 class IntakeAgent:
     """Parses natural language CAD requests into structured specs."""
+
+    def __init__(self, spec_parser: LLMSpecParser | None = None) -> None:
+        self._spec_parser = spec_parser
 
     async def process(self, job: DesignJob) -> AgentResult:
         """Parse natural language input into structured spec.
@@ -29,7 +33,7 @@ class IntakeAgent:
         start_time = time.time()
         logger.info("intake_processing", job_id=job.id, request=job.input_request[:100])
 
-        spec = self._parse_request(job.input_request)
+        spec = await self._parse_with_fallback(job.input_request)
 
         job.spec = spec
 
@@ -51,6 +55,18 @@ class IntakeAgent:
 
         result.duration_ms = int((time.time() - start_time) * 1000)
         return result
+
+    async def _parse_with_fallback(self, request: str) -> SpecResult:
+        """Try the configured LLM parser first, then fall back to regex parsing."""
+        if self._spec_parser is not None:
+            try:
+                llm_spec = await self._spec_parser.parse(request)
+                if llm_spec.success:
+                    return llm_spec
+            except Exception as exc:  # pragma: no cover - fallback path is behaviorally tested
+                logger.warning("llm_spec_parse_failed", error=str(exc))
+
+        return self._parse_request(request)
 
     def _parse_request(self, request: str) -> SpecResult:
         """Parse natural language request into structured spec.
@@ -92,15 +108,56 @@ class IntakeAgent:
 
     def _extract_type(self, text: str) -> str:
         """Extract geometric type from request."""
-        types = ["hook", "box", "clip", "bracket", "mount", "holder", "case"]
-        for t in types:
-            if t in text:
-                return t
+        aliases = {
+            "gear": ["gear", "spur gear", "齿轮"],
+            "hook": ["hook", "挂钩"],
+            "box": ["box", "盒", "箱"],
+            "clip": ["clip", "夹", "卡扣"],
+            "bracket": ["bracket", "支架"],
+            "mount": ["mount", "安装座", "底座"],
+            "holder": ["holder", "支撑", "托架"],
+            "case": ["case", "外壳", "壳体"],
+        }
+        for geometric_type, tokens in aliases.items():
+            if any(token in text for token in tokens):
+                return geometric_type
         return ""
 
     def _extract_dimensions(self, text: str) -> dict[str, float]:
         """Extract dimensions from request."""
         dims = {}
+        text_lower = text.lower()
+
+        keyword_aliases = {
+            "outer_diameter": ["outer diameter", "outside diameter", "od", "外径", "外"],
+            "inner_diameter": ["inner diameter", "inside diameter", "id", "内径", "内"],
+            "thickness": ["thickness", "厚度", "厚"],
+            "length": ["length", "长"],
+            "width": ["width", "宽"],
+            "height": ["height", "高"],
+            "depth": ["depth", "深"],
+        }
+
+        for key, aliases in keyword_aliases.items():
+            if key in dims:
+                continue
+            for alias in aliases:
+                match = re.search(
+                    rf"{re.escape(alias)}\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?",
+                    text,
+                    re.IGNORECASE,
+                )
+                if match:
+                    dims[key] = float(match.group(1))
+                    break
+                match = re.search(
+                    rf"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?\s*{re.escape(alias)}",
+                    text,
+                    re.IGNORECASE,
+                )
+                if match:
+                    dims[key] = float(match.group(1))
+                    break
 
         dim_keyword_pattern = r"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)\s*,?\s*(length|width|height|depth)"
         for match in re.finditer(dim_keyword_pattern, text, re.IGNORECASE):
@@ -164,7 +221,7 @@ class IntakeAgent:
                 except (ValueError, IndexError):
                     pass
 
-        if "length" not in dims:
+        if "length" not in dims and "gear" not in text_lower and "齿轮" not in text:
             match = re.search(r"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)", text, re.IGNORECASE)
             if match:
                 try:
@@ -175,7 +232,10 @@ class IntakeAgent:
         if "width" not in dims and "length" in dims:
             dims["width"] = dims.get("length", 20.0)
 
-        if "height" not in dims:
+        if "height" not in dims and "thickness" in dims:
+            dims["height"] = dims["thickness"]
+
+        if "height" not in dims and "gear" not in text_lower and "齿轮" not in text:
             dims["height"] = dims.get("length", 20.0)
 
         return dims

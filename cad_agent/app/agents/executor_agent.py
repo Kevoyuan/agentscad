@@ -49,15 +49,6 @@ class ExecutorAgent:
                 error="No SCAD source to render",
             )
 
-        is_valid, error = self.executor.validate_syntax(job.scad_source)
-        if not is_valid:
-            return AgentResult(
-                success=False,
-                agent=AgentRole.EXECUTOR,
-                state_reached=JobState.RENDER_FAILED.value,
-                error=f"SCAD syntax error: {error}",
-            )
-
         job_dir = self.output_dir / job.id
         job_dir.mkdir(exist_ok=True)
 
