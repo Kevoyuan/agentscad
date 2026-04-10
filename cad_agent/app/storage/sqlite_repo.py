@@ -139,6 +139,16 @@ class SQLiteJobRepository:
             return None
         return self._row_to_job(row)
 
+    def delete(self, job_id: str) -> bool:
+        """Hard delete a DesignJob from the database."""
+        try:
+            self.db.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+            self.db.conn.commit()
+            return True
+        except Exception as e:
+            logger.error("job_delete_failed", job_id=job_id, error=str(e))
+            return False
+
     def list(
         self,
         state: Optional[JobState] = None,

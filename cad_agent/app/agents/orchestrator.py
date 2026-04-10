@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Optional
 
 import structlog
 
+from cad_agent.app.llm.geometry_intent import infer_geometry_intent
+from cad_agent.app.llm.object_model import enrich_object_model_from_spec
 from cad_agent.app.llm.pipeline_utils import has_resolved_part_family
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.case import Case
@@ -175,11 +177,11 @@ class OrchestratorAgent:
         """
         state_to_agent = {
             JobState.NEW: ("research", "research"),
-            JobState.RESEARCHED: ("intent", "resolve"),
+            JobState.RESEARCHED: ("intake", "process"),
+            JobState.SPEC_PARSED: ("intent", "resolve"),
             JobState.INTENT_RESOLVED: ("design", "design"),
             JobState.DESIGN_RESOLVED: ("parameters", "build_schema"),
-            JobState.PARAMETERS_GENERATED: ("intake", "process"),
-            JobState.SPEC_PARSED: ("generator", "generate") if has_resolved_part_family(job.part_family) else ("template", "select"),
+            JobState.PARAMETERS_GENERATED: ("generator", "generate"),
             JobState.TEMPLATE_SELECTED: ("generator", "generate"),
             JobState.GEOMETRY_BUILT: ("executor", "execute"),
             JobState.SCAD_GENERATED: ("executor", "execute"),
@@ -225,6 +227,10 @@ class OrchestratorAgent:
             job.research_result = payload
             if getattr(payload, "part_family", None):
                 job.part_family = str(payload.part_family.value if hasattr(payload.part_family, "value") else payload.part_family)
+            if getattr(payload, "object_model", None):
+                if not job.business_context:
+                    job.business_context = {}
+                job.business_context["object_model"] = dict(payload.object_model)
             result = AgentResult(
                 success=not bool(getattr(payload, "error_message", None)),
                 agent=AgentRole.RESEARCH,
@@ -232,6 +238,27 @@ class OrchestratorAgent:
                 data={"research_result": payload.model_dump(mode="json")},
                 error=getattr(payload, "error_message", None),
             )
+        elif agent_name == "intake" and method_name == "process":
+            result = await method(job)
+            geometry_intent = infer_geometry_intent(
+                job.input_request,
+                job.spec.dimensions if job.spec else None,
+                job.spec.geometric_type if job.spec else "",
+            )
+            if geometry_intent:
+                if not job.business_context:
+                    job.business_context = {}
+                job.business_context["geometry_intent"] = geometry_intent
+            if job.spec and job.research_result:
+                merged_object_model = enrich_object_model_from_spec(
+                    getattr(job.research_result, "object_model", None),
+                    job.spec.dimensions,
+                )
+                if merged_object_model:
+                    job.research_result.object_model = merged_object_model
+                    if not job.business_context:
+                        job.business_context = {}
+                    job.business_context["object_model"] = merged_object_model
         elif agent_name == "intent":
             payload = await method(job.input_request, job.research_result)
             job.intent_result = payload
@@ -255,7 +282,7 @@ class OrchestratorAgent:
                 error=getattr(payload, "error_message", None),
             )
         elif agent_name == "parameters":
-            payload = await method(job.input_request, job.intent_result, job.design_result, job.research_result)
+            payload = await method(job.input_request, job.intent_result, job.design_result, job.research_result, job.spec)
             job.parameter_schema = ParameterSchema.model_validate(payload.model_dump(mode="json"))
             job.set_parameter_values(job.parameter_schema.parameter_values())
             result = AgentResult(

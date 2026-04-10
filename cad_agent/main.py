@@ -468,11 +468,17 @@ async def list_jobs(
 
 
 @app.delete("/jobs/{job_id}")
-async def cancel_job(job_id: str) -> JSONResponse:
-    """Cancel a job."""
+async def cancel_job(job_id: str, hard: bool = Query(default=False)) -> JSONResponse:
+    """Cancel or delete a job."""
     job = _job_repo.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    if hard:
+        deleted = _job_repo.delete(job_id)
+        if not deleted:
+            raise HTTPException(status_code=500, detail="Failed to delete job from database")
+        return JSONResponse(content={"job_id": job_id, "state": "DELETED", "message": "Job deleted completely"})
 
     if job.state in {JobState.DELIVERED, JobState.ARCHIVED}:
         raise HTTPException(status_code=400, detail=f"Cannot cancel job in state {job.state.value}")

@@ -219,6 +219,147 @@ def orchestrator(
     return orch
 
 
+@pytest.mark.asyncio
+async def test_orchestrator_routes_intake_before_parameters(orchestrator):
+    call_order = []
+
+    async def record_research(*args, **kwargs):
+        call_order.append("research")
+        return type(
+            "ResearchPayload",
+            (),
+            {
+                "part_family": "device_stand",
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {"part_family": "device_stand"},
+            },
+        )()
+
+    async def record_intake(job):
+        call_order.append("intake")
+        from cad_agent.app.models.design_job import SpecResult
+        job.spec = SpecResult(
+            success=True,
+            geometric_type="平台式底座",
+            dimensions={"width": 240.0, "depth": 240.0, "height": 45.0},
+            material="PLA",
+            tolerance=0.1,
+        )
+        return AgentResult(
+            success=True,
+            agent=AgentRole.INTAKE,
+            state_reached="SPEC_PARSED",
+            data={"spec": job.spec.model_dump()},
+        )
+
+    async def record_intent(*args, **kwargs):
+        call_order.append("intent")
+        return type(
+            "IntentPayload",
+            (),
+            {
+                "part_family": "device_stand",
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {"part_family": "device_stand"},
+            },
+        )()
+
+    async def record_design(*args, **kwargs):
+        call_order.append("design")
+        return type(
+            "DesignPayload",
+            (),
+            {
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {"design_intent_summary": "stand"},
+            },
+        )()
+
+    async def record_parameters(*args, **kwargs):
+        call_order.append("parameters")
+        return type(
+            "ParameterPayload",
+            (),
+            {
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {
+                    "request": "stand",
+                    "part_family": "device_stand",
+                    "schema_version": "v1",
+                    "design_summary": "stand",
+                    "parameters": [],
+                    "user_parameters": [],
+                    "inferred_parameters": [],
+                    "design_derived_parameters": [],
+                    "notes": [],
+                    "error_message": None,
+                },
+            },
+        )()
+
+    async def record_generator(job):
+        call_order.append("generator")
+        return AgentResult(
+            success=True,
+            agent=AgentRole.GENERATOR,
+            state_reached="SCAD_GENERATED",
+            data={"scad_source": "// stand"},
+        )
+
+    async def record_executor(job):
+        call_order.append("executor")
+        return AgentResult(
+            success=True,
+            agent=AgentRole.EXECUTOR,
+            state_reached="RENDERED",
+            data={},
+        )
+
+    async def record_validator(job):
+        call_order.append("validator")
+        return AgentResult(
+            success=True,
+            agent=AgentRole.VALIDATOR,
+            state_reached="VALIDATED",
+            data={},
+        )
+
+    async def record_accept(job):
+        call_order.append("accept")
+        return AgentResult(
+            success=True,
+            agent=AgentRole.INTAKE,
+            state_reached="ACCEPTED",
+            data={},
+        )
+
+    async def record_report(job):
+        call_order.append("report")
+        return AgentResult(
+            success=True,
+            agent=AgentRole.REPORT,
+            state_reached="DELIVERED",
+            data={},
+        )
+
+    orchestrator._agents["research"].research.side_effect = record_research
+    orchestrator._agents["intake"].process.side_effect = record_intake
+    orchestrator._agents["intent"].resolve.side_effect = record_intent
+    orchestrator._agents["design"].design.side_effect = record_design
+    orchestrator._agents["parameters"].build_schema.side_effect = record_parameters
+    orchestrator._agents["generator"].generate.side_effect = record_generator
+    orchestrator._agents["executor"].execute.side_effect = record_executor
+    orchestrator._agents["validator"].validate.side_effect = record_validator
+    orchestrator._agents["intake"].accept.side_effect = record_accept
+    orchestrator._agents["report"].generate.side_effect = record_report
+
+    job = DesignJob(input_request="帮我设计一个mac studio m3底座")
+    result = await orchestrator.process(job)
+
+    assert result.success is True
+    assert call_order[:5] == ["research", "intake", "intent", "design", "parameters"]
+
+
 @pytest.fixture
 def sample_job():
     return DesignJob(
@@ -360,12 +501,12 @@ class TestOrchestratorAgent:
         mock_report_agent.generate.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_spec_parsed_unknown_family_routes_to_template_not_generator(
+    async def test_spec_parsed_routes_to_intent_before_template_or_generator(
         self,
         orchestrator,
         sample_job,
-        mock_template_agent,
         mock_generator_agent,
+        mock_intent_agent,
     ):
         from cad_agent.app.models.design_job import SpecResult
 
@@ -383,6 +524,6 @@ class TestOrchestratorAgent:
 
         result = await orchestrator._route_to_agent(sample_job)
 
-        assert result.agent == AgentRole.TEMPLATE
-        mock_template_agent.select.assert_awaited_once()
+        assert result.agent == AgentRole.INTENT
+        mock_intent_agent.resolve.assert_awaited_once()
         mock_generator_agent.generate.assert_not_awaited()

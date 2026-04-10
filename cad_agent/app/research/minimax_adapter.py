@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -10,6 +9,7 @@ from typing import Any
 import httpx
 
 from cad_agent.config import get_settings
+from cad_agent.app.llm.pipeline_utils import normalize_entity_text, normalize_known_object_name
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class WebResearchResult:
     entity_name: str
     source_urls: list[str]
     dimensions_mm: dict[str, float] = field(default_factory=dict)
+    feature_map: dict[str, Any] = field(default_factory=dict)
     reference_facts: list[str] = field(default_factory=list)
 
 
@@ -30,18 +31,6 @@ class MiniMaxWebSearchAdapter:
     """
 
     SEARCH_ENDPOINT = "https://api.minimaxi.com/v1/coding_plan/search"
-
-    # Patterns to extract dimensions from search result snippets
-    _DIM_PATTERNS = [
-        # "149.03×71.44×8.75mm" or "149.03 x 71.44 x 8.75 mm"
-        re.compile(r"(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*mm", re.IGNORECASE),
-        # "Width 75.6 mm" / "Height 146.6 mm" / "Depth 8.25 mm"
-        re.compile(r"width[^\d]*(\d+(?:\.\d+)?)\s*mm", re.IGNORECASE),
-        re.compile(r"height[^\d]*(\d+(?:\.\d+)?)\s*mm", re.IGNORECASE),
-        re.compile(r"depth[^\d]*(\d+(?:\.\d+)?)\s*mm", re.IGNORECASE),
-        # Fallback: any standalone "NNNmm" number that looks like a device dimension
-        re.compile(r"\b(\d{2,3}(?:\.\d+)?)\s*mm\b", re.IGNORECASE),
-    ]
 
     def __init__(
         self,
@@ -97,25 +86,34 @@ class MiniMaxWebSearchAdapter:
 
         organic = data.get("organic", [])
         snippets = self._collect_snippets(organic)
-        dimensions = self._extract_dimensions(snippets)
+        dimensions = self._extract_dimensions(snippets, request)
+        feature_map = self._extract_feature_map(snippets, request)
         entity_name = self._extract_entity_name(request, organic)
         source_urls = [r.get("link", "") for r in organic if r.get("link")]
         reference_facts = [f"Live dimensions from web search for: {query}"]
+        if feature_map:
+            reference_facts.append("Live feature-map hints were extracted from current product references.")
 
         return WebResearchResult(
             entity_name=entity_name,
             dimensions_mm=dimensions,
+            feature_map=feature_map,
             source_urls=source_urls,
             reference_facts=reference_facts,
         )
 
     def _build_search_query(self, request: str) -> str:
         """Extract a search-friendly query from the natural language request."""
-        text = request.lower()
-        # Normalize iPhone naming
+        text = normalize_entity_text(request)
+        # Normalize known product naming and prefer entity-led queries over raw request text.
         text = re.sub(r"iphone\s*(\d+)\s*(pro\s*max|pro|plus|mini|e|air)?", r"iphone \1 \2", text)
         text = re.sub(r"\s+", " ", text).strip()
-        # Remove common Chinese filler words
+        normalized_entity = self._extract_entity_name(request, [])
+        request_lower = normalize_entity_text(request)
+        if self._is_phone_request(request_lower):
+            return f"{normalized_entity} dimensions camera bump button layout port layout".strip()
+        if self._is_device_support_request(request_lower):
+            return f"{normalized_entity} dimensions width depth height ports vent layout".strip()
         text = re.sub(r"[帮我设计一个有个]", "", text)
         return text.strip()
 
@@ -139,49 +137,162 @@ class MiniMaxWebSearchAdapter:
             name = re.split(r"--|\|", title)[0].strip()
             return name[:64]
         # Fallback: clean up the request
-        text = request.lower()
+        text = normalize_entity_text(request)
+        known = normalize_known_object_name(request)
+        if known not in {request[:48], request[:64], "Unknown Part"}:
+            return known
+        mac_match = re.search(r"mac\s*studio\s*(m\d+)?", text, re.IGNORECASE)
+        if mac_match:
+            suffix = f" {mac_match.group(1).upper()}" if mac_match.group(1) else ""
+            return f"Mac Studio{suffix}".strip()
+        mac_mini_match = re.search(r"mac\s*mini\s*(m\d+)?", text, re.IGNORECASE)
+        if mac_mini_match:
+            suffix = f" {mac_mini_match.group(1).upper()}" if mac_mini_match.group(1) else ""
+            return f"Mac mini{suffix}".strip()
+        macbook_match = re.search(r"macbook\s*(?:pro|air)?\s*\d*", text, re.IGNORECASE)
+        if macbook_match:
+            return macbook_match.group(0).replace("  ", " ").title().strip()
+        samsung_match = re.search(r"(samsung|galaxy)\s*[a-z]*\s*\d+\s*(?:ultra|plus|pro)?", text, re.IGNORECASE)
+        if samsung_match:
+            return samsung_match.group(0).replace("  ", " ").title().strip()
+        pixel_match = re.search(r"pixel\s*\d+\s*(?:pro|xl|fold|a)?", text, re.IGNORECASE)
+        if pixel_match:
+            return pixel_match.group(0).replace("  ", " ").title().strip()
         match = re.search(r"iphone\s*\d+\s*(?:pro\s*max|pro|plus|mini|e|air)?", text, re.IGNORECASE)
         if match:
             return match.group(0).title()
         return request[:48] or "Unknown Device"
 
-    def _extract_dimensions(self, text: str) -> dict[str, float]:
+    def _extract_dimensions(self, text: str, request: str) -> dict[str, float]:
         """Extract device dimensions (mm) from combined search snippet text."""
+        text_lower = text.lower()
+        request_lower = normalize_entity_text(request)
         dimensions: dict[str, float] = {}
 
-        # Try "W × D × H mm" pattern first (most reliable for devices)
+        width = self._measure_to_mm(self._find_measurement(text_lower, "width"))
+        height = self._measure_to_mm(self._find_measurement(text_lower, "height"))
+        depth = self._measure_to_mm(self._find_measurement(text_lower, "depth"))
+
+        if self._is_device_support_request(request_lower):
+            if width is not None:
+                dimensions["device_width"] = width
+            if depth is not None:
+                dimensions["device_depth"] = depth
+            if height is not None:
+                dimensions["device_height"] = height
+            return dimensions
+
+        if width is not None:
+            dimensions["body_width"] = width
+        if height is not None:
+            dimensions["body_length"] = height
+        if depth is not None:
+            dimensions["body_depth"] = depth
+
+        if dimensions:
+            return dimensions
+
         multi_match = re.search(
-            r"(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*mm",
+            r"(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*(mm|cm)",
+            text_lower,
+            re.IGNORECASE,
+        )
+        if not multi_match:
+            return dimensions
+
+        a = self._convert_unit_to_mm(float(multi_match.group(1)), multi_match.group(4))
+        b = self._convert_unit_to_mm(float(multi_match.group(2)), multi_match.group(4))
+        c = self._convert_unit_to_mm(float(multi_match.group(3)), multi_match.group(4))
+
+        if self._is_device_support_request(request_lower):
+            return {
+                "device_width": a,
+                "device_depth": b,
+                "device_height": c,
+            }
+
+        return {
+            "body_width": a,
+            "body_length": b,
+            "body_depth": c,
+        }
+
+    def _find_measurement(self, text: str, keyword: str) -> tuple[float, str] | None:
+        match = re.search(
+            rf"{keyword}[^\d]*(\d+(?:\.\d+)?)\s*(mm|cm)",
             text,
             re.IGNORECASE,
         )
-        if multi_match:
-            w, d, h = float(multi_match.group(1)), float(multi_match.group(2)), float(multi_match.group(3))
-            # Determine which is width/depth/height based on magnitude
-            if w >= h >= d or w >= d and d < 20:
-                dimensions["body_width"] = w
-                dimensions["body_depth"] = d
-                dimensions["body_length"] = h
-            elif h > w:
-                dimensions["body_length"] = h
-                dimensions["body_width"] = w
-                dimensions["body_depth"] = d
-            else:
-                dimensions["body_width"] = w
-                dimensions["body_length"] = h
-                dimensions["body_depth"] = d
-            return dimensions
+        if not match:
+            return None
+        return float(match.group(1)), match.group(2)
 
-        # Fallback: individual patterns
-        width_match = re.search(r"width[^\d]*(\d+(?:\.\d+)?)\s*mm", text, re.IGNORECASE)
-        height_match = re.search(r"height[^\d]*(\d+(?:\.\d+)?)\s*mm", text, re.IGNORECASE)
-        depth_match = re.search(r"depth[^\d]*(\d+(?:\.\d+)?)\s*mm", text, re.IGNORECASE)
+    def _measure_to_mm(self, measurement: tuple[float, str] | None) -> float | None:
+        if measurement is None:
+            return None
+        value, unit = measurement
+        return self._convert_unit_to_mm(value, unit)
 
-        if width_match:
-            dimensions["body_width"] = float(width_match.group(1))
-        if height_match:
-            dimensions["body_length"] = float(height_match.group(1))
-        if depth_match:
-            dimensions["body_depth"] = float(depth_match.group(1))
+    def _convert_unit_to_mm(self, value: float, unit: str) -> float:
+        return round(value * 10.0, 4) if unit.lower() == "cm" else round(value, 4)
 
-        return dimensions
+    def _extract_feature_map(self, text: str, request: str) -> dict[str, Any]:
+        """Extract coarse device feature hints from snippets."""
+        text_lower = text.lower()
+        request_lower = normalize_entity_text(request)
+        feature_map: dict[str, Any] = {}
+
+        if self._is_phone_request(request_lower):
+            camera_match = re.search(
+                r"camera(?:\s*bump|\s*island|\s*module)?[^\d]*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(mm|cm)",
+                text_lower,
+                re.IGNORECASE,
+            )
+            if camera_match:
+                feature_map["camera_region"] = {
+                    "bbox_mm": {
+                        "width": self._convert_unit_to_mm(float(camera_match.group(1)), camera_match.group(3)),
+                        "height": self._convert_unit_to_mm(float(camera_match.group(2)), camera_match.group(3)),
+                    }
+                }
+            controls: list[str] = []
+            if "power" in text_lower:
+                controls.append("power")
+            if "volume" in text_lower:
+                controls.append("volume")
+            if controls:
+                side = "right" if "right side" in text_lower else "left" if "left side" in text_lower else "unknown"
+                feature_map["button_zones"] = [{"side": side, "controls": controls}]
+            if "usb-c" in text_lower or "usb c" in text_lower:
+                feature_map["port_zone"] = {"type": "usb-c"}
+            elif "lightning" in text_lower:
+                feature_map["port_zone"] = {"type": "lightning"}
+
+        if any(token in request_lower for token in ("macbook", "laptop", "notebook")):
+            if "hinge" in text_lower:
+                feature_map["hinge_side"] = "rear"
+            if "vent" in text_lower or "cooling" in text_lower or "fan" in text_lower:
+                feature_map["vent_zones"] = [{"side": "rear"}]
+            if "feet" in text_lower or "foot" in text_lower:
+                feature_map["foot_pad_zones"] = [{"present": True}]
+
+        return feature_map
+
+    def _is_phone_request(self, request_lower: str) -> bool:
+        return any(token in request_lower for token in ("iphone", "samsung", "galaxy", "pixel", "手机"))
+
+    def _is_device_support_request(self, request_lower: str) -> bool:
+        return any(
+            token in request_lower
+            for token in (
+                "mac mini",
+                "mac studio",
+                "macbook",
+                "laptop",
+                "notebook",
+                "computer",
+                "mini pc",
+                "桌面电脑",
+                "电脑",
+            )
+        )

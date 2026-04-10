@@ -18,6 +18,8 @@ from cad_agent.app.llm.pipeline_utils import (
     label_for_key,
     unit_for_key,
 )
+from cad_agent.app.llm.geometry_intent import infer_geometry_intent
+from cad_agent.app.models.design_job import SpecResult
 
 
 class ParameterSchemaAgent:
@@ -29,6 +31,7 @@ class ParameterSchemaAgent:
         intent: IntentResult,
         design: DesignResult,
         research: ResearchResult | None = None,
+        spec: SpecResult | None = None,
     ) -> ParameterSchemaResult:
         """Return a parameter schema for the part family."""
         parsed = extract_numbers(request)
@@ -36,17 +39,19 @@ class ParameterSchemaAgent:
         defaults = family_default_values(family)
         if research and getattr(research, "reference_dimensions", None):
             defaults = {**defaults, **dict(research.reference_dimensions)}
+        if spec and spec.dimensions:
+            defaults = {**defaults, **self._normalize_spec_defaults(family, spec.dimensions, research)}
 
         if family == PartFamily.SPUR_GEAR:
             parameters, user_params, inferred_params, design_params = self._gear_schema(parsed.values, defaults)
         elif family == PartFamily.DEVICE_STAND:
-            parameters, user_params, inferred_params, design_params = self._stand_schema(parsed.values, defaults, research)
+            parameters, user_params, inferred_params, design_params = self._stand_schema(parsed.values, defaults, research, spec)
         elif family == PartFamily.ELECTRONICS_ENCLOSURE:
             parameters, user_params, inferred_params, design_params = self._enclosure_schema(parsed.values, defaults)
         elif family == PartFamily.PHONE_CASE:
             parameters, user_params, inferred_params, design_params = self._phone_case_schema(parsed.values, defaults)
         else:
-            parameters, user_params, inferred_params, design_params = self._fallback_schema(defaults)
+            parameters, user_params, inferred_params, design_params = self._fallback_schema(request, defaults, spec)
 
         notes = [
             "User parameters come from the prompt when present.",
@@ -103,12 +108,34 @@ class ParameterSchemaAgent:
         values: dict[str, float],
         defaults: dict[str, float],
         research: ResearchResult | None,
+        spec: SpecResult | None,
     ) -> tuple[list[ParameterDefinition], list[str], list[str], list[str]]:
         merged = {**defaults, **values}
         user_params = list(values.keys())
         if research and research.object_name.lower().startswith("mac mini"):
             merged.setdefault("device_width", 130.0)
             merged.setdefault("device_depth", 130.0)
+        object_model = getattr(research, "object_model", {}) if research else {}
+
+        if object_model.get("synthesis_kind") == "support_base":
+            base = object_model.get("base_footprint_mm", {})
+            support = object_model.get("support_surface_mm", {})
+            envelope = object_model.get("envelope_mm", {})
+            params = [
+                self._parameter("base_width", base.get("width", merged.get("base_width", 240.0)), source=ParameterSource.RESEARCH),
+                self._parameter("base_depth", base.get("depth", merged.get("base_depth", 240.0)), source=ParameterSource.RESEARCH),
+                self._parameter("base_height", base.get("height", merged.get("base_height", 45.0)), source=ParameterSource.RESEARCH),
+                self._parameter("support_width", support.get("width", merged.get("support_width", envelope.get("width", 197.0) + 8.0)), source=ParameterSource.RESEARCH),
+                self._parameter("support_depth", support.get("depth", merged.get("support_depth", 98.0)), source=ParameterSource.RESEARCH),
+                self._parameter("device_width", envelope.get("width", merged.get("device_width", 197.0)), source=ParameterSource.RESEARCH),
+                self._parameter("device_depth", envelope.get("depth", merged.get("device_depth", 197.0)), source=ParameterSource.RESEARCH),
+                self._parameter("device_height", envelope.get("height", merged.get("device_height", 95.0)), source=ParameterSource.RESEARCH),
+                self._parameter("wall_thickness", merged.get("wall_thickness", 4.0), source=self._source_for("wall_thickness", values, default_source=ParameterSource.DESIGN_DERIVED)),
+                self._parameter("clearance", merged.get("clearance", 1.0), source=ParameterSource.DESIGN_DERIVED, editable=True),
+                self._parameter("cable_relief_width", merged.get("cable_relief_width", 70.0), source=ParameterSource.DESIGN_DERIVED, editable=True),
+                self._parameter("edge_radius", merged.get("edge_radius", 18.0), source=ParameterSource.DESIGN_DERIVED, editable=True),
+            ]
+            return params, user_params, [], ["clearance", "cable_relief_width", "edge_radius"]
 
         params = [
             self._parameter("device_width", merged["device_width"], source=self._source_for("device_width", values)),
@@ -122,6 +149,73 @@ class ParameterSchemaAgent:
             self._parameter("arch_peak", merged["arch_peak"], source=ParameterSource.DESIGN_DERIVED, editable=True),
         ]
         return params, user_params, [], ["base_flare", "arch_radius", "arch_peak"]
+
+    def _normalize_spec_defaults(
+        self,
+        family: PartFamily,
+        dimensions: dict[str, float],
+        research: ResearchResult | None,
+    ) -> dict[str, float]:
+        normalized: dict[str, float] = {}
+        if family == PartFamily.DEVICE_STAND:
+            object_model = getattr(research, "object_model", {}) if research else {}
+            if object_model.get("synthesis_kind") == "support_base":
+                if (value := dimensions.get("底座宽度")) is not None:
+                    normalized["base_width"] = float(value)
+                if (value := dimensions.get("base_width")) is not None:
+                    normalized["base_width"] = float(value)
+                if (value := dimensions.get("overall_width")) is not None and "base_width" not in normalized:
+                    normalized["base_width"] = float(value)
+                if (value := dimensions.get("width")) is not None and "base_width" not in normalized:
+                    normalized["base_width"] = float(value)
+                if (value := dimensions.get("base_length")) is not None and "base_width" not in normalized:
+                    normalized["base_width"] = float(value)
+                if (value := dimensions.get("底座深度")) is not None:
+                    normalized["base_depth"] = float(value)
+                if (value := dimensions.get("base_depth")) is not None:
+                    normalized["base_depth"] = float(value)
+                if (value := dimensions.get("overall_length")) is not None and "base_depth" not in normalized:
+                    normalized["base_depth"] = float(value)
+                if (value := dimensions.get("length")) is not None and "base_depth" not in normalized:
+                    normalized["base_depth"] = float(value)
+                if (value := dimensions.get("base_length")) is not None and "base_depth" not in normalized:
+                    normalized["base_depth"] = float(value)
+                if (value := dimensions.get("底座高度")) is not None:
+                    normalized["base_height"] = float(value)
+                if (value := dimensions.get("base_height")) is not None:
+                    normalized["base_height"] = float(value)
+                if (value := dimensions.get("overall_height")) is not None and "base_height" not in normalized:
+                    normalized["base_height"] = float(value)
+                if (value := dimensions.get("height")) is not None and "base_height" not in normalized:
+                    normalized["base_height"] = float(value)
+                if (value := dimensions.get("顶部凹槽宽度")) is not None:
+                    normalized["support_width"] = float(value)
+                if (value := dimensions.get("macmini_cavity_width")) is not None:
+                    normalized["support_width"] = float(value)
+                if (value := dimensions.get("cavity_width")) is not None and "support_width" not in normalized:
+                    normalized["support_width"] = float(value)
+                if (value := dimensions.get("内腔宽度")) is not None and "support_width" not in normalized:
+                    normalized["support_width"] = float(value)
+                if (value := dimensions.get("support_width")) is not None:
+                    normalized["support_width"] = float(value)
+                if (value := dimensions.get("顶部凹槽深度")) is not None:
+                    normalized["support_depth"] = float(value)
+                if (value := dimensions.get("macmini_cavity_length")) is not None:
+                    normalized["support_depth"] = float(value)
+                if (value := dimensions.get("cavity_length")) is not None and "support_depth" not in normalized:
+                    normalized["support_depth"] = float(value)
+                if (value := dimensions.get("内腔长度")) is not None and "support_depth" not in normalized:
+                    normalized["support_depth"] = float(value)
+                if (value := dimensions.get("support_depth")) is not None:
+                    normalized["support_depth"] = float(value)
+            else:
+                if (value := dimensions.get("width")) is not None:
+                    normalized["device_width"] = float(value)
+                if (value := dimensions.get("depth")) is not None:
+                    normalized["device_depth"] = float(value)
+                if (value := dimensions.get("height")) is not None:
+                    normalized["stand_height"] = float(value)
+        return normalized
 
     def _enclosure_schema(
         self,
@@ -160,7 +254,30 @@ class ParameterSchemaAgent:
         ]
         return params, list(values.keys()), [], ["lid_overlap", "standoff_height", "boss_diameter", "vent_spacing", "inner_width", "inner_depth", "inner_height"]
 
-    def _fallback_schema(self, defaults: dict[str, float]) -> tuple[list[ParameterDefinition], list[str], list[str], list[str]]:
+    def _fallback_schema(
+        self,
+        request: str,
+        defaults: dict[str, float],
+        spec: SpecResult | None,
+    ) -> tuple[list[ParameterDefinition], list[str], list[str], list[str]]:
+        geometry_intent = infer_geometry_intent(
+            request,
+            spec.dimensions if spec else None,
+            spec.geometric_type if spec else "",
+        )
+        if geometry_intent.get("intent_type") in {"frustum_shell", "half_frustum_shell"}:
+            dims = geometry_intent.get("dimensions_mm", {})
+            params = [
+                self._parameter("bottom_diameter", dims.get("bottom_diameter", 300.0), source=ParameterSource.USER),
+                self._parameter("top_diameter", dims.get("top_diameter", 200.0), source=ParameterSource.USER),
+                self._parameter("height", dims.get("height", 200.0), source=ParameterSource.USER),
+                self._parameter(
+                    "wall_thickness",
+                    geometry_intent.get("defaults", {}).get("wall_thickness", 1.8),
+                    source=ParameterSource.DESIGN_DERIVED,
+                ),
+            ]
+            return params, ["bottom_diameter", "top_diameter", "height"], [], ["wall_thickness"]
         params = [self._parameter(key, value, source=ParameterSource.DESIGN_DERIVED) for key, value in defaults.items()]
         return params, [], [], list(defaults.keys())
 

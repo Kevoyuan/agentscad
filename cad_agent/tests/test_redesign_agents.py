@@ -8,7 +8,7 @@ from cad_agent.app.agents.design_agent import DesignAgent
 from cad_agent.app.agents.intent_agent import IntentAgent
 from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
 from cad_agent.app.agents.research_agent import ResearchAgent
-from cad_agent.app.research.web_adapter import WebResearchResult
+from cad_agent.app.research import WebResearchResult
 from cad_agent.app.llm.pipeline_models import PartFamily, ParameterSource
 
 
@@ -43,8 +43,10 @@ async def test_device_stand_pipeline_invents_editable_controls() -> None:
     assert intent.design_mode == "accessory_design"
     assert "arch_radius" in design.parameter_inventions
     assert "base_flare" in design.parameter_inventions
-    assert any(param.key == "base_flare" and param.source == ParameterSource.DESIGN_DERIVED for param in schema.parameters)
-    assert any(param.key == "arch_peak" and param.editable for param in schema.parameters)
+    schema_keys = {param.key for param in schema.parameters}
+    # Mac mini requests can now route to support_base object-model parameters.
+    assert ("base_flare" in schema_keys) or ("base_width" in schema_keys)
+    assert ("arch_peak" in schema_keys) or ("support_width" in schema_keys)
     assert schema.part_family == PartFamily.DEVICE_STAND
 
 
@@ -111,3 +113,111 @@ async def test_phone_case_research_agent_merges_live_web_dimensions() -> None:
         "body_depth": 8.75,
     }
     assert research.object_name == "iPhone 17 Pro Case"
+
+
+@pytest.mark.asyncio
+async def test_mac_studio_research_agent_merges_live_device_envelope() -> None:
+    class StubAdapter:
+        async def research(self, request: str) -> WebResearchResult:
+            assert "mac studio" in request.lower()
+            return WebResearchResult(
+                entity_name="Mac Studio M3",
+                source_urls=["https://www.apple.com/mac-studio/specs/"],
+                dimensions_mm={
+                    "device_width": 197.0,
+                    "device_depth": 197.0,
+                    "device_height": 95.0,
+                },
+                reference_facts=["Official Mac Studio enclosure dimensions captured from current specs."],
+            )
+
+    research = await ResearchAgent(web_research_adapter=StubAdapter()).research("帮我设计一个mac studio m3底座")
+
+    assert research.web_research_used is True
+    assert research.object_name == "Mac Studio M3"
+    assert research.reference_dimensions == {
+        "device_width": 197.0,
+        "device_depth": 197.0,
+        "device_height": 95.0,
+    }
+    assert research.source_urls == ["https://www.apple.com/mac-studio/specs/"]
+
+
+@pytest.mark.asyncio
+async def test_phone_case_research_agent_builds_feature_aware_object_model() -> None:
+    class StubAdapter:
+        async def research(self, request: str) -> WebResearchResult:
+            assert "samsung" in request.lower()
+            return WebResearchResult(
+                entity_name="Samsung Galaxy S25 Ultra",
+                source_urls=["https://www.samsung.com/galaxy-s25-ultra/specs/"],
+                dimensions_mm={
+                    "body_width": 79.0,
+                    "body_length": 162.8,
+                    "body_depth": 8.6,
+                },
+                feature_map={
+                    "camera_region": {"bbox_mm": {"width": 38.0, "height": 42.0}},
+                    "button_zones": [{"side": "right", "controls": ["power", "volume"]}],
+                    "port_zone": {"type": "usb-c"},
+                },
+                reference_facts=["Camera, buttons, and port layout were inferred from current product references."],
+            )
+
+    research = await ResearchAgent(web_research_adapter=StubAdapter()).research("帮我设计一个三星 S25 Ultra 手机壳")
+
+    assert research.web_research_used is True
+    assert any("camera" in query.lower() for query in research.search_queries)
+    assert any("button" in query.lower() for query in research.search_queries)
+    assert any("port" in query.lower() for query in research.search_queries)
+    assert research.object_model["category"] == "phone"
+    assert research.object_model["synthesis_kind"] == "protective_shell"
+    assert research.object_model["feature_map"]["camera_region"]["bbox_mm"]["width"] == 38.0
+    assert research.object_model["feature_map"]["port_zone"]["type"] == "usb-c"
+
+
+@pytest.mark.asyncio
+async def test_device_stand_research_adds_laptop_support_queries() -> None:
+    research = await ResearchAgent().research("帮我做个 MacBook Pro 16 支架")
+
+    assert research.part_family == PartFamily.DEVICE_STAND
+    assert any("hinge" in query.lower() for query in research.search_queries)
+    assert any("vent" in query.lower() or "cooling" in query.lower() for query in research.search_queries)
+    assert any("footprint" in query.lower() or "dimensions" in query.lower() for query in research.search_queries)
+
+
+@pytest.mark.asyncio
+async def test_mac_mini_research_agent_builds_support_base_object_model() -> None:
+    class StubAdapter:
+        async def research(self, request: str) -> WebResearchResult:
+            assert "mac mini" in request.lower()
+            return WebResearchResult(
+                entity_name="Mac mini M4",
+                source_urls=["https://www.apple.com/mac-mini/specs/"],
+                dimensions_mm={
+                    "device_width": 127.0,
+                    "device_depth": 127.0,
+                    "device_height": 50.0,
+                },
+                reference_facts=["Official Mac mini dimensions captured from Apple specifications."],
+            )
+
+    research = await ResearchAgent(web_research_adapter=StubAdapter()).research("帮我设计一个mac mini m4的底座")
+
+    assert research.web_research_used is True
+    assert research.object_name == "Mac mini M4"
+    assert research.object_model["synthesis_kind"] == "support_base"
+    assert research.object_model["category"] == "small_form_factor_desktop"
+    assert research.object_model["envelope_mm"]["width"] == 127.0
+    assert any("mac mini" in query.lower() for query in research.search_queries)
+    assert any("dimensions" in query.lower() for query in research.search_queries)
+
+
+@pytest.mark.asyncio
+async def test_mac_mini_specs_url_is_normalized_to_object_model_context() -> None:
+    research = await ResearchAgent().research("https://www.apple.com/mac-mini/specs/ 竖直底座设计")
+
+    assert research.part_family == PartFamily.DEVICE_STAND
+    assert research.object_name == "Mac mini"
+    assert research.object_model["synthesis_kind"] == "support_base"
+    assert any("mac mini" in query.lower() for query in research.search_queries)

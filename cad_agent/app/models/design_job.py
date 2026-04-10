@@ -101,6 +101,7 @@ class ResearchResult(BaseModel):
     request: str = ""
     part_family: str = ""
     object_name: str = ""
+    object_model: dict[str, Any] = Field(default_factory=dict)
     research_summary: str = ""
     reference_facts: list[str] = Field(default_factory=list)
     reference_dimensions: dict[str, float] = Field(default_factory=dict)

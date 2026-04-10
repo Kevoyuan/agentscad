@@ -132,7 +132,7 @@ async function fetchJobs() {
     state.isLoadingJobs = true;
     renderJobsList();
     try {
-        const response = await fetch(`${API_BASE}/jobs?limit=50`);
+        const response = await fetch(`${API_BASE}/jobs?limit=50&_t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) {
             throw new Error('Failed to load jobs');
         }
@@ -184,8 +184,8 @@ async function fetchJobDetail(jobId) {
 
     try {
         const [detailResponse, validationResponse] = await Promise.all([
-            fetch(`${API_BASE}/jobs/${jobId}`),
-            fetch(`${API_BASE}/jobs/${jobId}/validations`),
+            fetch(`${API_BASE}/jobs/${jobId}?_t=${Date.now()}`, { cache: 'no-store' }),
+            fetch(`${API_BASE}/jobs/${jobId}/validations?_t=${Date.now()}`, { cache: 'no-store' }),
         ]);
 
         if (!detailResponse.ok) {
@@ -434,20 +434,73 @@ function renderJobsList(errorMessage) {
     }
 
     elements.jobsList.innerHTML = jobs.map((job) => `
-        <button class="creation-card ${state.selectedJobId === job.job_id ? 'is-selected' : ''}" data-job-id="${escapeHtml(job.job_id)}" type="button">
-            <div class="creation-title">${escapeHtml(truncate(job.input_request, 78))}</div>
-            <div class="creation-meta">
-                <span>${escapeHtml(job.state)}</span>
-                <span>${escapeHtml(formatCompactDate(job.updated_at))}</span>
+        <div class="creation-card ${state.selectedJobId === job.job_id ? 'is-selected' : ''}" data-job-id="${escapeHtml(job.job_id)}" tabindex="0">
+            <div class="creation-content">
+                <div class="creation-title">${escapeHtml(truncate(job.input_request, 78))}</div>
+                <div class="creation-meta">
+                    <span>${escapeHtml(job.state)}</span>
+                    <span>${escapeHtml(formatCompactDate(job.updated_at))}</span>
+                </div>
             </div>
-        </button>
+            <button class="delete-job-button" data-delete-job-id="${escapeHtml(job.job_id)}" type="button" title="Delete Creation" aria-label="Delete">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+            </button>
+        </div>
     `).join('');
 
-    elements.jobsList.querySelectorAll('[data-job-id]').forEach((button) => {
-        button.addEventListener('click', () => {
-            fetchJobDetail(button.dataset.jobId);
+    elements.jobsList.querySelectorAll('[data-job-id]').forEach((card) => {
+        card.addEventListener('click', () => {
+            fetchJobDetail(card.dataset.jobId);
         });
     });
+
+    elements.jobsList.querySelectorAll('[data-delete-job-id]').forEach((btn) => {
+        let confirmTimeout = null;
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (btn.classList.contains('is-confirming')) {
+                clearTimeout(confirmTimeout);
+                btn.innerHTML = '<span style="font-size: 0.72rem; padding: 0 4px; color: var(--text-dim);">Deleting...</span>';
+                const jobId = btn.dataset.deleteJobId;
+                await handleDeleteJob(jobId, btn);
+            } else {
+                btn.classList.add('is-confirming');
+                btn.innerHTML = '<span style="font-size: 0.72rem; padding: 0 4px; color: var(--danger);">Confirm?</span>';
+                confirmTimeout = setTimeout(() => {
+                    btn.classList.remove('is-confirming');
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>';
+                }, 3000);
+            }
+        });
+    });
+}
+
+async function handleDeleteJob(jobId, btn) {
+    try {
+        const response = await fetch(`${API_BASE}/jobs/${jobId}?hard=true`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            throw new Error('Failed to delete creation');
+        }
+        if (state.selectedJobId === jobId) {
+            state.selectedJobId = null;
+            state.selectedJob = null;
+            state.validations = [];
+            state.parameterOverrides = {};
+            renderWorkspace();
+        }
+        await fetchJobs();
+    } catch (error) {
+        console.error(error);
+        if (btn) {
+            btn.innerHTML = '<span style="font-size: 0.72rem; padding: 0 4px; color: var(--danger);">Error</span>';
+            setTimeout(() => {
+                btn.classList.remove('is-confirming');
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>';
+            }, 3000);
+        }
+    }
 }
 
 function renderWorkspace() {
@@ -474,6 +527,9 @@ function renderConversation() {
     elements.threadTitle.textContent = truncate(job.input_request, 42);
 
     const assistantSummary = buildAssistantSummary(job);
+    const generationPath = summarizeGenerationPath(job);
+    const researchSummary = summarizeResearchState(job);
+    const objectModelSummary = summarizeObjectModel(job);
     const parameterFacts = extractParameters(job).slice(0, 6).map((parameter) => `
         <span class="fact-chip">${escapeHtml(parameter.label)} · ${escapeHtml(formatParameterValue(parameter.value, parameter.unit))}</span>
     `).join('');
@@ -511,7 +567,9 @@ function renderConversation() {
                 </div>
                 <div class="message-body">${escapeHtml(assistantSummary)}</div>
                 <div class="message-tags">
-                    <span class="thread-tag">${escapeHtml(job.template_id || 'template pending')}</span>
+                    <span class="thread-tag">${escapeHtml(generationPath)}</span>
+                    <span class="thread-tag">${escapeHtml(researchSummary)}</span>
+                    <span class="thread-tag">${escapeHtml(objectModelSummary)}</span>
                     <span class="thread-tag">${escapeHtml(summarizeValidation(state.validations))}</span>
                     <span class="thread-tag">${escapeHtml(summarizeArtifacts(job.artifacts))}</span>
                 </div>
@@ -540,7 +598,7 @@ function renderCanvas() {
         elements.viewerTitle.textContent = 'Viewport ready';
         elements.viewerStateBadge.textContent = 'IDLE';
         elements.viewerStateBadge.className = 'state-chip';
-        elements.viewerTemplateBadge.textContent = 'template pending';
+        elements.viewerTemplateBadge.textContent = 'generation pending';
         elements.viewerPromptLabel.textContent = 'No active creation';
         elements.artifactSummary.textContent = 'Pending';
         elements.validationSummary.textContent = 'Waiting';
@@ -555,7 +613,7 @@ function renderCanvas() {
     elements.viewerTitle.textContent = truncate(job.input_request, 56);
     elements.viewerStateBadge.textContent = job.state;
     elements.viewerStateBadge.className = `state-chip ${badgeStateClass(job.state)}`;
-    elements.viewerTemplateBadge.textContent = job.template_id || 'template pending';
+    elements.viewerTemplateBadge.textContent = summarizeGenerationPath(job);
     elements.viewerPromptLabel.textContent = truncate(job.input_request, 52);
     elements.artifactSummary.textContent = state.isUpdatingParameters ? 'Updating preview…' : summarizeArtifacts(job.artifacts);
     elements.validationSummary.textContent = state.isUpdatingParameters ? 'Re-rendering' : summarizeValidation(state.validations);
@@ -723,6 +781,46 @@ function buildAssistantSummary(job) {
         return `Validation passed with ${validations.filter((item) => item.passed).length} checks recorded. Final packaging is next.`;
     }
     return `The creation is currently in ${job.state}. The workspace is tracking structure, artifacts, and validation as they land.`;
+}
+
+function summarizeGenerationPath(job) {
+    if (!job) {
+        return 'generation pending';
+    }
+    if (job.generation_path) {
+        return `path: ${job.generation_path}`;
+    }
+    if (job.template_id) {
+        return `path: ${job.template_id}`;
+    }
+    return 'generation pending';
+}
+
+function summarizeResearchState(job) {
+    const research = job?.design_pipeline?.research_result;
+    if (!research) {
+        return 'research: pending';
+    }
+    if (research.web_research_used) {
+        return 'research: web enriched';
+    }
+    const hasDimensions = research.reference_dimensions && Object.keys(research.reference_dimensions).length > 0;
+    const hasObjectModel = research.object_model && Object.keys(research.object_model).length > 0;
+    if (research.object_name || hasDimensions || hasObjectModel) {
+        return 'research: seeded model';
+    }
+    return 'research: pending';
+}
+
+function summarizeObjectModel(job) {
+    const objectModel = job?.design_pipeline?.research_result?.object_model;
+    if (objectModel?.synthesis_kind) {
+        return `object model: ${objectModel.synthesis_kind}`;
+    }
+    if (objectModel?.category) {
+        return `object model: ${objectModel.category}`;
+    }
+    return 'object model: none';
 }
 
 function buildArtifactActions(job) {

@@ -243,6 +243,16 @@ class TestParseExtractions:
         result = agent._parse_request("Wall thickness of 2mm box")
         assert result.dimensions.get("wall_thickness") == 2.0
 
+    def test_extract_lampshade_frustum_dimensions_from_centimeters(self):
+        """Should extract frustum-style lampshade dimensions and convert cm to mm."""
+        agent = IntakeAgent()
+        result = agent._parse_request("做个灯罩，大概半圆锥型，直径30/20cm，高20cm")
+        dims = result.dimensions
+        assert result.geometric_type == "lampshade"
+        assert dims.get("bottom_diameter") == 300.0
+        assert dims.get("top_diameter") == 200.0
+        assert dims.get("height") == 200.0
+
 
 class TestIntakeAgentAccept:
     """Test IntakeAgent.accept() method."""

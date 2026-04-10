@@ -17,15 +17,26 @@ class ParsedDimensions:
     raw_numbers: list[float]
 
 
+def normalize_entity_text(request: str) -> str:
+    """Normalize common URL/slug separators so entity matching sees real words."""
+    text = request.lower()
+    text = re.sub(r"https?://", " ", text)
+    text = re.sub(r"www\.", " ", text)
+    text = re.sub(r"[%:?#=&]+", " ", text)
+    text = re.sub(r"[-_/]+", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
 def infer_part_family(request: str) -> PartFamily:
     """Classify a request into a supported part family."""
-    text = request.lower()
+    text = normalize_entity_text(request)
 
     if any(token in text for token in ("gear", "齿轮", "spur gear", "helical gear", "bevel gear", "worm gear")):
         return PartFamily.SPUR_GEAR
     if any(token in text for token in ("phone case", "iphone case", "手机壳", "保护壳", "case for iphone")):
         return PartFamily.PHONE_CASE
-    if any(token in text for token in ("stand", "底座", "dock", "cradle", "holder", "support")):
+    if any(token in text for token in ("stand", "底座", "dock", "cradle", "holder", "support", "支架")):
         return PartFamily.DEVICE_STAND
     if any(token in text for token in ("enclosure", "case", "box", "shell", "housing", "机箱", "外壳")):
         return PartFamily.ELECTRONICS_ENCLOSURE
@@ -48,10 +59,27 @@ def has_resolved_part_family(part_family: PartFamily | str | None) -> bool:
 
 def normalize_known_object_name(request: str) -> str:
     """Return a normalized real-world object label when detectable."""
-    text = request.lower()
+    text = normalize_entity_text(request)
     iphone_match = re.search(r"(iphone\s*\d+\s*(?:pro|max|plus|mini)?)", text, re.IGNORECASE)
     if iphone_match:
         return iphone_match.group(1).replace("  ", " ").title()
+    samsung_match = re.search(r"((?:samsung|galaxy)\s*[a-z]*\s*\d+\s*(?:ultra|plus|pro)?)", text, re.IGNORECASE)
+    if samsung_match:
+        return samsung_match.group(1).replace("  ", " ").title()
+    pixel_match = re.search(r"(pixel\s*\d+\s*(?:pro|xl|fold|a)?)", text, re.IGNORECASE)
+    if pixel_match:
+        return pixel_match.group(1).replace("  ", " ").title()
+    macbook_match = re.search(r"(macbook\s*(?:pro|air)?\s*\d*)", text, re.IGNORECASE)
+    if macbook_match:
+        return macbook_match.group(1).replace("  ", " ").title().strip()
+    mac_studio_match = re.search(r"(mac\s*studio\s*(?:m\d+)?)", text, re.IGNORECASE)
+    if mac_studio_match:
+        suffix = mac_studio_match.group(1).lower().replace("mac studio", "").strip()
+        return f"Mac Studio{(' ' + suffix.upper()) if suffix else ''}".strip()
+    mac_mini_match = re.search(r"(mac\s*mini\s*(?:m\d+)?)", text, re.IGNORECASE)
+    if mac_mini_match:
+        suffix = mac_mini_match.group(1).lower().replace("mac mini", "").strip()
+        return f"Mac mini{(' ' + suffix.upper()) if suffix else ''}".strip()
     return request.strip()[:64] or "Unknown Part"
 
 
@@ -189,10 +217,41 @@ def infer_missing_questions(family: PartFamily, values: dict[str, float]) -> lis
 def build_search_queries(request: str, family: PartFamily) -> list[str]:
     """Create research-oriented search queries."""
     text = request.strip()
+    normalized_text = normalize_entity_text(text)
     if family == PartFamily.SPUR_GEAR:
         return [f"{text} standard gear dimensions", f"{text} module pressure angle"]
     if family == PartFamily.DEVICE_STAND:
-        return [f"{text} product dimensions", f"{text} device footprint stand"]
+        normalized = normalize_known_object_name(text)
+        request_lower = normalized_text
+        if "mac mini" in request_lower:
+            return [
+                f"{normalized} dimensions",
+                f"{normalized} width depth height",
+                f"{normalized} port layout",
+                f"{normalized} vent layout",
+            ]
+        if "mac studio" in request_lower:
+            return [
+                f"{normalized} dimensions",
+                f"{normalized} width depth height",
+                f"{normalized} ports layout",
+                f"{normalized} cooling airflow",
+            ]
+        if any(token in request_lower for token in ("iphone", "samsung", "galaxy", "pixel", "手机")):
+            return [
+                f"{normalized} dimensions",
+                f"{normalized} weight",
+                f"{normalized} charging port location",
+                f"{normalized} camera bump size",
+            ]
+        if any(token in request_lower for token in ("macbook", "laptop", "notebook", "电脑")):
+            return [
+                f"{normalized} dimensions",
+                f"{normalized} hinge location",
+                f"{normalized} vent layout",
+                f"{normalized} footprint rubber feet",
+            ]
+        return [f"{normalized} product dimensions", f"{normalized} device footprint stand"]
     if family == PartFamily.ELECTRONICS_ENCLOSURE:
         return [f"{text} enclosure clearance", f"{text} electronics case dimensions"]
     if family == PartFamily.PHONE_CASE:
@@ -201,6 +260,7 @@ def build_search_queries(request: str, family: PartFamily) -> list[str]:
             f"{normalized} dimensions",
             f"{normalized} camera bump size",
             f"{normalized} button layout",
+            f"{normalized} port layout",
         ]
     return [text]
 

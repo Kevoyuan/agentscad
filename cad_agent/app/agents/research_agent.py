@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from cad_agent.app.llm.pipeline_models import PartFamily, ResearchResult
+from cad_agent.app.llm.object_model import build_object_model
 from cad_agent.app.llm.pipeline_utils import (
     build_search_queries,
     extract_numbers,
@@ -12,9 +13,10 @@ from cad_agent.app.llm.pipeline_utils import (
     infer_part_family,
     infer_missing_questions,
     has_resolved_part_family,
+    normalize_entity_text,
     normalize_known_object_name,
 )
-from cad_agent.app.research.web_adapter import WebResearchResult
+from cad_agent.app.research import WebResearchResult
 
 
 class ResearchAgent:
@@ -53,6 +55,12 @@ class ResearchAgent:
         reference_dimensions: dict[str, float] = {}
         source_urls: list[str] = []
         web_research_used = False
+        object_model = build_object_model(
+            request,
+            object_name=object_name,
+            reference_dimensions=reference_dimensions,
+            feature_map={},
+        )
 
         source_notes = ["Deterministic first-pass research model"]
         if needs_web_search:
@@ -68,6 +76,12 @@ class ResearchAgent:
                 source_urls = list(live_result.source_urls)
                 reference_facts = [*reference_facts, *live_result.reference_facts]
                 web_research_used = True
+                object_model = build_object_model(
+                    request,
+                    object_name=object_name,
+                    reference_dimensions=reference_dimensions,
+                    feature_map=live_result.feature_map,
+                )
                 research_summary = self._summary_from_live_result(family, object_name, reference_dimensions)
                 if source_urls:
                     source_notes.append("Live web research succeeded and populated structured reference dimensions.")
@@ -76,6 +90,7 @@ class ResearchAgent:
             request=request,
             part_family=family,
             object_name=object_name,
+            object_model=object_model,
             research_summary=research_summary,
             reference_facts=reference_facts,
             reference_dimensions=reference_dimensions,
@@ -100,8 +115,14 @@ class ResearchAgent:
         if family == PartFamily.SPUR_GEAR:
             return "Spur Gear"
         if family == PartFamily.DEVICE_STAND:
-            if "mac mini" in request.lower():
-                return "Mac mini Stand"
+            request_lower = normalize_entity_text(request)
+            normalized = normalize_known_object_name(request)
+            if "mac mini" in request_lower:
+                return normalized
+            if "mac studio" in request_lower:
+                return normalized
+            if normalized and normalized != request.strip()[:64]:
+                return normalized
             return "Device Stand"
         if family == PartFamily.ELECTRONICS_ENCLOSURE:
             return "Electronics Enclosure"
@@ -167,12 +188,24 @@ class ResearchAgent:
     async def _run_live_web_research(self, request: str) -> WebResearchResult | None:
         """Run the configured live web research adapter and swallow unsupported requests."""
         try:
-            result = await self._web_research_adapter.research(request)
+            result = await self._web_research_adapter.research(self._normalize_live_research_request(request))
         except Exception:
             return None
         if not result.dimensions_mm:
             return None
         return result
+
+    def _normalize_live_research_request(self, request: str) -> str:
+        """Normalize common Chinese device brand aliases before web search."""
+        normalized = request
+        replacements = {
+            "三星": "Samsung",
+            "苹果": "Apple",
+            "谷歌": "Google",
+        }
+        for source, target in replacements.items():
+            normalized = normalized.replace(source, target)
+        return normalized
 
     def _object_name_from_live_result(self, family: PartFamily, live_result: WebResearchResult) -> str:
         """Map a live result into the research result object name."""
@@ -193,6 +226,12 @@ class ResearchAgent:
             return (
                 f"Design a fitted phone case for {object_name.lower()} using live device dimensions "
                 f"{merged.get('body_length')} x {merged.get('body_width')} x {merged.get('body_depth')} mm "
+                "from current web research."
+            )
+        if family == PartFamily.DEVICE_STAND and reference_dimensions:
+            return (
+                f"Design a support accessory for {object_name.lower()} using live device envelope "
+                f"{reference_dimensions.get('device_width')} x {reference_dimensions.get('device_depth')} x {reference_dimensions.get('device_height')} mm "
                 "from current web research."
             )
         return f"Live web research enriched the design context for {object_name.lower()}."

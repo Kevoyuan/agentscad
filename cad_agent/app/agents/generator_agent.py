@@ -55,6 +55,8 @@ class GeneratorAgent:
             not job.template_choice
             and not has_resolved_part_family(job.part_family)
             and not job.geometry_dsl
+            and not self._has_object_model_synthesis(job)
+            and not self._has_geometry_intent_synthesis(job)
             and not self._should_generate_dsl(job)
         ):
             return AgentResult(
@@ -196,6 +198,21 @@ class GeneratorAgent:
 
     async def _build_scad_source(self, job: DesignJob) -> str:
         """Build SCAD either from a template or from the LLM-native path."""
+        if self._has_object_model_synthesis(job):
+            object_model = self._object_model(job)
+            job.geometry_dsl = self._dsl_compiler.build_support_base(object_model, job.get_effective_parameter_values())
+            job.generation_path = "object_model"
+            return self._dsl_compiler.compile(job.geometry_dsl)
+
+        if self._has_geometry_intent_synthesis(job):
+            geometry_intent = self._geometry_intent(job)
+            job.geometry_dsl = self._dsl_compiler.build_geometry_intent(
+                geometry_intent,
+                job.get_effective_parameter_values(),
+            )
+            job.generation_path = "geometry_intent"
+            return self._dsl_compiler.compile(job.geometry_dsl)
+
         if job.part_family and self._part_engine.supports(job.part_family):
             build_result = self._part_engine.build(job.part_family, job.get_effective_parameter_values())
             job.builder_name = type(self._part_engine._builders[job.part_family]).__name__
@@ -248,6 +265,39 @@ class GeneratorAgent:
         """Return whether the job should use the DSL-first generation path."""
         family = normalize_part_family_value(job.part_family)
         return family in {"phone_case"} or job.generation_path == "dsl"
+
+    def _has_object_model_synthesis(self, job: DesignJob) -> bool:
+        """Return whether the job can synthesize geometry directly from an object model."""
+        object_model = self._object_model(job)
+        if not object_model:
+            return False
+        if object_model.get("synthesis_kind") == "support_base":
+            return True
+        return (
+            object_model.get("support_strategy") == "raised_base_with_top_alignment_pocket"
+            and isinstance(object_model.get("base_footprint_mm"), dict)
+            and isinstance(object_model.get("support_surface_mm"), dict)
+        )
+
+    def _object_model(self, job: DesignJob) -> dict:
+        """Return the active object model from job context."""
+        if isinstance(job.business_context.get("object_model"), dict):
+            return job.business_context["object_model"]
+        if job.research_result and isinstance(job.research_result.object_model, dict):
+            return job.research_result.object_model
+        return {}
+
+    def _has_geometry_intent_synthesis(self, job: DesignJob) -> bool:
+        """Return whether the job can synthesize geometry directly from a generic intent."""
+        geometry_intent = self._geometry_intent(job)
+        return bool(geometry_intent) and geometry_intent.get("intent_type") in {"frustum_shell", "half_frustum_shell"}
+
+    def _geometry_intent(self, job: DesignJob) -> dict:
+        """Return the active geometry intent from job context."""
+        geometry_intent = job.business_context.get("geometry_intent")
+        if isinstance(geometry_intent, dict):
+            return geometry_intent
+        return {}
 
     def _success_state(self, job: DesignJob) -> JobState:
         """Return the next success state for the active generation path."""

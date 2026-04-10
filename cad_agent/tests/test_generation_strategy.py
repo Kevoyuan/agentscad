@@ -148,3 +148,133 @@ async def test_generator_agent_synthesizes_phone_case_dsl_from_research_dimensio
     assert "port_opening" in job.scad_source
     assert "minkowski()" not in job.scad_source
     assert "linear_extrude" in job.scad_source
+
+
+@pytest.mark.asyncio
+async def test_generator_agent_prefers_object_model_synthesis_for_mac_studio_base() -> None:
+    class StubLLMScadGenerator:
+        async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("direct LLM SCAD generation should not be used for object-model synthesis")
+
+        async def generate_geometry_dsl(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> dict:
+            raise AssertionError("LLM DSL generation should not be used for object-model synthesis")
+
+    job = DesignJob(
+        input_request="帮我设计一个mac studio m3底座",
+        spec=SpecResult(
+            success=True,
+            geometric_type="平台式底座",
+            dimensions={
+                "底座宽度": 240.0,
+                "底座深度": 240.0,
+                "底座高度": 45.0,
+                "顶部凹槽宽度": 205.0,
+                "顶部凹槽深度": 98.0,
+            },
+            material="PLA",
+            tolerance=0.1,
+        ),
+        business_context={
+            "object_model": {
+                "entity_name": "Mac Studio M3",
+                "category": "desktop_computer",
+                "envelope_mm": {"width": 197.0, "depth": 197.0, "height": 95.0},
+                "support_strategy": "raised_base_with_top_alignment_pocket",
+                "support_surface_mm": {"width": 205.0, "depth": 98.0},
+                "base_footprint_mm": {"width": 240.0, "depth": 240.0, "height": 45.0},
+            }
+        },
+    )
+
+    generator = GeneratorAgent(
+        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
+        llm_scad_generator=StubLLMScadGenerator(),
+    )
+
+    result = await generator.generate(job)
+
+    assert result.success is True
+    assert job.generation_path == "object_model"
+    assert job.scad_source is not None
+    assert "top_alignment_pocket" in job.scad_source
+    assert "cable_relief" in job.scad_source
+    assert "240.000" in job.scad_source
+    assert "205.000" in job.scad_source
+
+
+@pytest.mark.asyncio
+async def test_generator_agent_synthesizes_generic_lampshade_from_geometry_intent() -> None:
+    class StubLLMScadGenerator:
+        async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("direct LLM SCAD generation should not be used for generic geometry intent synthesis")
+
+        async def generate_geometry_dsl(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> dict:
+            raise AssertionError("LLM DSL generation should not be used for generic geometry intent synthesis")
+
+    job = DesignJob(
+        input_request="做个灯罩，大概半圆锥型，直径30/20cm，高20cm",
+        spec=SpecResult(
+            success=True,
+            geometric_type="lampshade",
+            dimensions={
+                "bottom_diameter": 300.0,
+                "top_diameter": 200.0,
+                "height": 200.0,
+            },
+            material="PLA",
+            tolerance=0.1,
+        ),
+        business_context={
+            "geometry_intent": {
+                "intent_type": "half_frustum_shell",
+                "dimensions_mm": {
+                    "bottom_diameter": 300.0,
+                    "top_diameter": 200.0,
+                    "height": 200.0,
+                },
+                "defaults": {
+                    "wall_thickness": 1.8,
+                },
+            }
+        },
+    )
+
+    generator = GeneratorAgent(
+        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
+        llm_scad_generator=StubLLMScadGenerator(),
+    )
+
+    result = await generator.generate(job)
+
+    assert result.success is True
+    assert job.generation_path == "geometry_intent"
+
+
+@pytest.mark.asyncio
+async def test_generator_agent_device_stand_does_not_fallback_to_parametric_builder_without_object_model() -> None:
+    class StandOnlyLLM:
+        async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("LLM direct SCAD generation should not be used for stand fallback")
+
+        async def generate_geometry_dsl(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> dict:
+            raise AssertionError("LLM DSL generation should not be used for stand fallback")
+
+    job = DesignJob(
+        input_request="设计一个竖直底座",
+        part_family="device_stand",
+        parameter_values={
+            "device_width": 130.0,
+            "device_depth": 130.0,
+            "stand_height": 27.5,
+        },
+    )
+
+    generator = GeneratorAgent(
+        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
+        llm_scad_generator=StandOnlyLLM(),
+    )
+
+    result = await generator.generate(job)
+
+    assert result.success is False
+    assert "template choice" in (result.error or "").lower()

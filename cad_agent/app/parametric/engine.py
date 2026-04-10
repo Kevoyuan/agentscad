@@ -6,7 +6,6 @@ from typing import Any, Mapping
 
 from cad_agent.app.parametric.builders import (
     BuildResult,
-    DeviceStandBuilder,
     EnclosureBuilder,
     ParametricBuilderError,
     SpurGearBuilder,
@@ -19,7 +18,6 @@ class ParametricPartEngine:
     def __init__(self) -> None:
         self._builders = {
             "spur_gear": SpurGearBuilder(),
-            "device_stand": DeviceStandBuilder(),
             "electronics_enclosure": EnclosureBuilder(),
         }
 

@@ -117,6 +117,7 @@ class IntakeAgent:
             "mount": ["mount", "安装座", "底座"],
             "holder": ["holder", "支撑", "托架"],
             "case": ["case", "外壳", "壳体"],
+            "lampshade": ["lampshade", "lamp shade", "灯罩"],
         }
         for geometric_type, tokens in aliases.items():
             if any(token in text for token in tokens):
@@ -127,6 +128,19 @@ class IntakeAgent:
         """Extract dimensions from request."""
         dims = {}
         text_lower = text.lower()
+
+        frustum_match = re.search(
+            r"直径\s*(\d+(?:\.\d+)?)\s*/\s*(\d+(?:\.\d+)?)\s*(cm|mm)",
+            text,
+            re.IGNORECASE,
+        )
+        if frustum_match:
+            dims["bottom_diameter"] = self._to_mm(float(frustum_match.group(1)), frustum_match.group(3))
+            dims["top_diameter"] = self._to_mm(float(frustum_match.group(2)), frustum_match.group(3))
+
+        height_match = re.search(r"(?:高|height)\s*(\d+(?:\.\d+)?)\s*(cm|mm)", text, re.IGNORECASE)
+        if height_match:
+            dims["height"] = self._to_mm(float(height_match.group(1)), height_match.group(2))
 
         keyword_aliases = {
             "outer_diameter": ["outer diameter", "outside diameter", "od", "外径", "外"],
@@ -143,26 +157,26 @@ class IntakeAgent:
                 continue
             for alias in aliases:
                 match = re.search(
-                    rf"{re.escape(alias)}\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?",
+                    rf"{re.escape(alias)}\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?",
                     text,
                     re.IGNORECASE,
                 )
                 if match:
-                    dims[key] = float(match.group(1))
+                    dims[key] = self._to_mm(float(match.group(1)), match.group(2))
                     break
                 match = re.search(
-                    rf"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?\s*{re.escape(alias)}",
+                    rf"(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?\s*{re.escape(alias)}",
                     text,
                     re.IGNORECASE,
                 )
                 if match:
-                    dims[key] = float(match.group(1))
+                    dims[key] = self._to_mm(float(match.group(1)), match.group(2))
                     break
 
-        dim_keyword_pattern = r"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)\s*,?\s*(length|width|height|depth)"
+        dim_keyword_pattern = r"(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)\s*,?\s*(length|width|height|depth)"
         for match in re.finditer(dim_keyword_pattern, text, re.IGNORECASE):
-            val = float(match.group(1))
-            keyword = match.group(2).lower()
+            val = self._to_mm(float(match.group(1)), match.group(2))
+            keyword = match.group(3).lower()
             if keyword == "length" and "length" not in dims:
                 dims["length"] = val
             elif keyword == "width" and "width" not in dims:
@@ -172,60 +186,60 @@ class IntakeAgent:
             elif keyword == "depth" and "depth" not in dims:
                 dims["depth"] = val
 
-        width_x_height_pattern = r"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)\s*(?:x|by)\s*(\d+(?:\.\d+)?)\s*(?:mm|millimeter)"
+        width_x_height_pattern = r"(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)\s*(?:x|by)\s*(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)"
         match = re.search(width_x_height_pattern, text, re.IGNORECASE)
         if match:
             try:
-                dims["width"] = float(match.group(1))
-                dims["height"] = float(match.group(2))
+                dims["width"] = self._to_mm(float(match.group(1)), match.group(2))
+                dims["height"] = self._to_mm(float(match.group(3)), match.group(4))
             except (ValueError, IndexError):
                 pass
 
         if "length" not in dims:
-            match = re.search(r"length\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?", text, re.IGNORECASE)
+            match = re.search(r"length\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?", text, re.IGNORECASE)
             if match:
                 try:
-                    dims["length"] = float(match.group(1))
+                    dims["length"] = self._to_mm(float(match.group(1)), match.group(2))
                 except (ValueError, IndexError):
                     pass
 
         if "width" not in dims:
-            match = re.search(r"width\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?", text, re.IGNORECASE)
+            match = re.search(r"width\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?", text, re.IGNORECASE)
             if match:
                 try:
-                    dims["width"] = float(match.group(1))
+                    dims["width"] = self._to_mm(float(match.group(1)), match.group(2))
                 except (ValueError, IndexError):
                     pass
 
         if "height" not in dims:
-            match = re.search(r"height\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?", text, re.IGNORECASE)
+            match = re.search(r"height\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?", text, re.IGNORECASE)
             if match:
                 try:
-                    dims["height"] = float(match.group(1))
+                    dims["height"] = self._to_mm(float(match.group(1)), match.group(2))
                 except (ValueError, IndexError):
                     pass
 
         if "depth" not in dims:
-            match = re.search(r"depth\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?", text, re.IGNORECASE)
+            match = re.search(r"depth\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?", text, re.IGNORECASE)
             if match:
                 try:
-                    dims["depth"] = float(match.group(1))
+                    dims["depth"] = self._to_mm(float(match.group(1)), match.group(2))
                 except (ValueError, IndexError):
                     pass
 
         if "wall_thickness" not in dims:
-            match = re.search(r"wall\s*(?:thickness)?\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:mm|millimeter)?", text, re.IGNORECASE)
+            match = re.search(r"wall\s*(?:thickness)?\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)?", text, re.IGNORECASE)
             if match:
                 try:
-                    dims["wall_thickness"] = float(match.group(1))
+                    dims["wall_thickness"] = self._to_mm(float(match.group(1)), match.group(2))
                 except (ValueError, IndexError):
                     pass
 
         if "length" not in dims and "gear" not in text_lower and "齿轮" not in text:
-            match = re.search(r"(\d+(?:\.\d+)?)\s*(?:mm|millimeter)", text, re.IGNORECASE)
+            match = re.search(r"(\d+(?:\.\d+)?)\s*(mm|millimeter|cm)", text, re.IGNORECASE)
             if match:
                 try:
-                    dims["length"] = float(match.group(1))
+                    dims["length"] = self._to_mm(float(match.group(1)), match.group(2))
                 except (ValueError, IndexError):
                     pass
 
@@ -239,6 +253,12 @@ class IntakeAgent:
             dims["height"] = dims.get("length", 20.0)
 
         return dims
+
+    def _to_mm(self, value: float, unit: str | None) -> float:
+        """Convert a parsed dimension into mm."""
+        if unit and unit.lower() == "cm":
+            return round(value * 10.0, 4)
+        return round(value, 4)
 
     def _extract_material(self, text: str) -> str:
         """Extract material from request."""
