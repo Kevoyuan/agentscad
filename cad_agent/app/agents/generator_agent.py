@@ -117,25 +117,29 @@ class GeneratorAgent:
         repair_notes: list[str] = []
 
         for failure in failures:
-            if failure.rule_id == "R001":
+            rule_type = getattr(failure, "rule_type", None)
+            
+            if rule_type == "wall_thickness":
                 adjusted_params["wall_thickness"] = max(
                     adjusted_params.get("wall_thickness", 2.0),
                     1.2
                 )
-                repair_notes.append("Increase wall thickness to at least 1.2mm.")
-            elif failure.rule_id == "R002":
-                for dim in ["length", "width", "height"]:
-                    if dim in adjusted_params:
-                        adjusted_params[dim] = min(adjusted_params[dim], 200.0)
-                repair_notes.append("Clamp all printable dimensions to 200mm or below.")
-            elif failure.rule_id == "R005":
+                repair_notes.append(failure.message or "Increased wall thickness to minimum required.")
+            elif rule_type == "max_dimensions":
+                self._repair_max_dimensions(adjusted_params)
+                repair_notes.append(failure.message or "Clamped envelope dimensions to maximum allowed.")
+            elif rule_type == "aspect_ratio":
                 if adjusted_params.get("height", 0) / max(adjusted_params.get("width", 1), 1) > 4.0:
                     adjusted_params["height"] = adjusted_params.get("width", 20.0) * 4.0
-                repair_notes.append("Reduce aspect ratio so height-to-width stays at or below 4:1.")
+                repair_notes.append(failure.message or "Reduced aspect ratio for stability.")
             elif failure.message:
                 repair_notes.append(failure.message)
 
         job.set_parameter_values(adjusted_params)
+
+        # Sync repaired dimensions back to spec so future validations use updated values
+        if job.spec:
+            self._sync_spec_dimensions(job)
 
         if job.part_family and self._part_engine.supports(job.part_family):
             return await self.generate(job)
@@ -155,6 +159,40 @@ class GeneratorAgent:
                 logger.error("llm_scad_repair_failed", job_id=job.id, error=str(e))
 
         return await self.generate(job)
+
+    def _repair_max_dimensions(self, params: dict) -> None:
+        """Clamp envelope dimensions to the FDM printing limit.
+
+        Uses the shared ``_ENVELOPE_DIMENSION_KEYS`` whitelist so every builder's
+        dimension parameter names are handled without per-family branching.
+        """
+        from cad_agent.app.rules.engineering_rules import (
+            _ENVELOPE_DIMENSION_KEYS,
+            MAX_FDM_DIMENSION_MM,
+        )
+
+        for key in list(params.keys()):
+            if key in _ENVELOPE_DIMENSION_KEYS and isinstance(params[key], (int, float)):
+                if params[key] > MAX_FDM_DIMENSION_MM:
+                    params[key] = MAX_FDM_DIMENSION_MM
+
+    def _sync_spec_dimensions(self, job: DesignJob) -> None:
+        """Sync actual build parameters back into spec.dimensions for consistency.
+
+        Copies all envelope-related parameter values so that future validation
+        rounds use the repaired values rather than stale intake-spec values.
+        """
+        from cad_agent.app.rules.engineering_rules import _ENVELOPE_DIMENSION_KEYS
+
+        if not job.spec:
+            return
+        params = job.get_effective_parameter_values()
+        for key in _ENVELOPE_DIMENSION_KEYS:
+            if key in params:
+                job.spec.dimensions[key] = params[key]
+        # Also sync wall_thickness as it feeds R001
+        if "wall_thickness" in params:
+            job.spec.dimensions["wall_thickness"] = params["wall_thickness"]
 
     async def _build_scad_source(self, job: DesignJob) -> str:
         """Build SCAD either from a template or from the LLM-native path."""

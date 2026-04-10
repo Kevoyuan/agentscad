@@ -74,36 +74,22 @@ class DebugAgent:
     def _generate_repair_suggestions(
         self, failures: list, job: DesignJob
     ) -> list[str]:
-        """Generate specific repair suggestions for failures."""
+        """Generate specific repair suggestions for failures based on rule messages."""
         suggestions = []
 
         for failure in failures:
-            rule_id = failure.rule_id
+            suggestion = failure.message or f"Address validation failure for rule {failure.rule_id}"
+            measured = getattr(failure, "measured_value", None)
 
-            if rule_id == "R001":
-                suggestions.append(
-                    "Increase wall thickness to at least 1.2mm by adjusting wall_thickness parameter"
-                )
-            elif rule_id == "R002":
-                suggestions.append(
-                    "Reduce overall dimensions - current values exceed 200mm limit"
-                )
-            elif rule_id == "R003":
-                suggestions.append(
-                    "Add support material settings or modify overhang angle to be >= 45 degrees"
-                )
-            elif rule_id == "R004":
-                suggestions.append(
-                    "Increase thread wall thickness to at least 3mm"
-                )
-            elif rule_id == "R005":
-                suggestions.append(
-                    "Reduce height-to-width ratio - current exceeds 4:1"
-                )
-            elif rule_id == "B001":
-                if job.spec and job.spec.cost_target:
-                    suggestions.append(
-                        f"Reduce material usage to meet cost target of ${job.spec.cost_target:.2f}"
-                    )
+            # Special case for business rules needing job context
+            if failure.rule_id == "B001" and job.spec and job.spec.cost_target:
+                suggestion = f"Reduce material usage to meet cost target of ${job.spec.cost_target:.2f}"
+            elif measured is not None:
+                if isinstance(measured, float):
+                    suggestion += f" (Measured value: {measured:.1f})"
+                else:
+                    suggestion += f" (Measured value: {measured})"
+
+            suggestions.append(suggestion)
 
         return suggestions

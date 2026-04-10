@@ -129,17 +129,41 @@ class ValidatorAgent:
         return results
 
     def _validate_engineering_layer(self, job: DesignJob) -> list[ValidationResult]:
-        """Layer 2: Validate engineering rules."""
-        if not job.spec:
+        """Layer 2: Validate engineering rules.
+
+        For parametric builder paths, use the actual build parameters (which
+        include the real outer_width/outer_depth computed by the builder)
+        instead of the intake spec dimensions which may be LLM-hallucinated.
+        """
+        dimensions: dict[str, Any] = {}
+
+        # Prefer actual build parameters over intake spec dimensions
+        if job.part_family and job.parameter_values:
+            dimensions = job.get_effective_parameter_values()
+        elif job.spec:
+            dimensions = job.spec.dimensions.copy()
+
+        if not dimensions:
             return []
 
-        dimensions = job.spec.dimensions.copy()
+        # Merge derived parameters from the builder (outer_width, outer_depth, etc.)
+        # These are the actual computed envelope dimensions — generic for all builders.
+        if job.business_context and "derived_parameters" in job.business_context:
+            dimensions.update(job.business_context["derived_parameters"])
+
+        # Ensure wall_thickness is present for R001
         if not dimensions.get("wall_thickness"):
-            dimensions["wall_thickness"] = job.template_choice.parameters.get("wall_thickness", 2.0) if job.template_choice else 2.0
+            dimensions["wall_thickness"] = (
+                job.template_choice.parameters.get("wall_thickness", 2.0)
+                if job.template_choice
+                else 2.0
+            )
+
+        geometric_type = job.spec.geometric_type if job.spec else ""
 
         return self.engineering_rules.validate(
             dimensions=dimensions,
-            geometric_type=job.spec.geometric_type,
+            geometric_type=geometric_type,
         )
 
     async def _validate_semantic_layer(self, job: DesignJob) -> list[ValidationResult]:

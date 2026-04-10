@@ -19,6 +19,20 @@ class RuleType(str, Enum):
     ASPECT_RATIO = "aspect_ratio"
 
 
+# Keys that represent physical envelope dimensions for R002 checks.
+# Only these keys are tested against the 200mm FDM limit.
+_ENVELOPE_DIMENSION_KEYS = frozenset({
+    "length", "width", "height", "depth",
+    "outer_width", "outer_depth", "outer_height",
+    "device_width", "device_depth", "stand_height",
+    "outer_diameter", "outer_dia",
+    "_max_x", "_max_y", "_max_z",
+})
+
+# Maximum single-axis dimension for FDM printing (mm).
+MAX_FDM_DIMENSION_MM: float = 200.0
+
+
 @dataclass
 class Rule:
     """A single engineering validation rule."""
@@ -44,6 +58,15 @@ class EngineeringRulesEngine:
             for key in ("thread_wall_thickness", "thread_diameter", "thread_pitch")
         )
 
+    @staticmethod
+    def _envelope_values(dims: dict[str, Any]) -> list[float]:
+        """Extract only the envelope dimension values from a dimensions dict."""
+        return [
+            float(v)
+            for k, v in dims.items()
+            if k in _ENVELOPE_DIMENSION_KEYS and isinstance(v, (int, float))
+        ]
+
     RULES = [
         Rule(
             id="R001",
@@ -55,9 +78,12 @@ class EngineeringRulesEngine:
         Rule(
             id="R002",
             name="Maximum Dimensions",
-            description="No dimension should exceed 200mm for FDM printing",
+            description=f"No dimension should exceed {MAX_FDM_DIMENSION_MM}mm for FDM printing",
             severity="error",
-            check_fn=lambda dims: all(v <= 200 for v in dims.values() if isinstance(v, (int, float))),
+            check_fn=lambda dims: all(
+                v <= MAX_FDM_DIMENSION_MM
+                for v in EngineeringRulesEngine._envelope_values(dims)
+            ) if EngineeringRulesEngine._envelope_values(dims) else True,
         ),
         Rule(
             id="R003",
@@ -161,9 +187,12 @@ class EngineeringRulesEngine:
         self, rule_id: str, dimensions: dict[str, Any]
     ) -> float | None:
         """Extract the relevant measured value for a rule."""
+        if rule_id == "R002":
+            envelope = self._envelope_values(dimensions)
+            return max(envelope) if envelope else None
+
         mapping = {
             "R001": dimensions.get("wall_thickness"),
-            "R002": max(v for v in dimensions.values() if isinstance(v, (int, float))),
             "R003": dimensions.get("overhang_angle"),
             "R004": dimensions.get("thread_wall_thickness"),
             "R005": dimensions.get("height", 0) / max(dimensions.get("width", 1), 1),
