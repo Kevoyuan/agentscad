@@ -31,11 +31,13 @@ class OpenSCADExecutor:
     def __init__(
         self,
         openscad_path: str = "openscad",
+        include_dirs: list[str] | None = None,
         timeout_seconds: int = 120,
         syntax_timeout_seconds: int = 30,
     ):
         """Initialize with OpenSCAD CLI path."""
         self.openscad_path = openscad_path
+        self.include_dirs = [str(Path(path)) for path in (include_dirs or [])]
         self.timeout_seconds = timeout_seconds
         self.syntax_timeout_seconds = syntax_timeout_seconds
 
@@ -76,13 +78,13 @@ class OpenSCADExecutor:
 
         try:
             result = subprocess.run(
-                [
-                    self.openscad_path,
-                    "-o", str(stl_file),
-                    str(scad_file),
-                ],
+                self._build_command(
+                    output_path=stl_file,
+                    scad_path=scad_file,
+                ),
                 capture_output=True,
                 text=True,
+                env=self._build_env(),
                 timeout=self.timeout_seconds,
             )
             stl_success = result.returncode == 0 and stl_file.exists()
@@ -105,15 +107,14 @@ class OpenSCADExecutor:
                 )
 
             png_result = subprocess.run(
-                [
-                    self.openscad_path,
-                    "-o", str(png_file),
-                    "-P", "Custom",
-                    camera,
-                    str(scad_file),
-                ],
+                self._build_command(
+                    output_path=png_file,
+                    scad_path=scad_file,
+                    extra_args=["-P", "Custom", camera],
+                ),
                 capture_output=True,
                 text=True,
+                env=self._build_env(),
                 timeout=self.timeout_seconds,
             )
             png_success = png_result.returncode == 0 and png_file.exists()
@@ -158,9 +159,10 @@ class OpenSCADExecutor:
                 temp_path.write_text(scad_source)
 
                 result = subprocess.run(
-                    [self.openscad_path, "-o", str(temp_output), str(temp_path)],
+                    self._build_command(output_path=temp_output, scad_path=temp_path),
                     capture_output=True,
                     text=True,
+                    env=self._build_env(),
                     timeout=self.syntax_timeout_seconds,
                 )
 
@@ -170,3 +172,32 @@ class OpenSCADExecutor:
 
         except Exception as e:
             return False, str(e)
+
+    def _build_command(
+        self,
+        *,
+        output_path: Path,
+        scad_path: Path,
+        extra_args: list[str] | None = None,
+    ) -> list[str]:
+        """Build a reusable OpenSCAD CLI invocation."""
+        command = [self.openscad_path, "-o", str(output_path)]
+        if extra_args:
+            command.extend(extra_args)
+        command.append(str(scad_path))
+        return command
+
+    def _build_env(self) -> dict[str, str]:
+        """Build the environment for OpenSCAD, extending OPENSCADPATH when needed."""
+        env = os.environ.copy()
+        if not self.include_dirs:
+            return env
+
+        existing = env.get("OPENSCADPATH", "").strip()
+        include_path = os.pathsep.join(self.include_dirs)
+        env["OPENSCADPATH"] = (
+            os.pathsep.join([include_path, existing])
+            if existing
+            else include_path
+        )
+        return env

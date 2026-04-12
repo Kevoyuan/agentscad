@@ -8,7 +8,6 @@ from cad_agent.app.models.design_job import (
     JobState,
     JobPriority,
     SpecResult,
-    TemplateChoice,
     Artifacts,
     ExecutionLog,
     RoutingDecision,
@@ -35,9 +34,9 @@ class TestJobStateTransitions:
     def test_transition_to_changes_enum_value(self):
         """Transition should accept JobState enum values."""
         job = DesignJob(input_request="test")
-        job.transition_to(JobState.TEMPLATE_SELECTED)
-        assert job.state == JobState.TEMPLATE_SELECTED
-        assert job.state.value == "TEMPLATE_SELECTED"
+        job.transition_to(JobState.SCAD_GENERATED)
+        assert job.state == JobState.SCAD_GENERATED
+        assert job.state.value == "SCAD_GENERATED"
 
     def test_terminal_states_reached(self):
         """Test all terminal states."""
@@ -139,27 +138,6 @@ class TestSpecResult:
         )
         assert spec.dimensions["length"] == 30.0
         assert spec.material == "PLA"
-
-
-class TestTemplateChoice:
-    """Test TemplateChoice model."""
-
-    def test_template_choice_defaults(self):
-        """Test TemplateChoice default values."""
-        choice = TemplateChoice(success=True, template_name="hook_basic_v1")
-        assert choice.template_version == "v1"
-        assert choice.confidence == 0.0
-        assert choice.parameters == {}
-
-    def test_template_choice_with_parameters(self):
-        """Test TemplateChoice with parameters."""
-        choice = TemplateChoice(
-            success=True,
-            template_name="box_basic_v1",
-            parameters={"length": 20, "width": 15, "height": 10},
-            confidence=0.95,
-        )
-        assert choice.parameters["length"] == 20
 
 
 class TestArtifacts:

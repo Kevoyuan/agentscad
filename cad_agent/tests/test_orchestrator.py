@@ -111,30 +111,18 @@ def mock_parameters_agent():
 
 
 @pytest.fixture
-def mock_template_agent():
-    agent = AsyncMock()
-    agent.select.return_value = AgentResult(
-        success=True,
-        agent=AgentRole.TEMPLATE,
-        state_reached="TEMPLATE_SELECTED",
-        data={"template_name": "rectangular_primitives"},
-    )
-    return agent
-
-
-@pytest.fixture
 def mock_generator_agent():
     agent = AsyncMock()
     agent.generate.return_value = AgentResult(
         success=True,
         agent=AgentRole.GENERATOR,
-        state_reached="GEOMETRY_BUILT",
+        state_reached="SCAD_GENERATED",
         data={"scad_source": "// gear"},
     )
     agent.repair.return_value = AgentResult(
         success=True,
         agent=AgentRole.GENERATOR,
-        state_reached="GEOMETRY_BUILT",
+        state_reached="SCAD_GENERATED",
         data={"scad_source": "// repaired gear"},
     )
     return agent
@@ -195,7 +183,6 @@ def orchestrator(
     mock_intent_agent,
     mock_design_agent,
     mock_parameters_agent,
-    mock_template_agent,
     mock_generator_agent,
     mock_executor_agent,
     mock_validator_agent,
@@ -209,7 +196,6 @@ def orchestrator(
         intent=mock_intent_agent,
         design=mock_design_agent,
         parameters=mock_parameters_agent,
-        template=mock_template_agent,
         generator=mock_generator_agent,
         executor=mock_executor_agent,
         validator=mock_validator_agent,

@@ -7,6 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from cad_agent.app.llm.provider import LLMProviderConfig
 
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
 def _detect_openscad_path() -> Path:
     """Find a usable OpenSCAD binary for the local machine."""
     candidates = (
@@ -22,6 +25,31 @@ def _detect_openscad_path() -> Path:
     return candidates[0]
 
 
+def _detect_openscad_library_dirs() -> list[Path]:
+    """Find library roots that make `include <MCAD/...>` and vendor libs work."""
+    library_roots: list[Path] = []
+    candidates = (
+        _REPO_ROOT / ".local/OpenSCAD-2021.01.app/Contents/Resources/libraries",
+        Path("/Applications/OpenSCAD.app/Contents/Resources/libraries"),
+        Path("/Applications/OpenSCAD-2021.01.app/Contents/Resources/libraries"),
+    )
+
+    for candidate in candidates:
+        if candidate.exists() and candidate not in library_roots:
+            library_roots.append(candidate)
+
+    vendor_candidates = (
+        _REPO_ROOT / "cad_agent/vendor",
+        _REPO_ROOT / "vendor",
+    )
+    for candidate in vendor_candidates:
+        if candidate.exists() and any((candidate / name).exists() for name in ("BOSL", "BOSL2", "MCAD")):
+            if candidate not in library_roots:
+                library_roots.append(candidate)
+
+    return library_roots
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="CAD_AGENT_",
@@ -33,6 +61,11 @@ class Settings(BaseSettings):
     openSCAD_path: Path = Field(
         default_factory=_detect_openscad_path,
         description="Path to OpenSCAD executable",
+    )
+
+    openscad_library_dirs: list[Path] = Field(
+        default_factory=_detect_openscad_library_dirs,
+        description="Library roots exposed to OpenSCAD through OPENSCADPATH for MCAD/BOSL/BOSL2 includes",
     )
 
     storage_dir: Path = Field(
@@ -50,14 +83,14 @@ class Settings(BaseSettings):
         description="Directory for case memory SQLite files",
     )
 
-    templates_dir: Path = Field(
-        default=Path("./app/templates"),
-        description="Directory containing SCAD Jinja2 templates",
-    )
-
     output_dir: Path = Field(
         default=Path("./output"),
         description="Directory for generated STL/PNG artifacts",
+    )
+
+    uploads_dir: Path = Field(
+        default=Path("./storage/uploads"),
+        description="Directory for uploaded user reference images",
     )
 
     max_retries: int = Field(
@@ -161,14 +194,36 @@ class Settings(BaseSettings):
         description="User-Agent header used for live web research requests",
     )
 
+    image_understanding_enabled: bool = Field(
+        default=True,
+        description="Enable MiniMax MCP image understanding for uploaded reference images",
+    )
+
+    minimax_api_host: str = Field(
+        default="https://api.minimaxi.com",
+        description="MiniMax API host used by the official MCP server",
+    )
+
+    minimax_mcp_command: str = Field(
+        default="/Users/kevinsyuan/.local/bin/uvx",
+        description="Command used to launch the official MiniMax MCP server",
+    )
+
+    minimax_mcp_package: str = Field(
+        default="minimax-coding-plan-mcp",
+        description="MiniMax MCP package name passed to the launcher command",
+    )
+
+    image_understanding_timeout: int = Field(
+        default=20,
+        ge=1,
+        description="Timeout for MiniMax MCP image-understanding calls in seconds",
+    )
+
     def ensure_directories(self) -> None:
         """Ensure all required directories exist."""
-        for dir_path in [self.storage_dir, self.jobs_dir, self.cases_dir, self.output_dir]:
+        for dir_path in [self.storage_dir, self.jobs_dir, self.cases_dir, self.output_dir, self.uploads_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
-
-    def get_template_path(self, template_name: str) -> Path:
-        """Get full path to a template file."""
-        return self.templates_dir / template_name
 
     def get_job_db_path(self, job_id: str) -> Path:
         """Get full path to a job's SQLite database."""

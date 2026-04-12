@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from datetime import datetime
 
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
@@ -7,10 +6,9 @@ from cad_agent.app.models.design_job import (
     DesignJob,
     JobState,
     SpecResult,
-    TemplateChoice,
     Artifacts,
     ExecutionLog,
-    RoutingDecision,
+    ReferenceImage,
 )
 
 
@@ -30,6 +28,14 @@ def sample_job():
         id="job-001",
         state=JobState.NEW,
         input_request="Create a parametric box with rounded corners",
+        reference_images=[
+            ReferenceImage(
+                file_name="reference.png",
+                stored_path="/tmp/reference.png",
+                media_type="image/png",
+                size_bytes=128,
+            )
+        ],
         spec=SpecResult(
             success=True,
             request_summary="Box with dimensions",
@@ -45,13 +51,8 @@ def sample_job():
             raw_request="Create a box",
             confidence=0.95,
         ),
-        template_choice=TemplateChoice(
-            success=True,
-            template_name="rectangular_primitives",
-            confidence=0.95,
-            parameters={"width": 10, "height": 5, "depth": 3},
-            reasoning="Simple rectangular geometry detected",
-        ),
+        parameter_values={"width": 10, "height": 5, "depth": 3},
+        generation_path="inferred_parametric_scad",
         scad_source="$fn=50;\nmodule box() { cube([10, 5, 3]); }\nbox();",
         artifacts=Artifacts(
             scad_source="$fn=50;\nmodule box() { cube([10, 5, 3]); }\nbox();",
@@ -139,7 +140,6 @@ class TestSQLiteJobRepository:
         
         assert retrieved is not None
         assert retrieved.spec is None
-        assert retrieved.template_choice is None
 
     def test_job_with_spec(self, repo, sample_job):
         repo.save(sample_job)
@@ -147,7 +147,8 @@ class TestSQLiteJobRepository:
         
         assert retrieved.spec is not None
         assert retrieved.spec.dimensions["width"] == 10.0
-        assert retrieved.template_choice.template_name == "rectangular_primitives"
+        assert retrieved.generation_path == "inferred_parametric_scad"
+        assert retrieved.parameter_values["width"] == 10
 
     def test_job_with_artifacts(self, repo, sample_job):
         repo.save(sample_job)
@@ -164,3 +165,11 @@ class TestSQLiteJobRepository:
         assert len(retrieved.execution_logs) == 1
         assert retrieved.execution_logs[0].agent == "intake"
         assert retrieved.execution_logs[0].success is True
+
+    def test_job_with_reference_images(self, repo, sample_job):
+        repo.save(sample_job)
+        retrieved = repo.get("job-001")
+
+        assert len(retrieved.reference_images) == 1
+        assert retrieved.reference_images[0].file_name == "reference.png"
+        assert retrieved.reference_images[0].media_type == "image/png"

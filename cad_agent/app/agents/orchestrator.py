@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from cad_agent.app.agents.intent_agent import IntentAgent
     from cad_agent.app.agents.design_agent import DesignAgent
     from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
-    from cad_agent.app.agents.template_agent import TemplateAgent
     from cad_agent.app.agents.generator_agent import GeneratorAgent
     from cad_agent.app.agents.executor_agent import ExecutorAgent
     from cad_agent.app.agents.validator_agent import ValidatorAgent
@@ -52,7 +51,6 @@ class OrchestratorAgent:
         intent: "IntentAgent",
         design: "DesignAgent",
         parameters: "ParameterSchemaAgent",
-        template: "TemplateAgent",
         generator: "GeneratorAgent",
         executor: "ExecutorAgent",
         validator: "ValidatorAgent",
@@ -66,7 +64,6 @@ class OrchestratorAgent:
             "intent": intent,
             "design": design,
             "parameters": parameters,
-            "template": template,
             "generator": generator,
             "executor": executor,
             "validator": validator,
@@ -134,7 +131,6 @@ class OrchestratorAgent:
             JobState.GEOMETRY_FAILED,
             JobState.RENDER_FAILED,
             JobState.SPEC_FAILED,
-            JobState.TEMPLATE_FAILED,
             JobState.HUMAN_REVIEW,
             JobState.CANCELLED,
         }
@@ -182,8 +178,6 @@ class OrchestratorAgent:
             JobState.INTENT_RESOLVED: ("design", "design"),
             JobState.DESIGN_RESOLVED: ("parameters", "build_schema"),
             JobState.PARAMETERS_GENERATED: ("generator", "generate"),
-            JobState.TEMPLATE_SELECTED: ("generator", "generate"),
-            JobState.GEOMETRY_BUILT: ("executor", "execute"),
             JobState.SCAD_GENERATED: ("executor", "execute"),
             JobState.RENDERED: ("validator", "validate"),
             JobState.REVIEWED: ("intake", "accept"),
@@ -223,7 +217,11 @@ class OrchestratorAgent:
 
         logger.info("routing_to_agent", job_id=job.id, agent=agent_name, state=job.state.value)
         if agent_name == "research":
-            payload = await method(job.input_request, job.part_family)
+            payload = await method(
+                job.input_request,
+                job.part_family,
+                [image.stored_path for image in job.reference_images],
+            )
             job.research_result = payload
             if getattr(payload, "part_family", None):
                 job.part_family = str(payload.part_family.value if hasattr(payload.part_family, "value") else payload.part_family)
@@ -318,9 +316,9 @@ class OrchestratorAgent:
         final_parameters: dict[str, object] = {}
         tags: list[str] = []
 
-        if job.template_choice:
-            template_name = job.template_choice.template_name
-            final_parameters = job.template_choice.parameters
+        if job.generation_path:
+            template_name = job.generation_path
+            final_parameters = job.get_effective_parameter_values()
         elif job.part_family:
             template_name = job.builder_name or job.part_family
             final_parameters = job.get_effective_parameter_values()

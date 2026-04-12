@@ -64,15 +64,40 @@ class DesignAgent:
             )
 
         if family == PartFamily.DEVICE_STAND:
-            device_name = research.object_name if research else "device"
+            device_name = research.object_name if research else "target device"
+            object_model = getattr(research, "object_model", {}) if research else {}
+            synthesis_kind = object_model.get("synthesis_kind")
+            if synthesis_kind == "support_base":
+                return (
+                    f"Create a stable support base for {device_name.lower()} with a defined placement surface, bottom clearance, and accessible operating edges.",
+                    "Use the object envelope to size a base footprint and top alignment pocket so the geometry follows the real device instead of a generic accessory archetype.",
+                    [
+                        "support base",
+                        "alignment pocket",
+                        "cable relief",
+                        "vent clearance",
+                        "softened perimeter",
+                    ],
+                    [
+                        "Keep the supported object easy to place and remove.",
+                        "Do not block thermal intake or exhaust zones.",
+                        "Treat alignment, stability, and access cutouts as first-class controls instead of hard-coded contours.",
+                    ],
+                    ["pocket_clearance", "cable_relief_width", "edge_radius"],
+                    {
+                        "family": "object_support",
+                        "geometry_class": "support_base",
+                        "fit_strategy": "object_envelope_first",
+                    },
+                )
             return (
-                f"Create a wrap-around stand concept for {device_name.lower()} with a lifted support path and visible clearance around the body.",
-                "Use a support arch, flared base, and retention lip so the design can be tuned without changing its overall class.",
+                f"Create a support concept for {device_name.lower()} that preserves stable placement, visible clearance, and access to important edges.",
+                "Use object-facing support surfaces and editable relief geometry so the form can adapt to the real object instead of following a canned accessory shape.",
                 [
-                    "support arch",
-                    "retention lip",
-                    "flared base",
-                    "airflow gap",
+                    "support surface",
+                    "retention edge",
+                    "stabilized footprint",
+                    "access gap",
                     "softened edges",
                 ],
                 [
@@ -82,9 +107,9 @@ class DesignAgent:
                 ],
                 ["arch_radius", "arch_peak", "base_flare", "lip_height"],
                 {
-                    "family": "stand",
+                    "family": "object_support",
                     "geometry_class": "device_accessory",
-                    "fit_strategy": "clearance_first",
+                    "fit_strategy": "clearance_and_access",
                 },
             )
 

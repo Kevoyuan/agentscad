@@ -20,14 +20,9 @@ class RetryPolicy:
 
         Conditions:
         - Retry count exceeded
-        - Template confidence too low
         - Acceptance criteria conflict
         """
         if job.retry_count >= self.max_retries:
-            return True
-
-        template_confidence = getattr(job.template_choice, "confidence", None)
-        if template_confidence is not None and template_confidence < self.min_confidence:
             return True
 
         intent_confidence = getattr(job.intent_result, "confidence", None)
@@ -35,7 +30,7 @@ class RetryPolicy:
         if intent_confidence is not None and has_resolved_part_family(intent_part_family) and intent_confidence < self.min_confidence:
             return True
 
-        if not has_resolved_part_family(job.part_family) and not job.template_choice and job.retry_count > 0:
+        if not has_resolved_part_family(job.part_family) and not job.spec and job.retry_count > 0:
             return True
 
         return False

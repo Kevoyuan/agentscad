@@ -15,18 +15,26 @@ class LLMSpecParser:
     def __init__(self, client: AnthropicCompatibleLLMClient) -> None:
         self._client = client
 
-    async def parse(self, request: str) -> SpecResult:
+    async def parse(self, request: str, extra_context: str | None = None) -> SpecResult:
         """Parse a natural language CAD request into a structured spec."""
+        content_blocks: list[dict[str, str]] = [
+            {
+                "type": "text",
+                "text": request,
+            }
+        ]
+        if extra_context:
+            content_blocks.append(
+                {
+                    "type": "text",
+                    "text": f"Additional visual/reference context:\n{extra_context}",
+                }
+            )
         response = await self._client.generate(
             messages=[
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": request,
-                        }
-                    ],
+                    "content": content_blocks,
                 }
             ],
             system=(
@@ -36,7 +44,9 @@ class LLMSpecParser:
                 "request_summary, geometric_type, dimensions, material, tolerance, "
                 "surface_finish, functional_requirements, constraints, cost_target, quantity, confidence. "
                 "Dimensions must be a JSON object with numeric values in millimeters where possible. "
-                "If a value is unknown, use a sensible default or null. "
+                "If the request refers to a real-world object, product page, or URL, preserve uncertainty instead of inventing dimensions. "
+                "Prefer null, an empty dimensions object, or only clearly supported measurements over guessed values. "
+                "Use generic geometric_type labels like support_accessory, protective_shell, enclosure, or mechanical_part when exact geometry is unresolved. "
                 "Do not wrap the JSON in markdown fences."
             ),
             max_tokens=800,

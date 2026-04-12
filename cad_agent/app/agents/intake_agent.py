@@ -33,7 +33,10 @@ class IntakeAgent:
         start_time = time.time()
         logger.info("intake_processing", job_id=job.id, request=job.input_request[:100])
 
-        spec = await self._parse_with_fallback(job.input_request)
+        spec = await self._parse_with_fallback(
+            job.input_request,
+            self._build_extra_context(job),
+        )
 
         job.spec = spec
 
@@ -56,11 +59,15 @@ class IntakeAgent:
         result.duration_ms = int((time.time() - start_time) * 1000)
         return result
 
-    async def _parse_with_fallback(self, request: str) -> SpecResult:
+    async def _parse_with_fallback(
+        self,
+        request: str,
+        extra_context: str | None = None,
+    ) -> SpecResult:
         """Try the configured LLM parser first, then fall back to regex parsing."""
         if self._spec_parser is not None:
             try:
-                llm_spec = await self._spec_parser.parse(request)
+                llm_spec = await self._spec_parser.parse(request, extra_context=extra_context)
                 if llm_spec.success:
                     return llm_spec
             except Exception as exc:  # pragma: no cover - fallback path is behaviorally tested
@@ -105,6 +112,13 @@ class IntakeAgent:
             raw_request=request,
             confidence=min(confidence, 1.0),
         )
+
+    def _build_extra_context(self, job: DesignJob) -> str | None:
+        """Summarize any uploaded-image analysis for the spec parser."""
+        if not job.research_result or not job.research_result.image_analysis_summaries:
+            return None
+        summaries = "\n".join(f"- {summary}" for summary in job.research_result.image_analysis_summaries)
+        return f"Uploaded reference images suggest the following geometry cues:\n{summaries}"
 
     def _extract_type(self, text: str) -> str:
         """Extract geometric type from request."""

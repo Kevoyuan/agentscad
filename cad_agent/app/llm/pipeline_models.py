@@ -71,6 +71,8 @@ class ResearchResult(BaseModel):
     open_questions: list[str] = Field(default_factory=list)
     source_notes: list[str] = Field(default_factory=list)
     source_urls: list[str] = Field(default_factory=list)
+    image_analysis_summaries: list[str] = Field(default_factory=list)
+    image_reference_used: bool = False
     needs_web_search: bool = False
     web_research_used: bool = False
     confidence: float = 0.5

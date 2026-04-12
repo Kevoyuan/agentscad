@@ -44,6 +44,7 @@ class SQLiteJobRepository:
                     "state": str,
                     "priority": str,
                     "input_request": str,
+                    "reference_images_json": str,
                     "research_result_json": str,
                     "intent_result_json": str,
                     "design_result_json": str,
@@ -51,8 +52,8 @@ class SQLiteJobRepository:
                     "parameter_values_json": str,
                     "part_family": str,
                     "builder_name": str,
+                    "generation_path": str,
                     "spec_json": str,
-                    "template_choice_json": str,
                     "scad_source": str,
                     "artifacts_json": str,
                     "validation_results_json": str,
@@ -71,6 +72,7 @@ class SQLiteJobRepository:
             table = self.db["jobs"]
             columns = table.columns_dict
             for column_name, column_type in {
+                "reference_images_json": str,
                 "research_result_json": str,
                 "intent_result_json": str,
                 "design_result_json": str,
@@ -78,6 +80,7 @@ class SQLiteJobRepository:
                 "parameter_values_json": str,
                 "part_family": str,
                 "builder_name": str,
+                "generation_path": str,
             }.items():
                 if column_name not in columns:
                     table.add_column(column_name, column_type)
@@ -90,6 +93,9 @@ class SQLiteJobRepository:
                 "state": job.state.value,
                 "priority": job.priority.value,
                 "input_request": job.input_request,
+                "reference_images_json": json.dumps(
+                    [image.model_dump(mode="json") for image in job.reference_images]
+                ),
                 "research_result_json": (
                     job.research_result.model_dump_json() if job.research_result else "{}"
                 ),
@@ -105,10 +111,8 @@ class SQLiteJobRepository:
                 "parameter_values_json": json.dumps(job.parameter_values),
                 "part_family": job.part_family or "",
                 "builder_name": job.builder_name or "",
+                "generation_path": job.generation_path or "",
                 "spec_json": job.spec.model_dump_json() if job.spec else "{}",
-                "template_choice_json": (
-                    job.template_choice.model_dump_json() if job.template_choice else "{}"
-                ),
                 "scad_source": job.scad_source or "",
                 "artifacts_json": job.artifacts.model_dump_json(),
                 "validation_results_json": json.dumps(
@@ -180,14 +184,23 @@ class SQLiteJobRepository:
         from cad_agent.app.models.design_job import (
             Artifacts,
             ExecutionLog,
-            RoutingDecision,
             ResearchResult,
             IntentResult,
             DesignResult,
             ParameterSchema,
             SpecResult,
-            TemplateChoice,
+            ReferenceImage,
         )
+
+        reference_images = []
+        if row.get("reference_images_json"):
+            try:
+                reference_images = [
+                    ReferenceImage.model_validate(image)
+                    for image in json.loads(row["reference_images_json"])
+                ]
+            except Exception:
+                pass
 
         research_result = None
         if self._has_meaningful_payload(row.get("research_result_json")):
@@ -231,15 +244,6 @@ class SQLiteJobRepository:
             except Exception:
                 pass
 
-        template_choice = None
-        if row.get("template_choice_json"):
-            try:
-                template_choice = TemplateChoice.model_validate_json(
-                    row["template_choice_json"]
-                )
-            except Exception:
-                pass
-
         artifacts = Artifacts.model_validate_json(row.get("artifacts_json", "{}"))
 
         validation_results = []
@@ -275,11 +279,18 @@ class SQLiteJobRepository:
             except Exception:
                 pass
 
+        raw_state = row["state"]
+        state_aliases = {
+            "TEMPLATE_SELECTED": JobState.PARAMETERS_GENERATED,
+            "TEMPLATE_FAILED": JobState.PARAMETER_FAILED,
+        }
+
         job = DesignJob(
             id=row["id"],
-            state=JobState(row["state"]),
+            state=state_aliases.get(raw_state, JobState(raw_state)),
             priority=row["priority"],
             input_request=row.get("input_request", ""),
+            reference_images=reference_images,
             research_result=research_result,
             intent_result=intent_result,
             design_result=design_result,
@@ -287,8 +298,8 @@ class SQLiteJobRepository:
             parameter_values=parameter_values,
             part_family=row.get("part_family") or None,
             builder_name=row.get("builder_name") or None,
+            generation_path=row.get("generation_path") or None,
             spec=spec,
-            template_choice=template_choice,
             scad_source=row.get("scad_source") or None,
             artifacts=artifacts,
             validation_results=validation_results,

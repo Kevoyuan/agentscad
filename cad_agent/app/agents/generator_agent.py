@@ -1,58 +1,58 @@
-"""Generator agent - renders SCAD from Jinja2 templates."""
+"""Generator agent - generates SCAD from deterministic synthesis or LLM paths."""
 
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import structlog
 
 from cad_agent.app.llm.geometry_dsl import GeometryDSLCompiler
 from cad_agent.app.llm.scad_generator import LLMScadGenerator
+from cad_agent.app.llm.scad_parameter_schema import build_parameter_schema_from_scad
 from cad_agent.app.llm.pipeline_utils import has_resolved_part_family, normalize_part_family_value
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.design_job import DesignJob, JobState
-from cad_agent.app.parametric import ParametricPartEngine
-from cad_agent.app.parametric.builders import ParametricBuilderError
 
 logger = structlog.get_logger()
 
 
 class GeneratorAgent:
-    """Renders SCAD source from Jinja2 templates."""
+    """Generate SCAD source for a design job."""
+
+    COMPLEX_LLM_NATIVE_KEYWORDS = (
+        "gear",
+        "spur gear",
+        "helical gear",
+        "bevel gear",
+        "worm gear",
+        "sprocket",
+        "threaded",
+        "thread",
+        "bearing",
+        "cam",
+    )
+    MCAD_SPUR_GEAR_PATH = "MCAD/involute_gears.scad"
 
     def __init__(
         self,
-        templates_dir: str = "cad_agent/app/templates",
         llm_scad_generator: LLMScadGenerator | None = None,
-        part_engine: ParametricPartEngine | None = None,
         dsl_compiler: GeometryDSLCompiler | None = None,
     ):
-        """Initialize generator with templates directory."""
-        self.templates_dir = Path(templates_dir)
+        """Initialize generator."""
         self._llm_scad_generator = llm_scad_generator
-        self._part_engine = part_engine or ParametricPartEngine()
         self._dsl_compiler = dsl_compiler or GeometryDSLCompiler()
 
     async def generate(self, job: DesignJob) -> AgentResult:
-        """Generate SCAD source from template.
-
-        Args:
-            job: DesignJob with template_choice set
-
-        Returns:
-            AgentResult with SCAD source in data["scad_source"]
-        """
+        """Generate SCAD source for the active job."""
         start_time = time.time()
         logger.info(
             "generating_scad",
             job_id=job.id,
-            template=job.template_choice.template_name if job.template_choice else None,
             part_family=job.part_family,
         )
 
         if (
-            not job.template_choice
+            not job.spec
             and not has_resolved_part_family(job.part_family)
             and not job.geometry_dsl
             and not self._has_object_model_synthesis(job)
@@ -63,7 +63,7 @@ class GeneratorAgent:
                 success=False,
                 agent=AgentRole.GENERATOR,
                 state_reached=JobState.GEOMETRY_FAILED.value,
-                error="No deterministic part family or template choice available",
+                error="No parsed spec or deterministic geometry plan available",
             )
 
         try:
@@ -111,7 +111,7 @@ class GeneratorAgent:
                 success=False,
                 agent=AgentRole.GENERATOR,
                 state_reached=job.state.value,
-                error="Cannot repair without a supported part family or template choice",
+                error="Cannot repair without a parsed design target",
             )
 
         failures = [v for v in job.validation_results if not v.passed]
@@ -143,10 +143,22 @@ class GeneratorAgent:
         if job.spec:
             self._sync_spec_dimensions(job)
 
-        if job.part_family and self._part_engine.supports(job.part_family):
-            return await self.generate(job)
+        if job.generation_path == "inferred_parametric_scad" and self._llm_scad_generator is not None:
+            try:
+                job.scad_source = await self._llm_scad_generator.generate_implicit_template(job, repair_notes=repair_notes)
+                self._hydrate_parameter_schema_from_scad(job, job.scad_source)
+                result = AgentResult(
+                    success=True,
+                    agent=AgentRole.GENERATOR,
+                    state_reached=self._success_state(job).value,
+                    data={"scad_source": job.scad_source[:500] + "..." if len(job.scad_source) > 500 else job.scad_source},
+                )
+                result.duration_ms = int((time.time() - start_time) * 1000)
+                return result
+            except Exception as e:
+                logger.error("inferred_parametric_repair_failed", job_id=job.id, error=str(e))
 
-        if job.template_choice and job.template_choice.template_name == "llm_native_v1" and self._llm_scad_generator is not None:
+        if job.generation_path == "llm_native_scad" and self._llm_scad_generator is not None:
             try:
                 job.scad_source = await self._llm_scad_generator.generate(job, repair_notes=repair_notes)
                 result = AgentResult(
@@ -197,7 +209,7 @@ class GeneratorAgent:
             job.spec.dimensions["wall_thickness"] = params["wall_thickness"]
 
     async def _build_scad_source(self, job: DesignJob) -> str:
-        """Build SCAD either from a template or from the LLM-native path."""
+        """Build SCAD either from deterministic synthesis or LLM generation."""
         if self._has_object_model_synthesis(job):
             object_model = self._object_model(job)
             job.geometry_dsl = self._dsl_compiler.build_support_base(object_model, job.get_effective_parameter_values())
@@ -212,21 +224,6 @@ class GeneratorAgent:
             )
             job.generation_path = "geometry_intent"
             return self._dsl_compiler.compile(job.geometry_dsl)
-
-        if job.part_family and self._part_engine.supports(job.part_family):
-            build_result = self._part_engine.build(job.part_family, job.get_effective_parameter_values())
-            job.builder_name = type(self._part_engine._builders[job.part_family]).__name__
-            job.part_family = build_result.family
-            job.generation_path = "parametric_builder"
-            job.set_parameter_values(build_result.parameters)
-            if not job.business_context:
-                job.business_context = {}
-            job.business_context["derived_parameters"] = build_result.derived
-            job.business_context["builder_validations"] = [
-                {"code": issue.code, "message": issue.message, "severity": issue.severity}
-                for issue in build_result.validations
-            ]
-            return build_result.scad_source
 
         if normalize_part_family_value(job.part_family) == "phone_case" and not job.geometry_dsl:
             job.geometry_dsl = self._dsl_compiler.build_phone_case(job.get_effective_parameter_values())
@@ -244,27 +241,80 @@ class GeneratorAgent:
             job.generation_path = "dsl"
             return self._dsl_compiler.compile(job.geometry_dsl)
 
-        if not job.template_choice:
-            raise ParametricBuilderError("Missing template choice for non-parametric geometry")
+        if self._should_generate_mcad_spur_gear(job):
+            job.generation_path = "mcad_spur_gear"
+            return self._build_mcad_spur_gear(job)
 
-        template_name = job.template_choice.template_name
-        if template_name == "llm_native_v1":
+        if self._should_generate_inferred_parametric(job):
+            if self._llm_scad_generator is None:
+                raise RuntimeError("Inferred parametric generation requires an LLM generator, but none is configured")
+            scad_source = await self._llm_scad_generator.generate_implicit_template(job)
+            job.generation_path = "inferred_parametric_scad"
+            self._hydrate_parameter_schema_from_scad(job, scad_source)
+            return scad_source
+
+        if self._should_generate_llm_native(job):
             if self._llm_scad_generator is None:
                 raise RuntimeError("Complex geometry requires an LLM generator, but none is configured")
             job.generation_path = "llm_native_scad"
             return await self._llm_scad_generator.generate(job)
 
-        from jinja2 import Environment, FileSystemLoader
-
-        env = Environment(loader=FileSystemLoader(str(self.templates_dir)))
-        template = env.get_template(f"{template_name}.scad.j2")
-        job.generation_path = "template"
-        return template.render(**job.template_choice.parameters)
+        raise RuntimeError("No geometry generation path available")
 
     def _should_generate_dsl(self, job: DesignJob) -> bool:
         """Return whether the job should use the DSL-first generation path."""
         family = normalize_part_family_value(job.part_family)
         return family in {"phone_case"} or job.generation_path == "dsl"
+
+    def _should_generate_mcad_spur_gear(self, job: DesignJob) -> bool:
+        """Return whether the job should use deterministic MCAD spur-gear generation."""
+        if job.spec is None:
+            return False
+
+        family = normalize_part_family_value(job.part_family)
+        haystack = " ".join(
+            part for part in (job.input_request, job.spec.geometric_type, job.part_family or "") if part
+        ).lower()
+        if any(keyword in haystack for keyword in ("helical", "bevel", "worm")):
+            return False
+        return family == "spur_gear" or "spur gear" in haystack or "齿轮" in haystack or "gear" in haystack
+
+    def _should_generate_inferred_parametric(self, job: DesignJob) -> bool:
+        """Return whether the job should use inferred parametric OpenSCAD."""
+        if self._llm_scad_generator is None:
+            return False
+        if job.spec is None:
+            return False
+        if job.geometry_dsl or self._has_object_model_synthesis(job) or self._has_geometry_intent_synthesis(job):
+            return False
+        return not self._should_generate_llm_native(job)
+
+    def _should_generate_llm_native(self, job: DesignJob) -> bool:
+        """Return whether the job should use freeform LLM-native generation."""
+        if self._llm_scad_generator is None or job.spec is None:
+            return False
+        haystack = " ".join(
+            part for part in (job.input_request, job.spec.geometric_type, job.part_family or "") if part
+        ).lower()
+        return any(keyword in haystack for keyword in self.COMPLEX_LLM_NATIVE_KEYWORDS)
+
+    def _hydrate_parameter_schema_from_scad(self, job: DesignJob, scad_source: str) -> None:
+        """Populate job.parameter_schema by inferring editable parameters from SCAD."""
+        schema = build_parameter_schema_from_scad(
+            job.input_request,
+            scad_source,
+            part_family=job.part_family,
+            design_summary=job.design_result.design_intent_summary if job.design_result else "",
+        )
+        if schema is None:
+            return
+        current_schema = job.parameter_schema
+        should_override = current_schema is None or not current_schema.parameters or current_schema.error_message
+        if should_override:
+            job.parameter_schema = schema
+        elif current_schema and not current_schema.user_parameters:
+            job.parameter_schema = schema
+        job.set_parameter_values(schema.parameter_values())
 
     def _has_object_model_synthesis(self, job: DesignJob) -> bool:
         """Return whether the job can synthesize geometry directly from an object model."""
@@ -301,12 +351,80 @@ class GeneratorAgent:
 
     def _success_state(self, job: DesignJob) -> JobState:
         """Return the next success state for the active generation path."""
-        if job.part_family and self._part_engine.supports(job.part_family):
-            return JobState.GEOMETRY_BUILT
         return JobState.SCAD_GENERATED
 
     def _failure_state(self, job: DesignJob) -> JobState:
         """Return the next failure state for the active generation path."""
-        if job.part_family and self._part_engine.supports(job.part_family):
-            return JobState.GEOMETRY_FAILED
-        return JobState.SCAD_GENERATED
+        return JobState.GEOMETRY_FAILED
+
+    def _build_mcad_spur_gear(self, job: DesignJob) -> str:
+        """Build a patchable MCAD-backed spur gear for reliable OpenSCAD output."""
+        teeth = max(8, int(round(self._gear_value(job, keys=("teeth", "齿数"), default=17.0))))
+        outer_diameter = float(self._gear_value(job, keys=("outer_diameter", "外径"), default=30.0))
+        inner_diameter = float(
+            self._gear_value(job, keys=("inner_diameter", "bore_diameter", "内孔径", "内径"), default=10.0)
+        )
+        thickness = max(1.0, float(self._gear_value(job, keys=("thickness", "厚度"), default=3.0)))
+        pressure_angle = min(
+            35.0,
+            max(14.5, float(self._gear_value(job, keys=("pressure_angle", "压力角"), default=20.0))),
+        )
+        backlash = max(0.0, float(self._gear_value(job, keys=("backlash",), default=0.0)))
+
+        if outer_diameter <= inner_diameter:
+            raise RuntimeError("Requested gear outer diameter must be larger than the bore diameter")
+
+        module_size = outer_diameter / (teeth + 2.0)
+        root_diameter = module_size * (teeth - 2.5)
+        min_web = max(module_size, 1.0)
+        if root_diameter <= inner_diameter + min_web:
+            raise RuntimeError("Requested gear leaves no printable material between the bore and tooth root")
+
+        return (
+            "// Deterministic MCAD-backed spur gear for stable, renderable output.\n"
+            "$fn = 96;\n"
+            f"teeth = {teeth}; // [group: gear] tooth count\n"
+            f"outer_diameter = {outer_diameter:.4f}; // [group: gear] tip diameter in mm\n"
+            f"inner_diameter = {inner_diameter:.4f}; // [group: fit] bore diameter in mm\n"
+            f"thickness = {thickness:.4f}; // [group: general] gear thickness in mm\n"
+            f"pressure_angle = {pressure_angle:.4f}; // [group: gear] involute pressure angle in degrees\n"
+            f"backlash = {backlash:.4f}; // [group: fit] tangential backlash in mm\n"
+            "\n"
+            "module_size = outer_diameter / (teeth + 2);\n"
+            "circular_pitch = module_size * 180;\n"
+            "clearance = module_size * 0.25;\n"
+            "pitch_diameter = module_size * teeth;\n"
+            "root_diameter = pitch_diameter - (2 * (module_size + clearance));\n"
+            "hub_diameter = min(root_diameter * 0.75, max(inner_diameter + (module_size * 2.5), inner_diameter + 4));\n"
+            "rim_width = max(module_size, (root_diameter - hub_diameter) / 2);\n"
+            "\n"
+            f"include <{self.MCAD_SPUR_GEAR_PATH}>;\n"
+            "\n"
+            "gear(\n"
+            "    number_of_teeth=teeth,\n"
+            "    circular_pitch=circular_pitch,\n"
+            "    pressure_angle=pressure_angle,\n"
+            "    clearance=clearance,\n"
+            "    gear_thickness=thickness,\n"
+            "    rim_thickness=thickness,\n"
+            "    rim_width=rim_width,\n"
+            "    hub_thickness=thickness,\n"
+            "    hub_diameter=hub_diameter,\n"
+            "    bore_diameter=inner_diameter,\n"
+            "    backlash=backlash\n"
+            ");\n"
+        )
+
+    def _gear_value(self, job: DesignJob, *, keys: tuple[str, ...], default: float) -> float:
+        """Resolve a numeric gear parameter from normalized parameters or spec dimensions."""
+        values = job.get_effective_parameter_values()
+        for key in keys:
+            if key in values and isinstance(values[key], (int, float)):
+                return float(values[key])
+
+        dimensions = job.spec.dimensions if job.spec else {}
+        for key in keys:
+            if key in dimensions and isinstance(dimensions[key], (int, float)):
+                return float(dimensions[key])
+
+        return default

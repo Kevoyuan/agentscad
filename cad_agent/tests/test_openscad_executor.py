@@ -20,10 +20,15 @@ class TestOpenSCADExecutor:
     def test_init_with_defaults(self):
         executor = OpenSCADExecutor()
         assert executor.openscad_path == "openscad"
+        assert executor.include_dirs == []
 
     def test_init_with_custom_path(self):
-        executor = OpenSCADExecutor(openscad_path="/usr/local/bin/openscad")
+        executor = OpenSCADExecutor(
+            openscad_path="/usr/local/bin/openscad",
+            include_dirs=["/opt/openscad/libraries", "/tmp/vendor"],
+        )
         assert executor.openscad_path == "/usr/local/bin/openscad"
+        assert executor.include_dirs == ["/opt/openscad/libraries", "/tmp/vendor"]
 
     @pytest.mark.asyncio
     @patch("cad_agent.app.tools.openscad_executor.subprocess.run")
@@ -124,6 +129,42 @@ class TestOpenSCADExecutor:
         is_valid, error = executor.validate_syntax("invalid openscad ;;;")
         assert is_valid is False
         assert error != ""
+
+    @patch("cad_agent.app.tools.openscad_executor.subprocess.run")
+    @patch("cad_agent.app.tools.openscad_executor.Path.exists")
+    @patch("cad_agent.app.tools.openscad_executor.Path.write_text")
+    @pytest.mark.asyncio
+    async def test_render_passes_include_dirs_to_openscad(self, mock_write, mock_exists, mock_run, temp_output_dir):
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_exists.return_value = True
+
+        executor = OpenSCADExecutor(
+            include_dirs=["/opt/openscad/libraries", "/tmp/vendor"],
+        )
+        result = await executor.render(
+            scad_source='include <MCAD/involute_gears.scad>;\ncube([1,1,1]);',
+            output_dir=temp_output_dir,
+        )
+
+        assert result.success is True
+        first_command = mock_run.call_args_list[0].args[0]
+        assert first_command[0] == "openscad"
+        first_env = mock_run.call_args_list[0].kwargs["env"]
+        assert first_env["OPENSCADPATH"] == "/opt/openscad/libraries:/tmp/vendor"
+
+    @patch("cad_agent.app.tools.openscad_executor.subprocess.run")
+    def test_validate_syntax_passes_include_dirs_to_openscad(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        executor = OpenSCADExecutor(include_dirs=["/tmp/vendor"])
+
+        is_valid, error = executor.validate_syntax("include <BOSL2/std.scad>;\ncube([1,1,1]);")
+
+        assert is_valid is True
+        assert error == ""
+        command = mock_run.call_args.args[0]
+        assert command[0] == "openscad"
+        env = mock_run.call_args.kwargs["env"]
+        assert env["OPENSCADPATH"] == "/tmp/vendor"
 
 
 class TestExecutorAgent:

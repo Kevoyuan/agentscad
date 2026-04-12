@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from cad_agent.app.llm.pipeline_models import IntentResult, PartFamily, ResearchResult
-from cad_agent.app.llm.pipeline_utils import infer_part_family, infer_missing_questions
+from cad_agent.app.llm.pipeline_utils import infer_part_family, infer_missing_questions, normalize_known_object_name
 
 
 class IntentAgent:
@@ -42,7 +42,8 @@ class IntentAgent:
         if family == PartFamily.SPUR_GEAR:
             return "Spur Gear"
         if family == PartFamily.DEVICE_STAND:
-            return "Device Stand"
+            normalized = normalize_known_object_name(request)
+            return normalized if normalized and normalized != request[:48] else "Target Device"
         if family == PartFamily.ELECTRONICS_ENCLOSURE:
             return "Electronics Enclosure"
         return request[:48] or "Unknown Part"
@@ -70,16 +71,17 @@ class IntentAgent:
 
         if family == PartFamily.DEVICE_STAND:
             return (
-                "Generate a stable stand that supports the target device while exposing fit and support controls.",
+                "Generate a stable support accessory for the target object while preserving fit, access, and cooling constraints.",
                 [
-                    "Keep the contact patch stable and broad enough for FDM printing.",
-                    "Maintain airflow and port access where possible.",
-                    "Make the supporting arch and lip editable.",
+                    "Keep the support footprint stable and printable.",
+                    "Preserve ventilation, button access, and cable routing where relevant.",
+                    "Expose support surfaces, clearances, and retention choices as editable controls.",
                 ],
                 {
                     "part_class": "device_accessory",
                     "must_remain_printable": True,
-                    "support_should_be_visible": True,
+                    "object_first_reasoning": True,
+                    "preserve_operational_access": True,
                 },
                 "accessory_design",
             )

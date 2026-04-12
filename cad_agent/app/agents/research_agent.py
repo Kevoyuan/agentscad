@@ -26,14 +26,17 @@ class ResearchAgent:
         self,
         llm_client: object | None = None,
         web_research_adapter: Any | None = None,
+        vision_adapter: Any | None = None,
     ) -> None:
         self._llm_client = llm_client
         self._web_research_adapter = web_research_adapter
+        self._vision_adapter = vision_adapter
 
     async def research(
         self,
         request: str,
         part_family: PartFamily | str | None = None,
+        reference_images: list[str] | None = None,
     ) -> ResearchResult:
         """Return a structured research payload for the request."""
         # Treat "unknown" (persisted from a prior failed run) as if no family was set,
@@ -54,6 +57,8 @@ class ResearchAgent:
         }
         reference_dimensions: dict[str, float] = {}
         source_urls: list[str] = []
+        image_analysis_summaries: list[str] = []
+        image_reference_used = False
         web_research_used = False
         object_model = build_object_model(
             request,
@@ -67,6 +72,24 @@ class ResearchAgent:
             source_notes.append("Always-on web research should enrich the object dimensions and physical feature map.")
         else:
             source_notes.append("External web search can be layered on later using the search_queries field")
+
+        if reference_images and self._vision_adapter is not None:
+            image_analysis_summaries = await self._run_image_research(request, reference_images)
+            if image_analysis_summaries:
+                image_reference_used = True
+                reference_facts.extend(
+                    [f"Reference image cue: {summary}" for summary in image_analysis_summaries]
+                )
+                source_notes.append("Uploaded reference images were analyzed with MiniMax MCP image understanding.")
+                object_model = build_object_model(
+                    request,
+                    object_name=object_name,
+                    reference_dimensions=reference_dimensions,
+                    feature_map={"visual_reference_summaries": image_analysis_summaries},
+                )
+                research_summary = (
+                    f"{research_summary.rstrip('.')} while preserving the uploaded visual reference cues."
+                )
 
         if needs_web_search and self._web_research_adapter is not None:
             live_result = await self._run_live_web_research(request)
@@ -98,6 +121,8 @@ class ResearchAgent:
             open_questions=open_questions,
             source_notes=source_notes,
             source_urls=source_urls,
+            image_analysis_summaries=image_analysis_summaries,
+            image_reference_used=image_reference_used,
             needs_web_search=needs_web_search,
             web_research_used=web_research_used,
             confidence=0.75 if family != PartFamily.UNKNOWN else 0.45,
@@ -123,7 +148,7 @@ class ResearchAgent:
                 return normalized
             if normalized and normalized != request.strip()[:64]:
                 return normalized
-            return "Device Stand"
+            return "Target Device"
         if family == PartFamily.ELECTRONICS_ENCLOSURE:
             return "Electronics Enclosure"
         if family == PartFamily.PHONE_CASE:
@@ -140,12 +165,12 @@ class ResearchAgent:
             ]
         if family == PartFamily.DEVICE_STAND:
             facts = [
-                "A stand should preserve airflow and cable access while keeping the device stable.",
-                "The geometry should expose retention, support, and clear placement surfaces as parameters.",
+                "A support accessory should preserve ventilation, cable access, and stable placement.",
+                "The geometry should expose support surfaces, clearances, and alignment features as parameters.",
                 "The model should avoid unsupported spans and overly thin walls.",
             ]
             if "mac mini" in request.lower():
-                facts.append("Mac mini-style stands usually want a compact footprint, accessible ports, and a clean front opening.")
+                facts.append("Mac mini accessories usually need a compact base, accessible rear ports, and unobstructed bottom airflow.")
             return facts
         if family == PartFamily.ELECTRONICS_ENCLOSURE:
             return [
@@ -175,7 +200,10 @@ class ResearchAgent:
                 return "Treat the gear as a real mechanical component and derive tooth geometry from the requested dimensions."
             return "Treat the gear as a real mechanical component and derive tooth geometry from any explicit or default dimensions."
         if family == PartFamily.DEVICE_STAND:
-            return f"Design a stable, printable stand concept for {object_name.lower()} with editable support geometry and airflow-aware clearances."
+            return (
+                f"Model a printable support accessory for {object_name.lower()} using object-aware fit, placement, "
+                "and airflow constraints instead of a generic accessory archetype."
+            )
         if family == PartFamily.ELECTRONICS_ENCLOSURE:
             return "Design a printable enclosure with wall, clearance, and opening controls exposed as first-class parameters."
         if family == PartFamily.PHONE_CASE:
@@ -212,6 +240,14 @@ class ResearchAgent:
         if family == PartFamily.PHONE_CASE:
             return f"{live_result.entity_name} Case"
         return live_result.entity_name
+
+    async def _run_image_research(self, request: str, reference_images: list[str]) -> list[str]:
+        """Analyze uploaded reference images and extract concise geometry cues."""
+        try:
+            results = await self._vision_adapter.analyze_images(request, reference_images)
+        except Exception:
+            return []
+        return [result.summary for result in results if getattr(result, "summary", "").strip()]
 
     def _summary_from_live_result(
         self,

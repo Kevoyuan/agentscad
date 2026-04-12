@@ -54,25 +54,17 @@ def job_with_spec(sample_job: DesignJob) -> DesignJob:
 
 
 @pytest.fixture
-def job_with_template(job_with_spec: DesignJob) -> DesignJob:
-    """Provide a DesignJob with template selected."""
-    from cad_agent.app.models.design_job import TemplateChoice
-
-    job_with_spec.template_choice = TemplateChoice(
-        success=True,
-        template_name="hook_basic_v1",
-        template_version="v1",
-        confidence=0.9,
-        parameters={"length": 30.0, "width": 10.0},
-    )
-    job_with_spec.transition_to(JobState.TEMPLATE_SELECTED)
+def job_with_parameters(job_with_spec: DesignJob) -> DesignJob:
+    """Provide a DesignJob with parameter values already materialized."""
+    job_with_spec.set_parameter_values({"length": 30.0, "width": 10.0, "height": 5.0})
+    job_with_spec.transition_to(JobState.PARAMETERS_GENERATED)
     return job_with_spec
 
 
 @pytest.fixture
-def job_with_scad(job_with_template: DesignJob) -> DesignJob:
+def job_with_scad(job_with_parameters: DesignJob) -> DesignJob:
     """Provide a DesignJob with SCAD source generated."""
-    job_with_template.scad_source = """
+    job_with_parameters.scad_source = """
 // Generated hook design
 length = 30;
 width = 10;
@@ -84,8 +76,8 @@ difference() {
         cylinder(h=height*2, r=width/3, center=true);
 }
 """
-    job_with_template.transition_to(JobState.SCAD_GENERATED)
-    return job_with_template
+    job_with_parameters.transition_to(JobState.SCAD_GENERATED)
+    return job_with_parameters
 
 
 @pytest.fixture

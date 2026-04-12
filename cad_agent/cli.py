@@ -1,7 +1,6 @@
 """CLI interface for CAD Agent System."""
 import asyncio
 import sys
-from pathlib import Path
 from typing import Optional
 
 import click
@@ -15,19 +14,17 @@ from cad_agent.app.agents.intake_agent import IntakeAgent
 from cad_agent.app.agents.intent_agent import IntentAgent
 from cad_agent.app.agents.design_agent import DesignAgent
 from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
-from cad_agent.app.agents.template_agent import TemplateAgent
 from cad_agent.app.agents.generator_agent import GeneratorAgent
 from cad_agent.app.agents.executor_agent import ExecutorAgent
 from cad_agent.app.agents.validator_agent import ValidatorAgent
 from cad_agent.app.agents.debug_agent import DebugAgent
 from cad_agent.app.agents.report_agent import ReportAgent
-from cad_agent.app.parametric import ParametricPartEngine
 from cad_agent.app.rules.engineering_rules import EngineeringRulesEngine
 from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
-from cad_agent.app.research import MiniMaxWebSearchAdapter
+from cad_agent.app.research import MiniMaxVisionAdapter, MiniMaxWebSearchAdapter
 from cad_agent.app.llm import (
     AnthropicCompatibleLLMClient,
     LLMDesignCritic,
@@ -62,6 +59,7 @@ def init_services(ctx: CliContext) -> None:
 
     openscad_executor = OpenSCADExecutor(
         openscad_path=str(settings.openSCAD_path),
+        include_dirs=[str(path) for path in settings.openscad_library_dirs],
         timeout_seconds=settings.render_timeout,
     )
 
@@ -87,18 +85,21 @@ def init_services(ctx: CliContext) -> None:
             user_agent=settings.web_research_user_agent,
         )
 
-    part_engine = ParametricPartEngine()
-    research_agent = ResearchAgent(web_research_adapter=web_research_adapter)
+    vision_adapter = None
+    if settings.image_understanding_enabled:
+        vision_adapter = MiniMaxVisionAdapter(
+            timeout_seconds=settings.image_understanding_timeout,
+        )
+
+    research_agent = ResearchAgent(
+        web_research_adapter=web_research_adapter,
+        vision_adapter=vision_adapter,
+    )
     intake_agent = IntakeAgent(spec_parser=llm_spec_parser)
     intent_agent = IntentAgent()
     design_agent = DesignAgent()
     parameter_schema_agent = ParameterSchemaAgent()
-    template_agent = TemplateAgent()
-    generator_agent = GeneratorAgent(
-        templates_dir=str(settings.templates_dir),
-        llm_scad_generator=llm_scad_generator,
-        part_engine=part_engine,
-    )
+    generator_agent = GeneratorAgent(llm_scad_generator=llm_scad_generator)
     executor_agent = ExecutorAgent(executor=openscad_executor)
     validator_agent = ValidatorAgent(
         rules_engine=rules_engine,
@@ -114,7 +115,6 @@ def init_services(ctx: CliContext) -> None:
         intent=intent_agent,
         design=design_agent,
         parameters=parameter_schema_agent,
-        template=template_agent,
         generator=generator_agent,
         executor=executor_agent,
         validator=validator_agent,
@@ -260,15 +260,20 @@ def status(ctx: CliContext, job_id: str, format: str) -> None:
         click.echo(f"  Material: {job.spec.material}")
         click.echo(f"  Confidence: {job.spec.confidence:.2f}")
 
-    if job.part_family:
-        click.echo(f"\nPart family: {job.part_family}")
+    object_synthesis = (
+        job.research_result.object_model.get("synthesis_kind")
+        if job.research_result and job.research_result.object_model
+        else None
+    )
+    if object_synthesis:
+        click.echo(f"\nObject synthesis: {object_synthesis}")
     if job.builder_name:
         click.echo(f"Builder: {job.builder_name}")
     if job.parameter_schema:
         click.echo(f"Parameters: {len(job.parameter_schema.parameters)} exposed")
 
-    if job.template_choice:
-        click.echo(f"\nTemplate: {job.template_choice.template_id}")
+    if job.generation_path:
+        click.echo(f"Generation path: {job.generation_path}")
 
     if job.artifacts:
         click.echo(f"\nArtifacts:")
@@ -378,7 +383,7 @@ def similar(ctx: CliContext, request: str, limit: int) -> None:
 
     for case in cases:
         click.echo(f"Case: {case.id}")
-        click.echo(f"  Template: {case.template_name}")
+        click.echo(f"  Path: {case.template_name}")
         click.echo(f"  Request: {case.input_request[:100]}...")
         click.echo(f"  Uses: {case.usage_count}")
         click.echo(f"  Tags: {', '.join(case.tags) if case.tags else 'none'}")
@@ -406,36 +411,15 @@ def cancel(ctx: CliContext, job_id: str) -> None:
 
 
 @cli.command()
-def templates() -> None:
-    """List available templates."""
-    templates_dir = Path(settings.templates_dir)
-
-    if not templates_dir.exists():
-        click.echo("Templates directory not found")
-        return
-
-    template_files = list(templates_dir.glob("*.scad.j2"))
-
-    if not template_files:
-        click.echo("No templates found")
-        return
-
-    click.echo("Available templates:\n")
-
-    for template_file in template_files:
-        template_name = template_file.stem.replace("_basic_v1", "").replace("_", " ").title()
-        click.echo(f"  {template_file.stem:30} - {template_name}")
-
-
-@cli.command()
 def info() -> None:
     """Show system information."""
     provider_config = settings.resolve_llm_provider_config(validate_api_key=False)
+    library_dirs = ", ".join(str(path) for path in settings.openscad_library_dirs) or "(none)"
     click.echo("CAD Agent System Configuration:")
     click.echo(f"  OpenSCAD path: {settings.openSCAD_path}")
+    click.echo(f"  OpenSCAD libraries: {library_dirs}")
     click.echo(f"  Storage dir: {settings.storage_dir}")
     click.echo(f"  Output dir: {settings.output_dir}")
-    click.echo(f"  Templates dir: {settings.templates_dir}")
     click.echo(f"  Max retries: {settings.max_retries}")
     click.echo(f"  Case memory: {'enabled' if settings.case_memory_enabled else 'disabled'}")
     click.echo(f"  LLM provider: {provider_config.provider}")

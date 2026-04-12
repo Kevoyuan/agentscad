@@ -41,12 +41,16 @@ async def test_device_stand_pipeline_invents_editable_controls() -> None:
     assert research.part_family == PartFamily.DEVICE_STAND
     assert research.needs_web_search is True
     assert intent.design_mode == "accessory_design"
-    assert "arch_radius" in design.parameter_inventions
-    assert "base_flare" in design.parameter_inventions
+    # support_base synthesis_kind triggers pocket-based parameter inventions.
+    assert "pocket_clearance" in design.parameter_inventions
+    assert "cable_relief_width" in design.parameter_inventions
+    assert "edge_radius" in design.parameter_inventions
     schema_keys = {param.key for param in schema.parameters}
-    # Mac mini requests can now route to support_base object-model parameters.
-    assert ("base_flare" in schema_keys) or ("base_width" in schema_keys)
-    assert ("arch_peak" in schema_keys) or ("support_width" in schema_keys)
+    # Mac mini requests route to support_base object-model parameters.
+    assert "base_width" in schema_keys
+    assert "base_depth" in schema_keys
+    assert "device_width" in schema_keys
+    assert "device_depth" in schema_keys
     assert schema.part_family == PartFamily.DEVICE_STAND
 
 
@@ -221,3 +225,29 @@ async def test_mac_mini_specs_url_is_normalized_to_object_model_context() -> Non
     assert research.object_name == "Mac mini"
     assert research.object_model["synthesis_kind"] == "support_base"
     assert any("mac mini" in query.lower() for query in research.search_queries)
+
+
+@pytest.mark.asyncio
+async def test_research_agent_includes_uploaded_reference_image_cues() -> None:
+    class StubVisionAdapter:
+        async def analyze_images(self, request: str, image_sources: list[str]):
+            return [
+                type(
+                    "VisionResult",
+                    (),
+                    {
+                        "image_source": image_sources[0],
+                        "summary": "Rounded rectangular stand with a top alignment pocket and a rear cable opening.",
+                    },
+                )()
+            ]
+
+    research = await ResearchAgent(vision_adapter=StubVisionAdapter()).research(
+        "帮我设计一个 mac mini 竖直底座",
+        reference_images=["/tmp/mac-mini-stand.png"],
+    )
+
+    assert research.image_reference_used is True
+    assert len(research.image_analysis_summaries) == 1
+    assert "alignment pocket" in research.image_analysis_summaries[0]
+    assert any("Reference image cue:" in fact for fact in research.reference_facts)

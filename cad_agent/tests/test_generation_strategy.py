@@ -1,49 +1,21 @@
-"""Tests for template selection and LLM-native geometry generation."""
+"""Tests for generator routing and LLM-backed geometry generation."""
 
 from __future__ import annotations
 
 import pytest
 
 from cad_agent.app.agents.generator_agent import GeneratorAgent
-from cad_agent.app.agents.template_agent import TemplateAgent
-from cad_agent.app.models.design_job import DesignJob, SpecResult
+from cad_agent.app.models.design_job import DesignJob, JobState, SpecResult
 
 
 @pytest.mark.asyncio
-async def test_template_agent_routes_gears_to_llm_native() -> None:
-    agent = TemplateAgent()
-    job = DesignJob(
-        input_request="设计一个17齿的齿轮，外30mm，内10mm，厚3mm",
-        spec=SpecResult(
-            success=True,
-            geometric_type="cylindrical spur gear",
-            dimensions={
-                "outer_diameter": 30.0,
-                "inner_diameter": 10.0,
-                "thickness": 3.0,
-                "module": 1.58,
-                "pressure_angle": 20.0,
-            },
-            material="steel_1045",
-            tolerance=0.1,
-        ),
-    )
-
-    result = await agent.select(job)
-
-    assert result.success is True
-    assert job.template_choice is not None
-    assert job.template_choice.template_name == "llm_native_v1"
-    assert job.template_choice.parameters["outer_diameter"] == 30.0
-
-
-@pytest.mark.asyncio
-async def test_generator_agent_uses_llm_native_path_for_complex_geometry() -> None:
+async def test_generator_agent_prefers_mcad_for_spur_gears() -> None:
     class StubLLMScadGenerator:
+        async def generate_implicit_template(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("spur gears should use deterministic MCAD generation")
+
         async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
-            assert job.template_choice is not None
-            assert job.template_choice.template_name == "llm_native_v1"
-            return "cylinder(h=3, d=30);"
+            raise AssertionError("spur gears should not fall back to freeform LLM generation")
 
     job = DesignJob(
         input_request="spur gear",
@@ -56,17 +28,45 @@ async def test_generator_agent_uses_llm_native_path_for_complex_geometry() -> No
         ),
     )
 
-    await TemplateAgent().select(job)
-    generator = GeneratorAgent(
-        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
-        llm_scad_generator=StubLLMScadGenerator(),
-    )
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
 
     result = await generator.generate(job)
 
     assert result.success is True
+    assert job.generation_path == "mcad_spur_gear"
+    assert job.scad_source is not None
+    assert "include <MCAD/involute_gears.scad>;" in job.scad_source
+    assert "gear(" in job.scad_source
+    assert "outer_diameter = 30.0000;" in job.scad_source
+
+
+@pytest.mark.asyncio
+async def test_generator_agent_keeps_llm_native_for_non_spur_complex_geometry() -> None:
+    class StubLLMScadGenerator:
+        async def generate_implicit_template(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("inferred parametric generation should not be used for worm gears")
+
+        async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            return "cylinder(h=3, d=30);"
+
+    job = DesignJob(
+        input_request="worm gear",
+        spec=SpecResult(
+            success=True,
+            geometric_type="worm gear",
+            dimensions={"outer_diameter": 30.0, "thickness": 3.0},
+            material="steel_1045",
+            tolerance=0.1,
+        ),
+    )
+
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
+
+    result = await generator.generate(job)
+
+    assert result.success is True
+    assert job.generation_path == "llm_native_scad"
     assert job.scad_source == "cylinder(h=3, d=30);"
-    assert "cylinder" in result.data["scad_source"]
 
 
 @pytest.mark.asyncio
@@ -94,10 +94,7 @@ async def test_generator_agent_prefers_geometry_dsl_when_present() -> None:
     }
     job.__dict__["generation_path"] = "dsl"
 
-    generator = GeneratorAgent(
-        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
-        llm_scad_generator=StubLLMScadGenerator(),
-    )
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
 
     result = await generator.generate(job)
 
@@ -131,10 +128,7 @@ async def test_generator_agent_synthesizes_phone_case_dsl_from_research_dimensio
         },
     )
 
-    generator = GeneratorAgent(
-        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
-        llm_scad_generator=StubLLMScadGenerator(),
-    )
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
 
     result = await generator.generate(job)
 
@@ -186,10 +180,7 @@ async def test_generator_agent_prefers_object_model_synthesis_for_mac_studio_bas
         },
     )
 
-    generator = GeneratorAgent(
-        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
-        llm_scad_generator=StubLLMScadGenerator(),
-    )
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
 
     result = await generator.generate(job)
 
@@ -205,6 +196,9 @@ async def test_generator_agent_prefers_object_model_synthesis_for_mac_studio_bas
 @pytest.mark.asyncio
 async def test_generator_agent_synthesizes_generic_lampshade_from_geometry_intent() -> None:
     class StubLLMScadGenerator:
+        async def generate_implicit_template(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("inferred parametric generation should not be used for generic geometry intent synthesis")
+
         async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
             raise AssertionError("direct LLM SCAD generation should not be used for generic geometry intent synthesis")
 
@@ -239,10 +233,7 @@ async def test_generator_agent_synthesizes_generic_lampshade_from_geometry_inten
         },
     )
 
-    generator = GeneratorAgent(
-        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
-        llm_scad_generator=StubLLMScadGenerator(),
-    )
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
 
     result = await generator.generate(job)
 
@@ -251,17 +242,79 @@ async def test_generator_agent_synthesizes_generic_lampshade_from_geometry_inten
 
 
 @pytest.mark.asyncio
-async def test_generator_agent_device_stand_does_not_fallback_to_parametric_builder_without_object_model() -> None:
-    class StandOnlyLLM:
+async def test_generator_agent_prefers_inferred_parametric_before_freeform_llm() -> None:
+    class StubLLMScadGenerator:
+        async def generate_implicit_template(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            return (
+                "device_width = 127; // supported device width\n"
+                "arch_radius = 61;\n"
+                "arch_peak = 22;\n"
+                "difference() {\n"
+                "  cylinder(h=22, d=device_width + 14);\n"
+                "  translate([0, 0, 2]) cylinder(h=24, d=device_width);\n"
+                "}\n"
+            )
+
         async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
-            raise AssertionError("LLM direct SCAD generation should not be used for stand fallback")
+            raise AssertionError("freeform llm generation should not be used when inferred parametric generation is available")
+
+    job = DesignJob(
+        input_request="帮我给 mac mini m4 设计一个底座",
+        spec=SpecResult(
+            success=True,
+            geometric_type="desktop stand",
+            dimensions={"device_width": 127.0, "device_depth": 127.0, "height": 36.0},
+            material="PLA",
+            tolerance=0.2,
+        ),
+    )
+    generator = GeneratorAgent(llm_scad_generator=StubLLMScadGenerator())
+
+    result = await generator.generate(job)
+
+    assert result.success is True
+    assert job.generation_path == "inferred_parametric_scad"
+    assert job.parameter_schema is not None
+    assert [parameter.key for parameter in job.parameter_schema.parameters] == [
+        "device_width",
+        "arch_radius",
+        "arch_peak",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_generator_agent_device_stand_uses_inferred_parametric_without_object_model() -> None:
+    """device_stand should avoid builders and fall back to inferred parametric synthesis."""
+
+    class StandOnlyLLM:
+        async def generate_implicit_template(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            return (
+                "device_width = 130;\n"
+                "pocket_width = device_width + 2;\n"
+                "pocket_depth = 130 + 2;\n"
+                "cable_relief_width = 70;\n"
+                "difference() {\n"
+                "  rounded_prism([160, 80, 18], 12);\n"
+                "  top_alignment_pocket(pocket_width, pocket_depth, 12);\n"
+                "}\n"
+            )
+
+        async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise AssertionError("freeform LLM generation should not be used for device_stand")
 
         async def generate_geometry_dsl(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> dict:
-            raise AssertionError("LLM DSL generation should not be used for stand fallback")
+            raise AssertionError("DSL generation should not be used for device_stand")
 
     job = DesignJob(
         input_request="设计一个竖直底座",
         part_family="device_stand",
+        spec=SpecResult(
+            success=True,
+            geometric_type="support_accessory",
+            dimensions={"device_width": 130.0, "device_depth": 130.0, "height": 152.0},
+            material="PLA",
+            tolerance=0.2,
+        ),
         parameter_values={
             "device_width": 130.0,
             "device_depth": 130.0,
@@ -269,12 +322,37 @@ async def test_generator_agent_device_stand_does_not_fallback_to_parametric_buil
         },
     )
 
-    generator = GeneratorAgent(
-        templates_dir="/Volumes/SSD/Projects/Code/agentscad/cad_agent/app/templates",
-        llm_scad_generator=StandOnlyLLM(),
-    )
+    generator = GeneratorAgent(llm_scad_generator=StandOnlyLLM())
 
     result = await generator.generate(job)
 
+    assert result.success is True
+    assert job.generation_path == "inferred_parametric_scad"
+    assert job.builder_name is None
+    assert job.scad_source is not None
+    assert "rounded_prism" in job.scad_source
+    assert "top_alignment_pocket" in job.scad_source
+
+
+@pytest.mark.asyncio
+async def test_generator_agent_reports_geometry_failed_on_generation_error() -> None:
+    class FailingLLMScadGenerator:
+        async def generate(self, job: DesignJob, *, repair_notes: list[str] | None = None) -> str:
+            raise RuntimeError("boom")
+
+    job = DesignJob(
+        input_request="worm gear",
+        spec=SpecResult(
+            success=True,
+            geometric_type="worm gear",
+            dimensions={"outer_diameter": 30.0, "thickness": 3.0},
+            material="steel_1045",
+            tolerance=0.1,
+        ),
+    )
+
+    generator = GeneratorAgent(llm_scad_generator=FailingLLMScadGenerator())
+    result = await generator.generate(job)
+
     assert result.success is False
-    assert "template choice" in (result.error or "").lower()
+    assert result.state_reached == JobState.GEOMETRY_FAILED.value

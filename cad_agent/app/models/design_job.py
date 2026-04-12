@@ -23,7 +23,6 @@ class JobState(str, Enum):
     GEOMETRY_BUILT = "GEOMETRY_BUILT"
     REVIEWED = "REVIEWED"
     SPEC_PARSED = "SPEC_PARSED"
-    TEMPLATE_SELECTED = "TEMPLATE_SELECTED"
     SCAD_GENERATED = "SCAD_GENERATED"
     RENDER_REQUESTED = "RENDER_REQUESTED"
     RENDERED = "RENDERED"
@@ -40,7 +39,6 @@ class JobState(str, Enum):
     GEOMETRY_FAILED = "GEOMETRY_FAILED"
     REVIEW_FAILED = "REVIEW_FAILED"
     SPEC_FAILED = "SPEC_FAILED"
-    TEMPLATE_FAILED = "TEMPLATE_FAILED"
     RENDER_FAILED = "RENDER_FAILED"
     VALIDATION_FAILED = "VALIDATION_FAILED"
     DEBUGGING = "DEBUGGING"
@@ -78,23 +76,6 @@ class SpecResult(BaseModel):
     error_message: Optional[str] = None
 
 
-class TemplateChoice(BaseModel):
-    """Result from TemplateAgent template selection."""
-
-    success: bool
-    template_name: str = ""
-    template_version: str = "v1"
-    confidence: float = 0.0
-    parameters: dict[str, Any] = Field(default_factory=dict)
-    reasoning: str = ""
-    error_message: Optional[str] = None
-
-    @property
-    def template_id(self) -> str:
-        """Backward-compatible template identifier alias."""
-        return self.template_name
-
-
 class ResearchResult(BaseModel):
     """Structured output from ResearchAgent."""
 
@@ -109,6 +90,8 @@ class ResearchResult(BaseModel):
     open_questions: list[str] = Field(default_factory=list)
     source_notes: list[str] = Field(default_factory=list)
     source_urls: list[str] = Field(default_factory=list)
+    image_analysis_summaries: list[str] = Field(default_factory=list)
+    image_reference_used: bool = False
     needs_web_search: bool = False
     web_research_used: bool = False
     confidence: float = 0.0
@@ -198,6 +181,15 @@ class Artifacts(BaseModel):
         return self.scad_source
 
 
+class ReferenceImage(BaseModel):
+    """Uploaded reference image attached to a design job."""
+
+    file_name: str
+    stored_path: str
+    media_type: str
+    size_bytes: int | None = None
+
+
 class ExecutionLog(BaseModel):
     """Log entry for agent execution."""
 
@@ -233,6 +225,7 @@ class DesignJob(BaseModel):
     customer_id: Optional[str] = None
     session_id: Optional[str] = None
     input_request: str = ""
+    reference_images: list[ReferenceImage] = Field(default_factory=list)
 
     # Business context
     business_context: dict[str, Any] = Field(default_factory=dict)
@@ -251,9 +244,6 @@ class DesignJob(BaseModel):
 
     # Spec from IntakeAgent
     spec: Optional[SpecResult] = None
-
-    # Template choice from TemplateAgent
-    template_choice: Optional[TemplateChoice] = None
 
     # Generated SCAD source
     scad_source: Optional[str] = None
@@ -316,11 +306,6 @@ class DesignJob(BaseModel):
         if isinstance(log, dict):
             log = ExecutionLog.model_validate(log)
         self.execution_logs.append(log)
-
-    @property
-    def template(self) -> Optional[TemplateChoice]:
-        """Backward-compatible alias for template_choice."""
-        return self.template_choice
 
     @property
     def scad_content(self) -> Optional[str]:

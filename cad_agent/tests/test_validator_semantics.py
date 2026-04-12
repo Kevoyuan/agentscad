@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from cad_agent.app.agents.validator_agent import ValidatorAgent
-from cad_agent.app.models.design_job import Artifacts, DesignJob, JobState, SpecResult, TemplateChoice
+from cad_agent.app.models.design_job import Artifacts, DesignJob, JobState, SpecResult
 
 
 def _build_gear_job(scad_source: str, tmp_path: Path) -> DesignJob:
@@ -31,13 +31,8 @@ def _build_gear_job(scad_source: str, tmp_path: Path) -> DesignJob:
         material="steel_1045",
         tolerance=0.1,
     )
-    job.template_choice = TemplateChoice(
-        success=True,
-        template_name="llm_native_v1",
-        template_version="v1",
-        confidence=0.9,
-        parameters=job.spec.dimensions.copy(),
-    )
+    job.generation_path = "llm_native_scad"
+    job.set_parameter_values(job.spec.dimensions.copy())
     job.scad_source = scad_source
     job.artifacts = Artifacts(scad_source=scad_source, stl_path=str(stl_path))
     return job

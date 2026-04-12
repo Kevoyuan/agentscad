@@ -129,15 +129,9 @@ class ValidatorAgent:
         return results
 
     def _validate_engineering_layer(self, job: DesignJob) -> list[ValidationResult]:
-        """Layer 2: Validate engineering rules.
-
-        For parametric builder paths, use the actual build parameters (which
-        include the real outer_width/outer_depth computed by the builder)
-        instead of the intake spec dimensions which may be LLM-hallucinated.
-        """
+        """Layer 2: Validate engineering rules."""
         dimensions: dict[str, Any] = {}
 
-        # Prefer actual build parameters over intake spec dimensions
         if job.part_family and job.parameter_values:
             dimensions = job.get_effective_parameter_values()
         elif job.spec:
@@ -146,18 +140,11 @@ class ValidatorAgent:
         if not dimensions:
             return []
 
-        # Merge derived parameters from the builder (outer_width, outer_depth, etc.)
-        # These are the actual computed envelope dimensions — generic for all builders.
         if job.business_context and "derived_parameters" in job.business_context:
             dimensions.update(job.business_context["derived_parameters"])
 
-        # Ensure wall_thickness is present for R001
         if not dimensions.get("wall_thickness"):
-            dimensions["wall_thickness"] = (
-                job.template_choice.parameters.get("wall_thickness", 2.0)
-                if job.template_choice
-                else 2.0
-            )
+            dimensions["wall_thickness"] = job.get_effective_parameter_values().get("wall_thickness", 2.0)
 
         geometric_type = job.spec.geometric_type if job.spec else ""
 
@@ -221,8 +208,8 @@ class ValidatorAgent:
         base_cost = 5.0
 
         volume_mm3 = 1.0
-        if job.template_choice:
-            params = job.template_choice.parameters
+        params = job.get_effective_parameter_values()
+        if params:
             volume_mm3 = (
                 params.get("length", 40.0)
                 * params.get("width", 20.0)
@@ -234,7 +221,21 @@ class ValidatorAgent:
 
     def _requires_semantic_review(self, job: DesignJob) -> bool:
         """Review LLM-native and complex geometry requests more strictly."""
-        if job.template_choice and job.template_choice.template_name == "llm_native_v1":
+        if job.generation_path in {
+            "object_model",
+            "geometry_intent",
+            "dsl",
+            "inferred_parametric_scad",
+            "mcad_spur_gear",
+            "llm_native_scad",
+        }:
+            return True
+        object_model = {}
+        if job.business_context and isinstance(job.business_context.get("object_model"), dict):
+            object_model = job.business_context["object_model"]
+        elif job.research_result and isinstance(job.research_result.object_model, dict):
+            object_model = job.research_result.object_model
+        if object_model.get("synthesis_kind") in {"support_base", "support_mount", "support_stand"}:
             return True
         geometric_type = (job.spec.geometric_type or "").lower()
         return any(keyword in geometric_type for keyword in self.COMPLEX_KEYWORDS)
@@ -286,6 +287,43 @@ class ValidatorAgent:
                 details=details,
             )
 
+        object_model = {}
+        if job.business_context and isinstance(job.business_context.get("object_model"), dict):
+            object_model = job.business_context["object_model"]
+        elif job.research_result and isinstance(job.research_result.object_model, dict):
+            object_model = job.research_result.object_model
+
+        if object_model.get("synthesis_kind") == "support_base":
+            # Markers must match what _support_base_module in geometry_dsl.py generates.
+            # Key names differ from what the validator previously expected:
+            #   DSL generates rounded_prism (not rounded_rect_prism),
+            #   pocket_width/pocket_depth (not support_width/support_depth),
+            #   translate([0, 0, pocket_z]) with computed pocket_z (not literal base_height).
+            positive_markers = [
+                "rounded_prism",
+                "difference()",
+                "cable_relief_width",
+                "pocket_width",
+                "pocket_depth",
+                "top_alignment_pocket",
+            ]
+            missing = [marker for marker in positive_markers if marker not in scad_source]
+            passed = len(missing) <= 1
+            return ValidationResult(
+                rule_id="S001",
+                rule_name="Semantic Geometry Match",
+                level=ValidationLevel.ENGINEERING,
+                rule_type=RuleType.SEMANTIC,
+                passed=passed,
+                severity="error",
+                message=(
+                    "Support-base geometry matches the object-model intent."
+                    if passed
+                    else "Generated geometry does not clearly express the expected support-base layout."
+                ),
+                details={} if passed else {"missing_markers": missing},
+            )
+
         return ValidationResult(
             rule_id="S001",
             rule_name="Semantic Geometry Match",
@@ -308,7 +346,7 @@ class ValidatorAgent:
             "for (i = [0 : teeth - 1])",
         ]
         negative_markers = [
-            "box basic template",
+            "fallback box",
             "finger notch",
             "lid groove",
         ]

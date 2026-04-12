@@ -61,8 +61,71 @@ class LLMScadGenerator:
                 "Think through the geometry before writing code. "
                 "Use explicit parameter variables in millimeters and produce a printable solid. "
                 "When the request is a mechanical component such as a gear, generate the actual geometry rather than a placeholder box. "
-                "Do not use external libraries, use/import statements, or placeholders. "
+                "Prefer stable, renderable output over bespoke geometry tricks. "
+                "You may use vetted OpenSCAD libraries such as MCAD, BOSL, or BOSL2 via include/use statements when they improve correctness or renderability. "
+                "Avoid placeholders and non-renderable stubs. "
                 "If repair requirements are present, revise the geometry to satisfy them."
+            ),
+            max_tokens=2200,
+            temperature=0.2,
+        )
+        return self._extract_scad_source(response)
+
+    async def generate_implicit_template(
+        self,
+        job: DesignJob,
+        *,
+        repair_notes: list[str] | None = None,
+    ) -> str:
+        """Generate OpenSCAD that starts with editable top-level parameters."""
+        if job.spec is None:
+            raise ValueError("Cannot synthesize implicit-template OpenSCAD without a parsed spec")
+
+        repair_context = ""
+        if repair_notes:
+            repair_context = (
+                "\nRepair requirements:\n"
+                + "\n".join(f"- {note}" for note in repair_notes)
+            )
+
+        response = await self._client.generate(
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"Original request:\n{job.input_request}\n\n"
+                                f"Part family hint: {job.part_family}\n"
+                                f"Geometric type: {job.spec.geometric_type}\n"
+                                f"Dimensions (mm): {job.spec.dimensions}\n"
+                                f"Material: {job.spec.material}\n"
+                                f"Tolerance: {job.spec.tolerance}\n"
+                                f"Functional requirements: {job.spec.functional_requirements}\n"
+                                f"Constraints: {job.spec.constraints}\n"
+                                f"Existing parameters: {job.get_effective_parameter_values()}"
+                                f"{repair_context}"
+                            ),
+                        }
+                    ],
+                }
+            ],
+            system=(
+                "You are a senior parametric CAD engineer who writes valid OpenSCAD. "
+                "Return raw OpenSCAD only, with no markdown fences. "
+                "Model the object as a reusable parametric archetype, not as a one-off script. "
+                "Start the file with 3 to 8 editable top-level parameter assignments using simple scalar values. "
+                "Keep those parameters meaningful for later UI sliders. "
+                "Every editable assignment should include a short end-of-line comment. "
+                "When appropriate, prefix that comment with a group tag like [group: dimensions], [group: fit], [group: support], or [group: details]. "
+                "Example: arch_radius = 61; // [group: support] underside arch radius. "
+                "After the parameter block, generate printable geometry that matches the request. "
+                "Use explicit millimeter units. "
+                "Prefer stable, renderable output over bespoke geometry tricks. "
+                "You may use vetted OpenSCAD libraries such as MCAD, BOSL, or BOSL2 via include/use statements when they improve correctness or renderability. "
+                "Avoid placeholders and non-renderable stubs. "
+                "If repair requirements are present, revise the parameterized geometry to satisfy them."
             ),
             max_tokens=2200,
             temperature=0.2,

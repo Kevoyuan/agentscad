@@ -13,6 +13,23 @@ from cad_agent.app.models.design_job import DesignJob, JobState
 logger = structlog.get_logger()
 
 
+def _sanitize_public_payload(value):
+    """Strip internal routing labels from nested public payloads."""
+    if isinstance(value, dict):
+        sanitized = {}
+        for key, item in value.items():
+            if key == "part_family":
+                continue
+            if key == "group" and item == "stand":
+                sanitized[key] = "support"
+                continue
+            sanitized[key] = _sanitize_public_payload(item)
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_public_payload(item) for item in value]
+    return value
+
+
 class ReportAgent:
     """Generates delivery reports for completed designs."""
 
@@ -71,16 +88,20 @@ class ReportAgent:
                 "tolerance": job.spec.tolerance if job.spec else 0.1,
             },
             "design_pipeline": {
-                "part_family": job.part_family,
+                "generation_path": job.generation_path,
+                "object_synthesis": (
+                    (job.research_result.object_model or {}).get("synthesis_kind")
+                    if job.research_result and job.research_result.object_model
+                    else None
+                ),
                 "builder_name": job.builder_name,
-                "research_result": job.research_result.model_dump(mode="json") if job.research_result else None,
-                "intent_result": job.intent_result.model_dump(mode="json") if job.intent_result else None,
-                "design_result": job.design_result.model_dump(mode="json") if job.design_result else None,
-                "parameter_schema": job.parameter_schema.model_dump(mode="json") if job.parameter_schema else None,
+                "research_result": _sanitize_public_payload(job.research_result.model_dump(mode="json")) if job.research_result else None,
+                "intent_result": _sanitize_public_payload(job.intent_result.model_dump(mode="json")) if job.intent_result else None,
+                "design_result": _sanitize_public_payload(job.design_result.model_dump(mode="json")) if job.design_result else None,
+                "parameter_schema": _sanitize_public_payload(job.parameter_schema.model_dump(mode="json")) if job.parameter_schema else None,
                 "parameter_values": job.get_effective_parameter_values(),
                 "derived_parameters": (job.business_context or {}).get("derived_parameters", {}),
             },
-            "template_used": job.template_choice.template_name if job.template_choice else "unknown",
             "artifacts": {
                 "stl_path": job.artifacts.stl_path,
                 "png_path": job.artifacts.png_path,

@@ -16,7 +16,6 @@ class AgentRole(str, Enum):
     INTENT = "intent"
     DESIGN = "design"
     PARAMETERS = "parameters"
-    TEMPLATE = "template"
     GENERATOR = "generator"
     EXECUTOR = "executor"
     VALIDATOR = "validator"

@@ -112,24 +112,61 @@ class ParameterSchemaAgent:
     ) -> tuple[list[ParameterDefinition], list[str], list[str], list[str]]:
         merged = {**defaults, **values}
         user_params = list(values.keys())
-        if research and research.object_name.lower().startswith("mac mini"):
-            merged.setdefault("device_width", 130.0)
-            merged.setdefault("device_depth", 130.0)
         object_model = getattr(research, "object_model", {}) if research else {}
 
         if object_model.get("synthesis_kind") == "support_base":
             base = object_model.get("base_footprint_mm", {})
             support = object_model.get("support_surface_mm", {})
             envelope = object_model.get("envelope_mm", {})
+            base_width = base.get("width", merged.get("base_width", 240.0))
+            base_depth = base.get("depth", merged.get("base_depth", 240.0))
+            base_height = base.get("height", merged.get("base_height", 35.0))
+            support_width = support.get("width", merged.get("support_width", envelope.get("width", 180.0)))
+            support_depth = support.get("depth", merged.get("support_depth", envelope.get("depth", 180.0)))
+            device_width = envelope.get("width", merged.get("device_width", support_width))
+            device_depth = envelope.get("depth", merged.get("device_depth", support_depth))
+            device_height = envelope.get("height", merged.get("device_height", max(base_height - 8.0, 20.0)))
             params = [
-                self._parameter("base_width", base.get("width", merged.get("base_width", 240.0)), source=ParameterSource.RESEARCH),
-                self._parameter("base_depth", base.get("depth", merged.get("base_depth", 240.0)), source=ParameterSource.RESEARCH),
-                self._parameter("base_height", base.get("height", merged.get("base_height", 45.0)), source=ParameterSource.RESEARCH),
-                self._parameter("support_width", support.get("width", merged.get("support_width", envelope.get("width", 197.0) + 8.0)), source=ParameterSource.RESEARCH),
-                self._parameter("support_depth", support.get("depth", merged.get("support_depth", 98.0)), source=ParameterSource.RESEARCH),
-                self._parameter("device_width", envelope.get("width", merged.get("device_width", 197.0)), source=ParameterSource.RESEARCH),
-                self._parameter("device_depth", envelope.get("depth", merged.get("device_depth", 197.0)), source=ParameterSource.RESEARCH),
-                self._parameter("device_height", envelope.get("height", merged.get("device_height", 95.0)), source=ParameterSource.RESEARCH),
+                self._parameter(
+                    "base_width",
+                    base_width,
+                    source=ParameterSource.RESEARCH if "width" in base else self._source_for("base_width", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "base_depth",
+                    base_depth,
+                    source=ParameterSource.RESEARCH if "depth" in base else self._source_for("base_depth", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "base_height",
+                    base_height,
+                    source=ParameterSource.RESEARCH if "height" in base else self._source_for("base_height", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "support_width",
+                    support_width,
+                    source=ParameterSource.RESEARCH if "width" in support else self._source_for("support_width", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "support_depth",
+                    support_depth,
+                    source=ParameterSource.RESEARCH if "depth" in support else self._source_for("support_depth", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "device_width",
+                    device_width,
+                    source=ParameterSource.RESEARCH if "width" in envelope else self._source_for("device_width", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "device_depth",
+                    device_depth,
+                    source=ParameterSource.RESEARCH if "depth" in envelope else self._source_for("device_depth", values, default_source=ParameterSource.INFERRED),
+                ),
+                self._parameter(
+                    "device_height",
+                    device_height,
+                    source=ParameterSource.RESEARCH if "height" in envelope else self._source_for("device_height", values, default_source=ParameterSource.INFERRED),
+                ),
                 self._parameter("wall_thickness", merged.get("wall_thickness", 4.0), source=self._source_for("wall_thickness", values, default_source=ParameterSource.DESIGN_DERIVED)),
                 self._parameter("clearance", merged.get("clearance", 1.0), source=ParameterSource.DESIGN_DERIVED, editable=True),
                 self._parameter("cable_relief_width", merged.get("cable_relief_width", 70.0), source=ParameterSource.DESIGN_DERIVED, editable=True),
@@ -372,8 +409,26 @@ class ParameterSchemaAgent:
     def _group_for(self, key: str) -> str:
         if key in {"teeth", "outer_diameter", "inner_diameter", "pressure_angle", "module", "pitch_diameter", "root_diameter", "addendum", "dedendum"}:
             return "gear"
-        if key in {"device_width", "device_depth", "corner_radius", "stand_height", "lip_height", "wall_thickness", "base_flare", "arch_radius", "arch_peak"}:
-            return "stand"
+        if key in {
+            "device_width",
+            "device_depth",
+            "device_height",
+            "corner_radius",
+            "stand_height",
+            "lip_height",
+            "wall_thickness",
+            "base_flare",
+            "arch_radius",
+            "arch_peak",
+            "base_width",
+            "base_depth",
+            "base_height",
+            "support_width",
+            "support_depth",
+            "cable_relief_width",
+            "edge_radius",
+        }:
+            return "support"
         if key in {"outer_width", "outer_depth", "outer_height", "wall_thickness", "corner_radius", "clearance", "lid_overlap", "standoff_height", "boss_diameter", "vent_spacing", "inner_width", "inner_depth", "inner_height"}:
             return "enclosure"
         return "general"

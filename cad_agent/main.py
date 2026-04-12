@@ -1,16 +1,18 @@
 """FastAPI application for CAD Agent System."""
 from contextlib import asynccontextmanager
 from pathlib import Path
+import time
+from uuid import uuid4
 from typing import Any, Optional
 
 import structlog
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from cad_agent.config import get_settings
-from cad_agent.app.models.design_job import DesignJob, JobState
+from cad_agent.app.models.design_job import DesignJob, JobState, ReferenceImage
 from cad_agent.app.models.agent_result import AgentRole
 from cad_agent.app.models.validation import ValidationLevel
 from cad_agent.app.agents.orchestrator import OrchestratorAgent
@@ -19,25 +21,24 @@ from cad_agent.app.agents.intake_agent import IntakeAgent
 from cad_agent.app.agents.intent_agent import IntentAgent
 from cad_agent.app.agents.design_agent import DesignAgent
 from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
-from cad_agent.app.agents.template_agent import TemplateAgent
 from cad_agent.app.agents.generator_agent import GeneratorAgent
 from cad_agent.app.agents.executor_agent import ExecutorAgent
 from cad_agent.app.agents.validator_agent import ValidatorAgent
 from cad_agent.app.agents.debug_agent import DebugAgent
 from cad_agent.app.agents.report_agent import ReportAgent
-from cad_agent.app.parametric import ParametricPartEngine
 from cad_agent.app.rules.engineering_rules import EngineeringRulesEngine
 from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
-from cad_agent.app.research import MiniMaxWebSearchAdapter
+from cad_agent.app.research import MiniMaxVisionAdapter, MiniMaxWebSearchAdapter
 from cad_agent.app.llm import (
     AnthropicCompatibleLLMClient,
     LLMDesignCritic,
     LLMScadGenerator,
     LLMSpecParser,
 )
+from cad_agent.app.llm.scad_parameter_schema import apply_parameter_values_to_scad
 
 settings = get_settings()
 logger = structlog.get_logger()
@@ -45,6 +46,23 @@ logger = structlog.get_logger()
 _orchestrator: OrchestratorAgent | None = None
 _job_repo: SQLiteJobRepository | None = None
 _case_memory: CaseMemoryService | None = None
+
+
+def _sanitize_public_payload(value: Any) -> Any:
+    """Strip internal routing labels from nested API payloads."""
+    if isinstance(value, dict):
+        sanitized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key == "part_family":
+                continue
+            if key == "group" and item == "stand":
+                sanitized[key] = "support"
+                continue
+            sanitized[key] = _sanitize_public_payload(item)
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_public_payload(item) for item in value]
+    return value
 
 
 def _safe_settings_for_log() -> dict[str, Any]:
@@ -90,15 +108,28 @@ class CreateJobResponse(BaseModel):
     message: str
 
 
+class ReferenceImageResponse(BaseModel):
+    """Uploaded reference-image metadata exposed to the UI."""
+
+    file_name: str
+    media_type: str
+    size_bytes: int | None
+
+
 class JobStatusResponse(BaseModel):
     """Response for job status check."""
 
     job_id: str
     state: str
     input_request: str
+    reference_images: list[ReferenceImageResponse]
     spec_summary: str | None
-    template_id: str | None
-    part_family: str | None
+    generation_path: str | None
+    parameter_update_strategy: str | None
+    parameter_update_duration_ms: int | None
+    parameter_updated_at: str | None
+    parameter_update_stats: dict[str, Any] | None
+    object_synthesis: str | None
     builder_name: str | None
     research_result: dict[str, Any] | None
     intent_result: dict[str, Any] | None
@@ -161,6 +192,7 @@ async def lifespan(app: FastAPI):
 
     openscad_executor = OpenSCADExecutor(
         openscad_path=str(settings.openSCAD_path),
+        include_dirs=[str(path) for path in settings.openscad_library_dirs],
         timeout_seconds=settings.render_timeout,
     )
 
@@ -186,18 +218,21 @@ async def lifespan(app: FastAPI):
             user_agent=settings.web_research_user_agent,
         )
 
-    part_engine = ParametricPartEngine()
-    research_agent = ResearchAgent(web_research_adapter=web_research_adapter)
+    vision_adapter = None
+    if settings.image_understanding_enabled:
+        vision_adapter = MiniMaxVisionAdapter(
+            timeout_seconds=settings.image_understanding_timeout,
+        )
+
+    research_agent = ResearchAgent(
+        web_research_adapter=web_research_adapter,
+        vision_adapter=vision_adapter,
+    )
     intake_agent = IntakeAgent(spec_parser=llm_spec_parser)
     intent_agent = IntentAgent()
     design_agent = DesignAgent()
     parameter_schema_agent = ParameterSchemaAgent()
-    template_agent = TemplateAgent()
-    generator_agent = GeneratorAgent(
-        templates_dir=str(settings.templates_dir),
-        llm_scad_generator=llm_scad_generator,
-        part_engine=part_engine,
-    )
+    generator_agent = GeneratorAgent(llm_scad_generator=llm_scad_generator)
     executor_agent = ExecutorAgent(executor=openscad_executor)
     validator_agent = ValidatorAgent(
         rules_engine=rules_engine,
@@ -213,7 +248,6 @@ async def lifespan(app: FastAPI):
         intent=intent_agent,
         design=design_agent,
         parameters=parameter_schema_agent,
-        template=template_agent,
         generator=generator_agent,
         executor=executor_agent,
         validator=validator_agent,
@@ -243,14 +277,76 @@ app.add_middleware(
 )
 
 
+def _public_reference_images(images: list[ReferenceImage]) -> list[ReferenceImageResponse]:
+    """Strip internal stored paths before returning image metadata."""
+    return [
+        ReferenceImageResponse(
+            file_name=image.file_name,
+            media_type=image.media_type,
+            size_bytes=image.size_bytes,
+        )
+        for image in images
+    ]
+
+
+async def _store_reference_images(job_id: str, uploads: list[UploadFile] | None) -> list[ReferenceImage]:
+    """Persist uploaded reference images for a job."""
+    if not uploads:
+        return []
+
+    allowed_types = {"image/jpeg", "image/png", "image/webp"}
+    job_dir = settings.uploads_dir / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    stored: list[ReferenceImage] = []
+    for upload in uploads:
+        if upload.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported image type for {upload.filename}: {upload.content_type or 'unknown'}",
+            )
+        suffix = Path(upload.filename or "").suffix or ".bin"
+        target = job_dir / f"{uuid4().hex}{suffix.lower()}"
+        payload = await upload.read()
+        target.write_bytes(payload)
+        stored.append(
+            ReferenceImage(
+                file_name=upload.filename or target.name,
+                stored_path=str(target),
+                media_type=upload.content_type or "application/octet-stream",
+                size_bytes=len(payload),
+            )
+        )
+    return stored
+
+
 @app.post("/jobs", response_model=CreateJobResponse, status_code=201)
-async def create_job(request: CreateJobRequest) -> CreateJobResponse:
+async def create_job(
+    request: Request,
+    input_request: str | None = Form(default=None),
+    customer_id: str | None = Form(default=None),
+    priority: int | None = Form(default=None),
+    reference_images: list[UploadFile] | None = File(default=None),
+) -> CreateJobResponse:
     """Create a new CAD job from natural language request."""
+    content_type = request.headers.get("content-type", "")
+    if content_type.startswith("application/json"):
+        body = CreateJobRequest.model_validate(await request.json())
+        uploads = None
+    else:
+        body = CreateJobRequest(
+            input_request=input_request or "",
+            customer_id=customer_id or None,
+            priority=priority if priority is not None else 5,
+        )
+        uploads = reference_images
+
     job = DesignJob(
-        input_request=request.input_request,
-        customer_id=request.customer_id,
-        priority=request.priority,
+        input_request=body.input_request,
+        customer_id=body.customer_id,
+        priority=body.priority,
     )
+    job.reference_images = await _store_reference_images(job.id, uploads)
 
     _job_repo.save(job)
 
@@ -334,14 +430,23 @@ def _job_to_status_response(job: DesignJob) -> JobStatusResponse:
         job_id=job.id,
         state=job.state.value,
         input_request=job.input_request,
+        reference_images=_public_reference_images(job.reference_images),
         spec_summary=spec_summary,
-        template_id=job.template_choice.template_id if job.template_choice else None,
-        part_family=job.part_family,
+        generation_path=job.generation_path,
+        parameter_update_strategy=(job.business_context or {}).get("parameter_update_strategy"),
+        parameter_update_duration_ms=(job.business_context or {}).get("parameter_update_duration_ms"),
+        parameter_updated_at=(job.business_context or {}).get("parameter_updated_at"),
+        parameter_update_stats=_parameter_update_stats(job),
+        object_synthesis=(
+            (job.research_result.object_model or {}).get("synthesis_kind")
+            if job.research_result and job.research_result.object_model
+            else None
+        ),
         builder_name=job.builder_name,
-        research_result=job.research_result.model_dump(mode="json") if job.research_result else None,
-        intent_result=job.intent_result.model_dump(mode="json") if job.intent_result else None,
-        design_result=job.design_result.model_dump(mode="json") if job.design_result else None,
-        parameter_schema=job.parameter_schema.model_dump(mode="json") if job.parameter_schema else None,
+        research_result=_sanitize_public_payload(job.research_result.model_dump(mode="json")) if job.research_result else None,
+        intent_result=_sanitize_public_payload(job.intent_result.model_dump(mode="json")) if job.intent_result else None,
+        design_result=_sanitize_public_payload(job.design_result.model_dump(mode="json")) if job.design_result else None,
+        parameter_schema=_sanitize_public_payload(job.parameter_schema.model_dump(mode="json")) if job.parameter_schema else None,
         parameter_values=job.get_effective_parameter_values() or None,
         scad_content=job.artifacts.scad_content if job.artifacts else None,
         artifacts=job.artifacts.model_dump() if job.artifacts else None,
@@ -353,6 +458,88 @@ def _job_to_status_response(job: DesignJob) -> JobStatusResponse:
     )
 
 
+def _parameter_update_stats(job: DesignJob) -> dict[str, Any] | None:
+    """Summarize parameter update strategy frequency and latency from execution logs."""
+    relevant_logs = []
+    for log in job.execution_logs:
+        agent = getattr(log, "agent", "") or ""
+        action = getattr(log, "action", "") or ""
+        output_data = getattr(log, "output_data", {}) or {}
+        if agent == "parameters" and action == "update" and isinstance(output_data, dict):
+            relevant_logs.append(log)
+
+    if not relevant_logs:
+        return None
+
+    def _bucket(strategy: str) -> tuple[int, int]:
+        matching = [
+            int(getattr(log, "duration_ms", 0) or 0)
+            for log in relevant_logs
+            if ((getattr(log, "output_data", {}) or {}).get("strategy") == strategy)
+        ]
+        if not matching:
+            return 0, 0
+        return len(matching), round(sum(matching) / len(matching))
+
+    patch_count, avg_patch_ms = _bucket("scad_patch")
+    rebuild_count, avg_rebuild_ms = _bucket("full_rebuild")
+    total_count = len(relevant_logs)
+
+    return {
+        "total_updates": total_count,
+        "patch_hits": patch_count,
+        "rebuild_hits": rebuild_count,
+        "patch_hit_rate": round((patch_count / total_count) * 100) if total_count else 0,
+        "avg_patch_ms": avg_patch_ms or None,
+        "avg_rebuild_ms": avg_rebuild_ms or None,
+    }
+
+
+def _can_patch_parameterized_scad(job: DesignJob) -> bool:
+    """Return whether a job can patch top-level SCAD parameters in place."""
+    return bool(
+        job.parameter_schema
+        and job.generation_path in {"inferred_parametric_scad", "mcad_spur_gear"}
+        and (job.scad_source or (job.artifacts.scad_source if job.artifacts else None))
+    )
+
+
+def _clear_render_outputs(job: DesignJob) -> None:
+    """Clear render outputs while preserving parameter metadata."""
+    if job.artifacts is None:
+        return
+    job.artifacts.stl_path = None
+    job.artifacts.png_path = None
+    job.artifacts.report_path = None
+
+
+async def _rebuild_from_patched_scad(job: DesignJob, request: UpdateParametersRequest) -> None:
+    """Patch top-level SCAD parameters and continue the workflow from SCAD_GENERATED."""
+    source = job.scad_source or (job.artifacts.scad_source if job.artifacts else None)
+    patched_source = apply_parameter_values_to_scad(source or "", request.parameter_values)
+    if not patched_source:
+        raise ValueError("Current SCAD source does not expose patchable top-level parameters")
+
+    updated_values = job.get_effective_parameter_values()
+    updated_values.update(request.parameter_values)
+    job.set_parameter_values(updated_values)
+    job.scad_source = patched_source
+    if job.artifacts:
+        job.artifacts.scad_source = patched_source
+    job.validation_results = []
+    _clear_render_outputs(job)
+    if not job.business_context:
+        job.business_context = {}
+    job.business_context["parameter_update_strategy"] = "scad_patch"
+    job.transition_to(JobState.SCAD_GENERATED)
+
+    if request.preview_only:
+        result = await _orchestrator.process_preview(job)
+    else:
+        result = await _orchestrator.process(job)
+    job.final_result = result.model_dump(mode="json")
+
+
 @app.patch("/jobs/{job_id}/parameters", response_model=JobStatusResponse)
 async def update_job_parameters(job_id: str, request: UpdateParametersRequest) -> JobStatusResponse:
     """Update parameter values and rebuild a parametric design."""
@@ -360,30 +547,74 @@ async def update_job_parameters(job_id: str, request: UpdateParametersRequest) -
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    if not job.part_family or not job.parameter_schema:
+    if not job.parameter_schema:
         raise HTTPException(status_code=400, detail="This job does not expose editable parametric controls")
 
-    updated_values = job.get_effective_parameter_values()
-    updated_values.update(request.parameter_values)
-    job.set_parameter_values(updated_values)
-    job.scad_source = None
-    job.artifacts.scad_source = None
-    job.artifacts.stl_path = None
-    job.artifacts.png_path = None
-    job.artifacts.report_path = None
-    job.validation_results = []
-    job.transition_to(JobState.SPEC_PARSED)
-
+    started_at = time.time()
     try:
-        if request.preview_only:
-            result = await _orchestrator.process_preview(job)
+        if _can_patch_parameterized_scad(job):
+            try:
+                await _rebuild_from_patched_scad(job, request)
+            except Exception as exc:
+                logger.warning("scad_parameter_patch_fell_back", job_id=job_id, error=str(exc))
+                updated_values = job.get_effective_parameter_values()
+                updated_values.update(request.parameter_values)
+                job.set_parameter_values(updated_values)
+                if not job.business_context:
+                    job.business_context = {}
+                job.business_context["parameter_update_strategy"] = "full_rebuild"
+                job.scad_source = None
+                if job.artifacts:
+                    job.artifacts.scad_source = None
+                _clear_render_outputs(job)
+                job.validation_results = []
+                job.transition_to(JobState.SPEC_PARSED)
+                if request.preview_only:
+                    result = await _orchestrator.process_preview(job)
+                else:
+                    result = await _orchestrator.process(job)
+                job.final_result = result.model_dump(mode="json")
         else:
-            result = await _orchestrator.process(job)
-        job.final_result = result.model_dump(mode="json")
+            updated_values = job.get_effective_parameter_values()
+            updated_values.update(request.parameter_values)
+            job.set_parameter_values(updated_values)
+            if not job.business_context:
+                job.business_context = {}
+            job.business_context["parameter_update_strategy"] = "full_rebuild"
+            job.scad_source = None
+            if job.artifacts:
+                job.artifacts.scad_source = None
+            _clear_render_outputs(job)
+            job.validation_results = []
+            job.transition_to(JobState.SPEC_PARSED)
+            if request.preview_only:
+                result = await _orchestrator.process_preview(job)
+            else:
+                result = await _orchestrator.process(job)
+            job.final_result = result.model_dump(mode="json")
     except Exception as exc:
         logger.error("parameter_rebuild_failed", job_id=job_id, error=str(exc))
         _job_repo.save(job)
         raise HTTPException(status_code=500, detail=f"Parameter rebuild failed: {exc}") from exc
+
+    duration_ms = int((time.time() - started_at) * 1000)
+    if not job.business_context:
+        job.business_context = {}
+    job.business_context["parameter_update_duration_ms"] = duration_ms
+    job.business_context["parameter_updated_at"] = job.updated_at.isoformat()
+    job.add_log(
+        {
+            "agent": "parameters",
+            "action": "update",
+            "success": True,
+            "output_data": {
+                "strategy": job.business_context.get("parameter_update_strategy"),
+                "preview_only": request.preview_only,
+                "updated_keys": sorted(request.parameter_values.keys()),
+            },
+            "duration_ms": duration_ms,
+        }
+    )
 
     _job_repo.save(job)
     return _job_to_status_response(job)
@@ -488,26 +719,6 @@ async def cancel_job(job_id: str, hard: bool = Query(default=False)) -> JSONResp
 
     return JSONResponse(content={"job_id": job_id, "state": job.state.value, "message": "Job cancelled"})
 
-
-@app.get("/templates", response_model=list[dict[str, Any]])
-async def list_templates() -> list[dict[str, Any]]:
-    """List available CAD templates."""
-    templates_dir = Path(settings.templates_dir)
-    templates = []
-
-    for template_file in templates_dir.glob("*.scad.j2"):
-        template_name = template_file.stem.replace("_basic_v1", "").replace("_", " ").title()
-        templates.append(
-            {
-                "id": template_file.stem,
-                "name": template_name,
-                "file": str(template_file.name),
-            }
-        )
-
-    return templates
-
-
 @app.get("/health")
 async def health_check() -> JSONResponse:
     """Health check endpoint."""
@@ -518,6 +729,7 @@ async def health_check() -> JSONResponse:
             "version": "0.1.0",
             "settings": {
                 "openSCAD_path": str(settings.openSCAD_path),
+                "openscad_library_dirs": [str(path) for path in settings.openscad_library_dirs],
                 "storage_dir": str(settings.storage_dir),
                 "output_dir": str(settings.output_dir),
                 "case_memory_enabled": settings.case_memory_enabled,
