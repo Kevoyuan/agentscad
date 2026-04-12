@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAD Agent Workspace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -54,14 +53,16 @@
 
             <section class="rail-section rail-footer">
                 <div class="mini-stat">
-                    <span>Templates</span>
-                    <strong id="templateCount">0</strong>
+                    <span>Models</span>
+                    <strong id="generationCount">0</strong>
                 </div>
                 <div class="mini-stat">
                     <span>Delivered</span>
                     <strong id="deliveredCount">0</strong>
                 </div>
             </section>
+            
+            <div class="resizer-rail" id="resizer-rail"></div>
         </aside>
 
         <main class="workspace">
@@ -94,6 +95,11 @@
                             required
                         ></textarea>
 
+                        <label class="meta-field">
+                            <span>Reference Images</span>
+                            <input id="referenceImages" name="reference_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+                        </label>
+
                         <div class="composer-meta">
                             <label class="meta-field">
                                 <span>Memory Scope</span>
@@ -114,6 +120,8 @@
                 </section>
             </section>
 
+            <div class="resizer" id="resizer-left"></div>
+
             <section class="canvas-column">
                 <header class="canvas-header">
                     <div>
@@ -122,7 +130,7 @@
                     </div>
                     <div class="canvas-badges">
                         <span id="viewerStateBadge" class="state-chip">IDLE</span>
-                        <span id="viewerTemplateBadge" class="soft-chip">generation pending</span>
+                        <span id="viewerPathBadge" class="soft-chip">generation pending</span>
                     </div>
                 </header>
 
@@ -132,31 +140,12 @@
                         <p>Select a creation to inspect the generated STL here.</p>
                     </div>
 
-                    <div class="viewer-hud top">
-                        <div class="hud-card">
-                            <span>Preview</span>
-                            <strong id="viewerPromptLabel">No active creation</strong>
-                        </div>
-                        <div class="hud-card">
-                            <span>Artifacts</span>
-                            <strong id="artifactSummary">Pending</strong>
-                        </div>
-                    </div>
-
-                    <div class="viewer-hud bottom">
-                        <div class="hud-card">
-                            <span>Validation</span>
-                            <strong id="validationSummary">Waiting</strong>
-                        </div>
-                        <div class="hud-card">
-                            <span>Last update</span>
-                            <strong id="updatedSummary">-</strong>
-                        </div>
-                    </div>
                 </div>
 
                 <section id="artifactActions" class="artifact-actions"></section>
             </section>
+
+            <div class="resizer" id="resizer-right"></div>
 
             <aside class="inspector-column">
                 <section class="inspector-panel">
@@ -169,6 +158,39 @@
                     </div>
                     <div id="parametersPanel" class="parameters-panel">
                         <div class="empty-copy">Generated parameters will appear here after the request is parsed.</div>
+                    </div>
+                </section>
+
+                <section class="inspector-panel">
+                    <div class="inspector-header">
+                        <div>
+                            <p class="section-kicker">Artifacts</p>
+                            <h3>Generated assets</h3>
+                        </div>
+                    </div>
+                    <div id="inspectorSummaryPanel" class="parameters-panel">
+                        <div class="mini-stat-group">
+                            <div class="mini-stat">
+                                <span>Artifacts</span>
+                                <strong id="artifactSummary">Pending</strong>
+                            </div>
+                            <div class="mini-stat">
+                                <span>Last update</span>
+                                <strong id="updatedSummary">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="inspector-panel">
+                    <div class="inspector-header">
+                        <div>
+                            <p class="section-kicker">Performance</p>
+                            <h3>Update telemetry</h3>
+                        </div>
+                    </div>
+                    <div id="performancePanel" class="parameters-panel">
+                        <div class="empty-copy">Patch and rebuild metrics will appear after parameter edits.</div>
                     </div>
                 </section>
 

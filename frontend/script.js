@@ -1,12 +1,11 @@
 const API_BASE = window.CAD_AGENT_API_BASE || `${window.location.protocol === 'file:' ? 'http:' : window.location.protocol}//${window.location.hostname || '127.0.0.1'}:8000`;
 const TERMINAL_STATES = new Set(['DELIVERED', 'ARCHIVED', 'CANCELLED', 'HUMAN_REVIEW']);
-const BLOCKED_STATES = new Set(['SPEC_FAILED', 'TEMPLATE_FAILED', 'RENDER_FAILED', 'VALIDATION_FAILED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW', 'CANCELLED']);
+const BLOCKED_STATES = new Set(['SPEC_FAILED', 'RENDER_FAILED', 'VALIDATION_FAILED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW', 'CANCELLED']);
 
 const state = {
     jobs: [],
     selectedJobId: null,
     selectedJob: null,
-    templates: [],
     health: null,
     validations: [],
     similarCases: [],
@@ -21,19 +20,24 @@ const state = {
     parameterUpdateTimer: null,
     parameterUpdateSeq: 0,
     isUpdatingParameters: false,
+    justRebuilt: false,
+    lastStableStlUrl: null,
+    lastStableViewerJobId: null,
 };
 
 const elements = {
     healthCard: document.getElementById('healthCard'),
+    runtimeMetrics: document.getElementById('runtimeMetrics'),
     refreshStatus: document.getElementById('refreshStatus'),
     jobCountBadge: document.getElementById('jobCountBadge'),
     deliveredCount: document.getElementById('deliveredCount'),
-    templateCount: document.getElementById('templateCount'),
+    generationCount: document.getElementById('generationCount'),
     jobsList: document.getElementById('jobsList'),
     threadTitle: document.getElementById('threadTitle'),
     conversationStream: document.getElementById('conversationStream'),
     jobForm: document.getElementById('jobForm'),
     requestInput: document.getElementById('requestInput'),
+    referenceImages: document.getElementById('referenceImages'),
     customerId: document.getElementById('customerId'),
     priorityInput: document.getElementById('priorityInput'),
     priorityValue: document.getElementById('priorityValue'),
@@ -43,22 +47,122 @@ const elements = {
     newCreationButton: document.getElementById('newCreationButton'),
     viewerTitle: document.getElementById('viewerTitle'),
     viewerStateBadge: document.getElementById('viewerStateBadge'),
-    viewerTemplateBadge: document.getElementById('viewerTemplateBadge'),
-    viewerPromptLabel: document.getElementById('viewerPromptLabel'),
+    viewerPathBadge: document.getElementById('viewerPathBadge'),
     artifactSummary: document.getElementById('artifactSummary'),
-    validationSummary: document.getElementById('validationSummary'),
+    validationSummary: null, // Moved to Inspector or removed
     updatedSummary: document.getElementById('updatedSummary'),
     stlViewer: document.getElementById('stlViewer'),
     viewerPlaceholder: document.getElementById('viewerPlaceholder'),
     artifactActions: document.getElementById('artifactActions'),
     parametersPanel: document.getElementById('parametersPanel'),
+    performancePanel: document.getElementById('performancePanel'),
     validationPanel: document.getElementById('validationPanel'),
     timelinePanel: document.getElementById('timelinePanel'),
     resetParametersButton: document.getElementById('resetParametersButton'),
     copyTraceButton: document.getElementById('copyTraceButton'),
 };
 
+function setupResizers() {
+    const railResizer = document.getElementById('resizer-rail');
+    const leftResizer = document.getElementById('resizer-left');
+    const rightResizer = document.getElementById('resizer-right');
+
+    let isDraggingRail = false;
+    let isDraggingLeft = false;
+    let isDraggingRight = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    const minRailWidth = 280;
+    const maxRailWidth = 440;
+    const minLeftWidth = 480;
+    const maxLeftWidth = 800;
+    const minRightWidth = 360;
+    const maxRightWidth = 600;
+
+    function getRootVar(name, fallback) {
+        return parseInt(getComputedStyle(document.documentElement).getPropertyValue(name)) || fallback;
+    }
+
+    if (railResizer) {
+        railResizer.addEventListener('pointerdown', (e) => {
+            isDraggingRail = true;
+            startX = e.clientX;
+            startWidth = getRootVar('--rail-width', 264);
+            railResizer.classList.add('is-dragging');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+        railResizer.addEventListener('dblclick', () => {
+            document.documentElement.style.removeProperty('--rail-width');
+        });
+    }
+
+    if (leftResizer) {
+        leftResizer.addEventListener('pointerdown', (e) => {
+            isDraggingLeft = true;
+            startX = e.clientX;
+            startWidth = getRootVar('--col-left', 480);
+            leftResizer.classList.add('is-dragging');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+        leftResizer.addEventListener('dblclick', () => {
+            document.documentElement.style.removeProperty('--col-left');
+        });
+    }
+
+    if (rightResizer) {
+        rightResizer.addEventListener('pointerdown', (e) => {
+            isDraggingRight = true;
+            startX = e.clientX;
+            startWidth = getRootVar('--col-right', 384);
+            rightResizer.classList.add('is-dragging');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+        rightResizer.addEventListener('dblclick', () => {
+            document.documentElement.style.removeProperty('--col-right');
+        });
+    }
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDraggingRail && !isDraggingLeft && !isDraggingRight) return;
+
+        if (isDraggingRail) {
+            let newWidth = startWidth + (e.clientX - startX);
+            newWidth = Math.max(minRailWidth, Math.min(newWidth, maxRailWidth));
+            document.documentElement.style.setProperty('--rail-width', `${newWidth}px`);
+        }
+
+        if (isDraggingLeft) {
+            let newWidth = startWidth + (e.clientX - startX);
+            newWidth = Math.max(minLeftWidth, Math.min(newWidth, maxLeftWidth));
+            document.documentElement.style.setProperty('--col-left', `${newWidth}px`);
+        }
+
+        if (isDraggingRight) {
+            let newWidth = startWidth - (e.clientX - startX);
+            newWidth = Math.max(minRightWidth, Math.min(newWidth, maxRightWidth));
+            document.documentElement.style.setProperty('--col-right', `${newWidth}px`);
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (isDraggingRail || isDraggingLeft || isDraggingRight) {
+            isDraggingRail = false;
+            isDraggingLeft = false;
+            isDraggingRight = false;
+            if (railResizer) railResizer.classList.remove('is-dragging');
+            if (leftResizer) leftResizer.classList.remove('is-dragging');
+            if (rightResizer) rightResizer.classList.remove('is-dragging');
+            document.body.style.cursor = '';
+        }
+    });
+}
+
 function init() {
+    setupResizers();
     bindEvents();
     renderPriority();
     renderShell();
@@ -87,7 +191,7 @@ function bindEvents() {
 }
 
 async function boot() {
-    await Promise.allSettled([fetchHealth(), fetchTemplates(), fetchJobs()]);
+    await Promise.allSettled([fetchHealth(), fetchJobs()]);
     startPolling();
 }
 
@@ -95,7 +199,6 @@ async function refreshAll() {
     elements.refreshStatus.textContent = 'manual';
     await Promise.allSettled([
         fetchHealth(),
-        fetchTemplates(),
         fetchJobs(),
         state.selectedJobId ? fetchJobDetail(state.selectedJobId) : Promise.resolve(),
     ]);
@@ -113,19 +216,6 @@ async function fetchHealth() {
         state.health = { status: 'offline', error: error.message };
     }
     renderHealth();
-}
-
-async function fetchTemplates() {
-    try {
-        const response = await fetch(`${API_BASE}/templates`);
-        if (!response.ok) {
-            throw new Error('Could not load templates');
-        }
-        state.templates = await response.json();
-    } catch (error) {
-        state.templates = [];
-    }
-    renderStats();
 }
 
 async function fetchJobs() {
@@ -219,6 +309,7 @@ async function handleCreateJob(event) {
     const inputRequest = elements.requestInput.value.trim();
     const customerId = elements.customerId.value.trim();
     const priority = Number(elements.priorityInput.value);
+    const referenceImages = Array.from(elements.referenceImages.files || []);
 
     if (inputRequest.length < 10) {
         return;
@@ -228,15 +319,28 @@ async function handleCreateJob(event) {
     updateSubmitState();
 
     try {
-        const createResponse = await fetch(`${API_BASE}/jobs`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                input_request: inputRequest,
-                customer_id: customerId || null,
-                priority,
-            }),
-        });
+        let createResponse;
+        if (referenceImages.length > 0) {
+            const formData = new FormData();
+            formData.append('input_request', inputRequest);
+            formData.append('customer_id', customerId || '');
+            formData.append('priority', String(priority));
+            referenceImages.forEach((file) => formData.append('reference_images', file));
+            createResponse = await fetch(`${API_BASE}/jobs`, {
+                method: 'POST',
+                body: formData,
+            });
+        } else {
+            createResponse = await fetch(`${API_BASE}/jobs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    input_request: inputRequest,
+                    customer_id: customerId || null,
+                    priority,
+                }),
+            });
+        }
 
         if (!createResponse.ok) {
             throw new Error('Job creation failed');
@@ -372,6 +476,11 @@ function renderPriority() {
 function updateSubmitState() {
     elements.submitButton.disabled = state.isSubmitting;
     elements.submitButton.textContent = state.isSubmitting ? 'Generating...' : 'Generate creation';
+    if (state.isSubmitting) {
+        elements.submitButton.classList.add('is-loading');
+    } else {
+        elements.submitButton.classList.remove('is-loading');
+    }
 }
 
 function renderHealth() {
@@ -395,12 +504,68 @@ function renderHealth() {
             <p>${escapeHtml(online ? shortPath(settings.openSCAD_path || 'unknown runtime') : state.health.error || 'API unreachable')}</p>
         </div>
     `;
+    renderRuntimeMetrics();
 }
 
 function renderStats() {
     elements.jobCountBadge.textContent = String(filteredJobs().length);
-    elements.templateCount.textContent = String(state.templates.length);
+    elements.generationCount.textContent = String(state.jobs.filter((job) => Boolean(job.generation_path)).length);
     elements.deliveredCount.textContent = String(state.jobs.filter((job) => job.state === 'DELIVERED').length);
+    renderRuntimeMetrics();
+}
+
+function renderRuntimeMetrics() {
+    if (!elements.runtimeMetrics) {
+        return;
+    }
+    const metrics = summarizeRuntimeMetrics(state.jobs);
+    const cards = [
+        { label: 'Patch Hit Rate', value: `${metrics.patchHitRate}%`, tone: 'is-fast-patch' },
+        { label: 'Avg Patch', value: metrics.avgPatch, tone: 'is-fast-patch' },
+        { label: 'Avg Rebuild', value: metrics.avgRebuild, tone: 'is-full-rebuild' },
+        { label: 'Implicit Active', value: String(metrics.activeImplicit), tone: '' },
+    ];
+    elements.runtimeMetrics.innerHTML = cards.map((card) => `
+        <div class="mini-stat runtime-stat ${escapeHtml(card.tone)}">
+            <span>${escapeHtml(card.label)}</span>
+            <strong>${escapeHtml(card.value)}</strong>
+        </div>
+    `).join('');
+}
+
+function summarizeRuntimeMetrics(jobs) {
+    let totalUpdates = 0;
+    let patchHits = 0;
+    let rebuildHits = 0;
+    let patchDurationSum = 0;
+    let rebuildDurationSum = 0;
+
+    for (const job of jobs) {
+        const stats = job?.parameter_update_stats;
+        if (!stats) {
+            continue;
+        }
+        const jobPatchHits = Number(stats.patch_hits || 0);
+        const jobRebuildHits = Number(stats.rebuild_hits || 0);
+        const jobTotalUpdates = Number(stats.total_updates || 0);
+        totalUpdates += jobTotalUpdates;
+        patchHits += jobPatchHits;
+        rebuildHits += jobRebuildHits;
+        if (jobPatchHits && stats.avg_patch_ms) {
+            patchDurationSum += Number(stats.avg_patch_ms) * jobPatchHits;
+        }
+        if (jobRebuildHits && stats.avg_rebuild_ms) {
+            rebuildDurationSum += Number(stats.avg_rebuild_ms) * jobRebuildHits;
+        }
+    }
+
+    const activeImplicit = jobs.filter((job) => !TERMINAL_STATES.has(job.state) && job.generation_path === 'inferred_parametric_scad').length;
+    return {
+        patchHitRate: totalUpdates ? Math.round((patchHits / totalUpdates) * 100) : 0,
+        avgPatch: patchHits ? formatDurationMs(Math.round(patchDurationSum / patchHits)) : 'n/a',
+        avgRebuild: rebuildHits ? formatDurationMs(Math.round(rebuildDurationSum / rebuildHits)) : 'n/a',
+        activeImplicit,
+    };
 }
 
 function filteredJobs() {
@@ -436,9 +601,12 @@ function renderJobsList(errorMessage) {
     elements.jobsList.innerHTML = jobs.map((job) => `
         <div class="creation-card ${state.selectedJobId === job.job_id ? 'is-selected' : ''}" data-job-id="${escapeHtml(job.job_id)}" tabindex="0">
             <div class="creation-content">
-                <div class="creation-title">${escapeHtml(truncate(job.input_request, 78))}</div>
+                <div class="creation-title">${escapeHtml(truncate(job.input_request, 72))}</div>
                 <div class="creation-meta">
-                    <span>${escapeHtml(job.state)}</span>
+                    <div class="status-indicator">
+                        <span class="status-dot ${job.state === 'ACTIVE' ? 'is-active' : (job.state === 'DELIVERED' ? 'is-delivered' : (BLOCKED_STATES.has(job.state) ? 'is-blocked' : ''))}"></span>
+                        <span>${escapeHtml(job.state)}</span>
+                    </div>
                     <span>${escapeHtml(formatCompactDate(job.updated_at))}</span>
                 </div>
             </div>
@@ -507,6 +675,7 @@ function renderWorkspace() {
     renderConversation();
     renderCanvas();
     renderParameters();
+    renderPerformance();
     renderValidation();
     renderTimeline();
 }
@@ -536,9 +705,9 @@ function renderConversation() {
     const similarCases = state.similarCases.length ? `
         <div class="message-row">
             <div class="message-avatar agent">CM</div>
-            <div class="message-card">
-                <div class="message-meta">
-                    <span>Case memory</span>
+            <div class="message-card agent">
+                <div class="message-header">
+                    <strong>Case memory</strong>
                     <span>${escapeHtml(String(state.similarCases.length))} matches</span>
                 </div>
                 <div class="message-body">${state.similarCases.map((item) => escapeHtml(readCaseRequest(item))).join('<br>')}</div>
@@ -550,8 +719,8 @@ function renderConversation() {
         <div class="message-row">
             <div class="message-avatar user">U</div>
             <div class="message-card user">
-                <div class="message-meta">
-                    <span>You</span>
+                <div class="message-header">
+                    <strong>You</strong>
                     <span>${escapeHtml(formatCompactDate(job.created_at))}</span>
                 </div>
                 <div class="message-body">${escapeHtml(job.input_request)}</div>
@@ -560,9 +729,9 @@ function renderConversation() {
 
         <div class="message-row">
             <div class="message-avatar agent">AI</div>
-            <div class="message-card">
-                <div class="message-meta">
-                    <span>CAD Agent</span>
+            <div class="message-card agent">
+                <div class="message-header">
+                    <strong>CAD Agent</strong>
                     <span>${escapeHtml(job.state)}</span>
                 </div>
                 <div class="message-body">${escapeHtml(assistantSummary)}</div>
@@ -578,9 +747,9 @@ function renderConversation() {
 
         <div class="message-row">
             <div class="message-avatar agent">PX</div>
-            <div class="message-card">
-                <div class="message-meta">
-                    <span>Extracted parameters</span>
+            <div class="message-card agent">
+                <div class="message-header">
+                    <strong>Extracted parameters</strong>
                     <span>${escapeHtml(String(extractParameters(job).length))} fields</span>
                 </div>
                 <div class="thread-facts">${parameterFacts || '<span class="fact-chip">Waiting for structured dimensions</span>'}</div>
@@ -598,11 +767,11 @@ function renderCanvas() {
         elements.viewerTitle.textContent = 'Viewport ready';
         elements.viewerStateBadge.textContent = 'IDLE';
         elements.viewerStateBadge.className = 'state-chip';
-        elements.viewerTemplateBadge.textContent = 'generation pending';
-        elements.viewerPromptLabel.textContent = 'No active creation';
-        elements.artifactSummary.textContent = 'Pending';
-        elements.validationSummary.textContent = 'Waiting';
-        elements.updatedSummary.textContent = '-';
+        elements.viewerPathBadge.textContent = 'generation pending';
+        elements.viewerPathBadge.className = 'soft-chip';
+        if (elements.artifactSummary) elements.artifactSummary.textContent = 'Pending';
+        if (elements.validationSummary) elements.validationSummary.textContent = 'Waiting';
+        if (elements.updatedSummary) elements.updatedSummary.textContent = '-';
         elements.artifactActions.innerHTML = '';
         destroyViewer();
         elements.viewerPlaceholder.classList.remove('hidden');
@@ -613,11 +782,16 @@ function renderCanvas() {
     elements.viewerTitle.textContent = truncate(job.input_request, 56);
     elements.viewerStateBadge.textContent = job.state;
     elements.viewerStateBadge.className = `state-chip ${badgeStateClass(job.state)}`;
-    elements.viewerTemplateBadge.textContent = summarizeGenerationPath(job);
-    elements.viewerPromptLabel.textContent = truncate(job.input_request, 52);
-    elements.artifactSummary.textContent = state.isUpdatingParameters ? 'Updating preview…' : summarizeArtifacts(job.artifacts);
-    elements.validationSummary.textContent = state.isUpdatingParameters ? 'Re-rendering' : summarizeValidation(state.validations);
-    elements.updatedSummary.textContent = formatCompactDate(job.updated_at);
+    elements.viewerPathBadge.textContent = summarizeGenerationPath(job);
+    elements.viewerPathBadge.className = `soft-chip ${parameterStrategyClass(job.parameter_update_strategy)}`;
+    if (elements.viewerPromptLabel) elements.viewerPromptLabel.textContent = truncate(job.input_request, 52);
+    if (elements.artifactSummary) elements.artifactSummary.textContent = state.isUpdatingParameters ? 'Updating preview…' : summarizeArtifacts(job.artifacts);
+    if (elements.validationSummary) elements.validationSummary.textContent = state.isUpdatingParameters ? 'Re-rendering' : summarizeValidation(state.validations);
+    if (elements.updatedSummary) {
+        elements.updatedSummary.textContent = job.parameter_update_duration_ms
+            ? `${formatParameterUpdateTiming(job)} · ${formatCompactDate(job.parameter_updated_at || job.updated_at)}`
+            : formatCompactDate(job.updated_at);
+    }
     elements.artifactActions.innerHTML = buildArtifactActions(job);
     initializeStlPreview(job);
 }
@@ -635,59 +809,27 @@ function renderParameters() {
         return;
     }
 
-    elements.parametersPanel.innerHTML = parameters.map((parameter) => {
-        const overrideKey = parameter.key;
-        const value = state.parameterOverrides[overrideKey] ?? parameter.value;
-        const range = deriveParameterRange(parameter, value);
-
-        if (parameter.editable === false) {
-            return `
-                <div class="parameter-card is-locked">
-                    <div class="parameter-head">
-                        <strong>${escapeHtml(parameter.label)}</strong>
-                        <span>${escapeHtml(parameter.description)}</span>
-                    </div>
-                    <div class="parameter-readout">
-                        <input
-                            class="parameter-value"
-                            type="number"
-                            value="${escapeHtml(String(roundNumber(value, range.step)))}"
-                            step="${escapeHtml(String(range.step))}"
-                            disabled
-                        >
-                        <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        return `
-            <div class="parameter-card">
-                <div class="parameter-head">
-                    <strong>${escapeHtml(parameter.label)}</strong>
-                    <span>${escapeHtml(parameter.description)}</span>
-                </div>
-                <input
-                    data-parameter-key="${escapeHtml(parameter.key)}"
-                    type="range"
-                    min="${escapeHtml(String(range.min))}"
-                    max="${escapeHtml(String(range.max))}"
-                    step="${escapeHtml(String(range.step))}"
-                    value="${escapeHtml(String(value))}"
-                >
-                <div class="parameter-readout">
-                    <input
-                        class="parameter-value"
-                        data-parameter-input="${escapeHtml(parameter.key)}"
-                        type="number"
-                        value="${escapeHtml(String(roundNumber(value, range.step)))}"
-                        step="${escapeHtml(String(range.step))}"
-                    >
-                    <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
-                </div>
+    const groups = groupParameters(parameters);
+    elements.parametersPanel.innerHTML = `
+        <div class="parameter-console-summary">
+            <span class="parameter-console-chip ${escapeHtml(parameterStrategyClass(job.parameter_update_strategy))}">
+                ${escapeHtml(prettyStrategyLabel(job.parameter_update_strategy))}
+            </span>
+            <strong>${escapeHtml(String(parameters.length))} live controls</strong>
+            <span>${escapeHtml(String(groups.length))} groups${job.parameter_update_duration_ms ? ` · ${escapeHtml(formatParameterUpdateTiming(job))}` : ''}</span>
+        </div>
+        ${groups.map(({ key, title, parameters: groupParametersList }) => `
+        <section class="parameter-group" data-parameter-group="${escapeHtml(key)}">
+            <div class="parameter-group-head">
+                <strong>${escapeHtml(title)}</strong>
+                <span>${escapeHtml(String(groupParametersList.length))} controls</span>
             </div>
-        `;
-    }).join('');
+            <div class="parameter-group-grid">
+                ${groupParametersList.map((parameter) => renderParameterCard(parameter)).join('')}
+            </div>
+        </section>
+    `).join('')}
+    `;
 
     elements.parametersPanel.querySelectorAll('[data-parameter-key]').forEach((input) => {
         input.addEventListener('input', () => {
@@ -715,6 +857,169 @@ function renderParameters() {
             scheduleParameterRebuild({ previewOnly: true, delayMs: 220 });
         });
     });
+}
+
+function renderParameterCard(parameter) {
+    const overrideKey = parameter.key;
+    const value = state.parameterOverrides[overrideKey] ?? parameter.value;
+    const range = deriveParameterRange(parameter, value);
+
+    if (parameter.editable === false) {
+        return `
+            <div class="parameter-card is-locked">
+                <div class="parameter-head">
+                    <strong>${escapeHtml(parameter.label)}</strong>
+                    <span>${escapeHtml(parameter.description)}</span>
+                </div>
+                <div class="parameter-readout">
+                    <input
+                        class="parameter-value"
+                        type="number"
+                        value="${escapeHtml(String(roundNumber(value, range.step)))}"
+                        step="${escapeHtml(String(range.step))}"
+                        disabled
+                    >
+                    <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="parameter-card">
+            <div class="parameter-head">
+                <strong>${escapeHtml(parameter.label)}</strong>
+                <span>${escapeHtml(parameter.description)}</span>
+            </div>
+            <input
+                data-parameter-key="${escapeHtml(parameter.key)}"
+                type="range"
+                min="${escapeHtml(String(range.min))}"
+                max="${escapeHtml(String(range.max))}"
+                step="${escapeHtml(String(range.step))}"
+                value="${escapeHtml(String(value))}"
+            >
+            <div class="parameter-readout">
+                <input
+                    class="parameter-value"
+                    data-parameter-input="${escapeHtml(parameter.key)}"
+                    type="number"
+                    value="${escapeHtml(String(roundNumber(value, range.step)))}"
+                    step="${escapeHtml(String(range.step))}"
+                >
+                <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
+            </div>
+        </div>
+    `;
+}
+
+function groupParameters(parameters) {
+    const order = ['dimensions', 'fit', 'support', 'details', 'general'];
+    const grouped = new Map();
+    for (const parameter of parameters) {
+        const key = parameter.group || 'general';
+        if (!grouped.has(key)) {
+            grouped.set(key, []);
+        }
+        grouped.get(key).push(parameter);
+    }
+    return Array.from(grouped.entries())
+        .sort(([left], [right]) => {
+            const leftIndex = order.indexOf(left);
+            const rightIndex = order.indexOf(right);
+            const normalizedLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex;
+            const normalizedRight = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex;
+            return normalizedLeft - normalizedRight || left.localeCompare(right);
+        })
+        .map(([key, items]) => ({
+            key,
+            title: prettyGroupLabel(key),
+            parameters: items,
+        }));
+}
+
+function prettyGroupLabel(key) {
+    const labels = {
+        dimensions: 'Dimensions',
+        fit: 'Fit & Tolerance',
+        support: 'Support Geometry',
+        details: 'Detail Controls',
+        general: 'General Controls',
+    };
+    return labels[key] || prettyLabel(key);
+}
+
+function prettyStrategyLabel(strategy) {
+    const labels = {
+        scad_patch: 'Instant Update',
+        full_rebuild: 'Full Rebuild',
+    };
+    return labels[strategy] || 'Adaptive Update';
+}
+
+function parameterStrategyClass(strategy) {
+    if (strategy === 'scad_patch') {
+        return 'is-fast-patch';
+    }
+    if (strategy === 'full_rebuild') {
+        return 'is-full-rebuild';
+    }
+    return '';
+}
+
+function formatParameterUpdateTiming(job) {
+    if (!job?.parameter_update_duration_ms) {
+        return '';
+    }
+    if (job.parameter_update_duration_ms < 1000) {
+        return `~${job.parameter_update_duration_ms}ms`;
+    }
+    return `~${(job.parameter_update_duration_ms / 1000).toFixed(1)}s`;
+}
+
+function renderPerformance() {
+    const job = state.selectedJob;
+    const stats = job?.parameter_update_stats;
+    if (!job || !stats) {
+        elements.performancePanel.innerHTML = '<div class="empty-copy">Patch and rebuild metrics will appear after parameter edits.</div>';
+        return;
+    }
+
+    const cards = [
+        {
+            label: 'Patch Hit Rate',
+            value: `${stats.patch_hit_rate ?? 0}%`,
+            meta: `${stats.patch_hits ?? 0} patch / ${stats.total_updates ?? 0} total`,
+            tone: 'is-fast-patch',
+        },
+        {
+            label: 'Avg Patch',
+            value: stats.avg_patch_ms ? formatDurationMs(stats.avg_patch_ms) : 'n/a',
+            meta: 'Instant update path',
+            tone: 'is-fast-patch',
+        },
+        {
+            label: 'Avg Rebuild',
+            value: stats.avg_rebuild_ms ? formatDurationMs(stats.avg_rebuild_ms) : 'n/a',
+            meta: `${stats.rebuild_hits ?? 0} full rebuilds`,
+            tone: 'is-full-rebuild',
+        },
+    ];
+
+    elements.performancePanel.innerHTML = cards.map((card) => `
+        <div class="telemetry-card ${escapeHtml(card.tone)}">
+            <span>${escapeHtml(card.label)}</span>
+            <strong>${escapeHtml(card.value)}</strong>
+            <p>${escapeHtml(card.meta)}</p>
+        </div>
+    `).join('');
+}
+
+function formatDurationMs(durationMs) {
+    if (durationMs < 1000) {
+        return `${durationMs}ms`;
+    }
+    return `${(durationMs / 1000).toFixed(1)}s`;
 }
 
 function renderValidation() {
@@ -788,10 +1093,24 @@ function summarizeGenerationPath(job) {
         return 'generation pending';
     }
     if (job.generation_path) {
-        return `path: ${job.generation_path}`;
-    }
-    if (job.template_id) {
-        return `path: ${job.template_id}`;
+        const labels = {
+            object_model: 'path: object model',
+            geometry_intent: 'path: geometry intent',
+            dsl: 'path: geometry dsl',
+            inferred_parametric_scad: 'path: inferred parametric',
+            llm_native_scad: 'path: freeform llm',
+        };
+        const strategyLabels = {
+            scad_patch: 'fast patch',
+            full_rebuild: 'full rebuild',
+        };
+        const base = labels[job.generation_path] || `path: ${job.generation_path}`;
+        const strategy = strategyLabels[job.parameter_update_strategy];
+        const timing = formatParameterUpdateTiming(job);
+        if (strategy && timing) {
+            return `${base} · ${strategy} · ${timing}`;
+        }
+        return strategy ? `${base} · ${strategy}` : base;
     }
     return 'generation pending';
 }
@@ -862,6 +1181,7 @@ function extractParameters(job) {
                 max: parameter.max,
                 step: parameter.step,
                 editable: parameter.editable !== false,
+                group: parameter.group || 'general',
             }));
     }
 
@@ -875,6 +1195,7 @@ function extractParameters(job) {
             unit: inferUnit(key),
             description: inferDescription(key),
             editable: true,
+            group: 'dimensions',
         }));
 }
 
@@ -967,13 +1288,18 @@ async function rebuildJobFromParameters(jobId, seq, { previewOnly = false } = {}
         state.jobs = state.jobs.map((job) => (job.job_id === jobId ? { ...job, ...updatedJob } : job));
         state.validations = normalizeValidations(updatedJob.validation_results);
         state.parameterOverrides = {};
+        state.justRebuilt = true;
         renderStats();
         renderJobsList();
         renderWorkspace();
     } catch (error) {
         if (seq === state.parameterUpdateSeq && state.selectedJobId === jobId) {
             elements.viewerPlaceholder.classList.remove('hidden');
-            elements.viewerPlaceholder.innerHTML = `<p>${escapeHtml(error.message || 'Parameter rebuild failed')}</p>`;
+            if (state.viewerInstance?.mesh) {
+                elements.viewerPlaceholder.innerHTML = `<p>${escapeHtml(error.message || 'Parameter rebuild failed')} The previous model is still shown.</p>`;
+            } else {
+                elements.viewerPlaceholder.innerHTML = `<p>${escapeHtml(error.message || 'Parameter rebuild failed')}</p>`;
+            }
         }
     } finally {
         if (seq === state.parameterUpdateSeq) {
@@ -1135,9 +1461,20 @@ function frameViewerToGeometry(viewer, geometry) {
 }
 
 function loadStlIntoViewer(viewer, stlUrl, placeholder) {
-    if (viewer.currentUrl === stlUrl && viewer.mesh) {
+    const forceReload = state.justRebuilt;
+    if (!forceReload && viewer.currentUrl === stlUrl && viewer.mesh) {
         placeholder.classList.add('hidden');
         return;
+    }
+
+    if (forceReload) {
+        state.justRebuilt = false;
+        viewer.currentUrl = null;
+        if (viewer.mesh) {
+            viewer.mesh.geometry.dispose();
+            viewer.mesh.material.dispose();
+            viewer.mesh = null;
+        }
     }
 
     const loadSeq = ++viewer.loadSeq;
@@ -1166,7 +1503,6 @@ function loadStlIntoViewer(viewer, stlUrl, placeholder) {
                     metalness: 0.14,
                     roughness: 0.5,
                 });
-
                 viewer.mesh = new window.THREE.Mesh(geometry, material);
                 viewer.mesh.rotation.x = -Math.PI / 2;
                 viewer.scene.add(viewer.mesh);
@@ -1191,9 +1527,15 @@ function loadStlIntoViewer(viewer, stlUrl, placeholder) {
 function initializeStlPreview(job) {
     const container = elements.stlViewer;
     const placeholder = elements.viewerPlaceholder;
-    const stlUrl = job?.artifacts?.stl_path
+    const currentStlUrl = job?.artifacts?.stl_path
         ? `${API_BASE}/jobs/${job.job_id}/artifacts/stl?ts=${encodeURIComponent(job.updated_at || Date.now())}`
         : null;
+    if (currentStlUrl) {
+        state.lastStableStlUrl = currentStlUrl;
+        state.lastStableViewerJobId = job.job_id;
+    }
+    const stlUrl = currentStlUrl
+        || (state.isUpdatingParameters && state.lastStableViewerJobId === job?.job_id ? state.lastStableStlUrl : null);
 
     if (!container || !placeholder) {
         return;
@@ -1203,6 +1545,12 @@ function initializeStlPreview(job) {
         destroyViewer();
         placeholder.classList.remove('hidden');
         placeholder.innerHTML = '<p>Rendering has not produced an STL yet. The viewport will light up as soon as the artifact is ready.</p>';
+        return;
+    }
+
+    if (!currentStlUrl && state.isUpdatingParameters && state.viewerInstance?.mesh) {
+        placeholder.classList.remove('hidden');
+        placeholder.innerHTML = '<p>Updating preview… keeping the last stable model visible until the new STL lands.</p>';
         return;
     }
 
@@ -1255,9 +1603,6 @@ function formatTimelineBody(log) {
     const output = log.output_data;
     if (output?.spec?.geometric_type) {
         return `Parsed ${output.spec.geometric_type} with ${Object.keys(output.spec.dimensions || {}).length} dimensions.`;
-    }
-    if (output?.template_choice?.template_name) {
-        return `Selected ${output.template_choice.template_name} as the active generation path.`;
     }
     if (typeof output?.scad_source === 'string') {
         return `Generated OpenSCAD source and forwarded it to execution.`;
@@ -1314,7 +1659,8 @@ function stringifyValue(value) {
         return 'null';
     }
     if (typeof value === 'object') {
-        return JSON.stringify(value);
+        const str = JSON.stringify(value);
+        return str.length > 500 ? str.slice(0, 500) + '…' : str;
     }
     return String(value);
 }
@@ -1336,8 +1682,10 @@ function shortPath(value) {
 }
 
 function roundNumber(value, step = 1) {
-    const precision = step < 1 ? String(step).split('.')[1]?.length || 1 : 0;
-    return Number(value).toFixed(precision).replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
+    if (!Number.isFinite(value)) return String(value);
+    const precision = step < 1 ? Math.max(0, String(step).split('.')[1]?.length || 1) : 0;
+    const rounded = Math.round(Number(value) / step) * step;
+    return rounded.toFixed(precision).replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
 }
 
 function truncate(value, length) {
