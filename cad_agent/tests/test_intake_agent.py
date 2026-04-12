@@ -47,7 +47,7 @@ class TestIntakeAgentProcess:
         """Process should use the injected LLM parser before regex fallback."""
 
         class StubSpecParser:
-            async def parse(self, request: str) -> SpecResult:
+            async def parse(self, request: str, extra_context: str | None = None) -> SpecResult:
                 return SpecResult(
                     success=True,
                     request_summary=request,
@@ -75,7 +75,7 @@ class TestIntakeAgentProcess:
         """Process should fall back to regex parsing when the LLM parser fails."""
 
         class FailingSpecParser:
-            async def parse(self, request: str) -> SpecResult:
+            async def parse(self, request: str, extra_context: str | None = None) -> SpecResult:
                 raise RuntimeError("provider unavailable")
 
         agent = IntakeAgent(spec_parser=FailingSpecParser())
