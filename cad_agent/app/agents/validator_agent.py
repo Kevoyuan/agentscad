@@ -8,6 +8,7 @@ from typing import Any
 import structlog
 
 from cad_agent.app.llm.design_critic import LLMDesignCritic
+from cad_agent.app.llm.pipeline_utils import normalize_part_family_value
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.models.validation import ValidationLevel, ValidationResult, RuleType
@@ -65,6 +66,9 @@ class ValidatorAgent:
 
         layer25_results = await self._validate_semantic_layer(job)
         validation_results.extend(layer25_results)
+
+        layer26_results = self._validate_reference_dimension_layer(job)
+        validation_results.extend(layer26_results)
 
         layer3_results = self._validate_business_layer(job)
         validation_results.extend(layer3_results)
@@ -168,6 +172,58 @@ class ValidatorAgent:
                 logger.warning("semantic_review_failed", job_id=job.id, error=str(exc))
 
         return [self._heuristic_semantic_result(job)]
+
+    def _validate_reference_dimension_layer(self, job: DesignJob) -> list[ValidationResult]:
+        """Block fit-critical deliveries when device dimensions were not actually verified."""
+        if not job.research_result:
+            return []
+
+        family = normalize_part_family_value(job.part_family or job.research_result.part_family)
+        if family not in {"phone_case", "device_stand"}:
+            return []
+
+        exact_fit_required = False
+        if family == "phone_case":
+            exact_fit_required = True
+        elif family == "device_stand":
+            object_model = job.research_result.object_model if isinstance(job.research_result.object_model, dict) else {}
+            exact_fit_required = object_model.get("synthesis_kind") == "support_base"
+
+        if not exact_fit_required:
+            return []
+
+        has_verified_dimensions = bool(job.research_result.reference_dimensions)
+        has_visual_reference = bool(job.research_result.image_reference_used and job.research_result.image_analysis_summaries)
+
+        if has_verified_dimensions or has_visual_reference:
+            return [
+                ValidationResult(
+                    rule_id="S002",
+                    rule_name="Verified Fit Dimensions",
+                    level=ValidationLevel.ENGINEERING,
+                    rule_type=RuleType.SEMANTIC,
+                    passed=True,
+                    severity="error",
+                    message="Fit-critical geometry is backed by verified device dimensions or uploaded visual references.",
+                )
+            ]
+
+        return [
+            ValidationResult(
+                rule_id="S002",
+                rule_name="Verified Fit Dimensions",
+                level=ValidationLevel.ENGINEERING,
+                rule_type=RuleType.SEMANTIC,
+                passed=False,
+                severity="error",
+                message="Fit-critical geometry is missing verified device dimensions or uploaded visual references.",
+                details={
+                    "needs_web_search": bool(job.research_result.needs_web_search),
+                    "web_research_used": bool(job.research_result.web_research_used),
+                    "image_reference_used": bool(job.research_result.image_reference_used),
+                },
+            )
+        ]
 
     def _validate_business_layer(self, job: DesignJob) -> list[ValidationResult]:
         """Layer 3: Validate business acceptance criteria."""

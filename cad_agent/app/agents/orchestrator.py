@@ -9,7 +9,10 @@ import structlog
 
 from cad_agent.app.llm.geometry_intent import infer_geometry_intent
 from cad_agent.app.llm.object_model import enrich_object_model_from_spec
-from cad_agent.app.llm.pipeline_utils import has_resolved_part_family
+from cad_agent.app.llm.pipeline_utils import (
+    has_resolved_part_family,
+    normalize_part_family_value,
+)
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.case import Case
 from cad_agent.app.models.design_job import DesignJob, JobState, ParameterSchema
@@ -42,6 +45,7 @@ class OrchestratorAgent:
         """Initialize orchestrator."""
         self.retry_policy = retry_policy or RetryPolicy()
         self.case_memory = case_memory
+        self.on_update = None  # Async callback: func(job: DesignJob)
         self._agents: dict[str, object] = {}
 
     def set_agents(
@@ -103,8 +107,11 @@ class OrchestratorAgent:
                 job.transition_to(next_state)
             elif not result.success:
                 job.transition_to(JobState.HUMAN_REVIEW)
-            elif result.success:
+            if result.success:
                 job.transition_to(JobState(result.state_reached))
+
+            if self.on_update:
+                await self.on_update(job)
 
         duration_ms = int((time.time() - start_time) * 1000)
         if self._is_terminal_state(job.state):
@@ -171,6 +178,35 @@ class OrchestratorAgent:
         Returns:
             AgentResult from the called agent
         """
+        if self._requires_verified_fit_reference_before_generation(job):
+            result = AgentResult(
+                success=True,
+                agent=AgentRole.ORCHESTRATOR,
+                state_reached=JobState.HUMAN_REVIEW.value,
+                data={
+                    "reason": "missing_verified_fit_reference",
+                    "part_family": normalize_part_family_value(
+                        job.part_family or getattr(job.research_result, "part_family", None)
+                    ),
+                },
+                error=(
+                    "Fit-critical geometry requires verified device dimensions or uploaded "
+                    "visual references before generation."
+                ),
+            )
+            job.add_log(
+                {
+                    "agent": "orchestrator",
+                    "action": "gate_fit_reference",
+                    "success": True,
+                    "state_reached": result.state_reached,
+                    "error_message": result.error,
+                    "output_data": result.data,
+                    "duration_ms": result.duration_ms,
+                }
+            )
+            return result
+
         state_to_agent = {
             JobState.NEW: ("research", "research"),
             JobState.RESEARCHED: ("intake", "process"),
@@ -306,6 +342,27 @@ class OrchestratorAgent:
         )
 
         return result
+
+    def _requires_verified_fit_reference_before_generation(self, job: DesignJob) -> bool:
+        """Block fit-critical jobs before geometry generation when references are missing."""
+        if job.state != JobState.PARAMETERS_GENERATED or not job.research_result:
+            return False
+
+        family = normalize_part_family_value(job.part_family or job.research_result.part_family)
+        object_model = getattr(job.research_result, "object_model", {}) or {}
+        synthesis_kind = str(object_model.get("synthesis_kind", "")).strip().lower()
+
+        is_fit_critical = family == "phone_case" or (
+            family == "device_stand" and synthesis_kind == "support_base"
+        )
+        if not is_fit_critical:
+            return False
+
+        has_reference_dimensions = bool(job.research_result.reference_dimensions)
+        has_visual_reference = bool(
+            job.research_result.image_reference_used and job.research_result.image_analysis_summaries
+        )
+        return not (has_reference_dimensions or has_visual_reference)
 
     def _store_success_case(self, job: DesignJob) -> None:
         """Persist successful jobs into case memory for future reuse."""
