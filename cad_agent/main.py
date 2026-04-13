@@ -1,4 +1,6 @@
 """FastAPI application for CAD Agent System."""
+import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 import time
@@ -8,7 +10,7 @@ from typing import Any, Optional
 import structlog
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from cad_agent.config import get_settings
@@ -46,6 +48,36 @@ logger = structlog.get_logger()
 _orchestrator: OrchestratorAgent | None = None
 _job_repo: SQLiteJobRepository | None = None
 _case_memory: CaseMemoryService | None = None
+
+
+class JobEventBus:
+    """Pub-Sub system for real-time job updates."""
+
+    def __init__(self):
+        self._subscribers: dict[str, list[asyncio.Queue]] = {}
+
+    def subscribe(self, job_id: str) -> asyncio.Queue:
+        if job_id not in self._subscribers:
+            self._subscribers[job_id] = []
+        queue = asyncio.Queue()
+        self._subscribers[job_id].append(queue)
+        return queue
+
+    def unsubscribe(self, job_id: str, queue: asyncio.Queue):
+        if job_id in self._subscribers:
+            self._subscribers[job_id].remove(queue)
+            if not self._subscribers[job_id]:
+                del self._subscribers[job_id]
+
+    async def broadcast(self, job: DesignJob):
+        if job.id not in self._subscribers:
+            return
+        # Convert job to status response format
+        data = _job_to_status_response(job).model_dump(mode="json")
+        for queue in self._subscribers[job.id]:
+            await queue.put(data)
+
+_event_bus = JobEventBus()
 
 
 def _sanitize_public_payload(value: Any) -> Any:
@@ -242,6 +274,7 @@ async def lifespan(app: FastAPI):
     report_agent = ReportAgent(output_dir=str(settings.output_dir))
 
     _orchestrator = OrchestratorAgent(retry_policy=retry_policy, case_memory=_case_memory)
+    _orchestrator.on_update = _event_bus.broadcast
     _orchestrator.set_agents(
         research=research_agent,
         intake=intake_agent,
@@ -404,20 +437,43 @@ async def _run_orchestrator(job_id: str) -> None:
         logger.error("orchestrator_error", job_id=job_id, error=str(e))
         job.add_log({"agent": "orchestrator", "action": "process", "error": str(e)})
         _job_repo.save(job)
-
-
 @app.get("/jobs/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str) -> JobStatusResponse:
-    """Get the status of a job."""
+    """Get status of a specific job."""
     job = _job_repo.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
-
-    spec_summary = None
-    if job.spec:
-        spec_summary = f"{job.spec.geometric_type} {job.spec.dimensions}"
-
     return _job_to_status_response(job)
+
+
+@app.get("/jobs/{job_id}/events")
+async def stream_job_events(job_id: str):
+    """Stream real-time job updates via Server-Sent Events (SSE)."""
+
+    async def event_generator():
+        queue = _event_bus.subscribe(job_id)
+        try:
+            # Send initial state
+            job = _job_repo.get(job_id)
+            if job:
+                yield {
+                    "event": "message",
+                    "data": json.dumps(_job_to_status_response(job).model_dump(mode="json")),
+                }
+
+            while True:
+                data = await queue.get()
+                yield {
+                    "event": "message",
+                    "data": json.dumps(data),
+                }
+        finally:
+            _event_bus.unsubscribe(job_id, queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+    )
 
 
 def _job_to_status_response(job: DesignJob) -> JobStatusResponse:
@@ -666,7 +722,7 @@ async def get_job_validations(job_id: str) -> list[ValidationResultSummary]:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     if not job.validation_results:
-        raise HTTPException(status_code=404, detail="No validation results for this job")
+        return []
 
     summaries = []
     for v in job.validation_results:
