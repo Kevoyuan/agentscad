@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from cad_agent.app.agents.validator_agent import ValidatorAgent
-from cad_agent.app.models.design_job import Artifacts, DesignJob, JobState, SpecResult
+from cad_agent.app.models.design_job import Artifacts, DesignJob, JobState, ResearchResult, SpecResult
 
 
 def _build_gear_job(scad_source: str, tmp_path: Path) -> DesignJob:
@@ -93,3 +93,71 @@ spur_gear_final();
     assert result.success is True
     semantic_result = next(v for v in job.validation_results if v.rule_id == "S001")
     assert semantic_result.passed is True
+
+
+@pytest.mark.asyncio
+async def test_validator_blocks_phone_case_without_verified_dimensions(tmp_path: Path) -> None:
+    stl_path = tmp_path / "design.stl"
+    stl_path.write_text("solid test\nendsolid test\n")
+
+    scad_source = """
+module rounded_box(size=[10, 10, 10], radius=2) {
+  linear_extrude(height=size[2], center=true)
+    offset(r=radius)
+      square([max(size[0] - 2 * radius, 0.1), max(size[1] - 2 * radius, 0.1)], center=true);
+}
+
+module screen_window() {
+  translate([0, 0, 2]) rounded_box([140, 64, 14], radius=3);
+}
+
+module phone_case_body() {
+  difference() {
+    rounded_box([155, 76, 11], radius=3.5);
+    translate([0, 0, 0.4]) rounded_box([151, 72, 8.9], radius=2.2);
+    screen_window();
+  }
+}
+
+phone_case_body();
+"""
+
+    job = DesignJob(
+        input_request="帮我设计iphone 17 pro 手机壳",
+        state=JobState.RENDERED,
+        part_family="phone_case",
+        scad_source=scad_source,
+        artifacts=Artifacts(scad_source=scad_source, stl_path=str(stl_path)),
+        research_result=ResearchResult(
+            request="帮我设计iphone 17 pro 手机壳",
+            part_family="phone_case",
+            object_name="iPhone 17 Pro Case",
+            needs_web_search=True,
+            web_research_used=False,
+            image_reference_used=False,
+            reference_dimensions={},
+        ),
+        spec=SpecResult(
+            success=True,
+            geometric_type="protective_shell",
+            dimensions={},
+            material="TPU",
+            tolerance=0.1,
+        ),
+    )
+    job.set_parameter_values(
+        {
+            "body_length": 149.6,
+            "body_width": 71.5,
+            "body_depth": 8.3,
+            "wall_thickness": 1.8,
+        }
+    )
+
+    validator = ValidatorAgent()
+    result = await validator.validate(job)
+
+    assert result.success is False
+    trusted_dimensions = next(v for v in job.validation_results if v.rule_id == "S002")
+    assert trusted_dimensions.passed is False
+    assert "missing verified device dimensions" in trusted_dimensions.message.lower()

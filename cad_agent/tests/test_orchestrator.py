@@ -346,6 +346,76 @@ async def test_orchestrator_routes_intake_before_parameters(orchestrator):
     assert call_order[:5] == ["research", "intake", "intent", "design", "parameters"]
 
 
+@pytest.mark.asyncio
+async def test_orchestrator_blocks_fit_critical_generation_without_verified_references(
+    orchestrator,
+):
+    async def record_research(*args, **kwargs):
+        return type(
+            "ResearchPayload",
+            (),
+            {
+                "part_family": "phone_case",
+                "reference_dimensions": {},
+                "image_reference_used": False,
+                "image_analysis_summaries": [],
+                "object_model": {},
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {
+                    "part_family": "phone_case",
+                    "reference_dimensions": {},
+                    "image_reference_used": False,
+                    "image_analysis_summaries": [],
+                    "object_model": {},
+                },
+            },
+        )()
+
+    async def record_intent(*args, **kwargs):
+        return type(
+            "IntentPayload",
+            (),
+            {
+                "part_family": "phone_case",
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {"part_family": "phone_case"},
+            },
+        )()
+
+    async def record_parameters(*args, **kwargs):
+        return type(
+            "ParameterPayload",
+            (),
+            {
+                "error_message": None,
+                "model_dump": lambda self=None, mode="json": {
+                    "request": "case",
+                    "part_family": "phone_case",
+                    "schema_version": "v1",
+                    "design_summary": "case",
+                    "parameters": [],
+                    "user_parameters": [],
+                    "inferred_parameters": [],
+                    "design_derived_parameters": [],
+                    "notes": [],
+                    "error_message": None,
+                },
+            },
+        )()
+
+    orchestrator._agents["research"].research.side_effect = record_research
+    orchestrator._agents["intent"].resolve.side_effect = record_intent
+    orchestrator._agents["parameters"].build_schema.side_effect = record_parameters
+
+    job = DesignJob(input_request="帮我设计iphone 17 pro 手机壳")
+    result = await orchestrator.process(job)
+
+    assert result.success is True
+    assert job.state == JobState.HUMAN_REVIEW
+    assert orchestrator._agents["generator"].generate.await_count == 0
+    assert any(log.action == "gate_fit_reference" for log in job.execution_logs)
+
+
 @pytest.fixture
 def sample_job():
     return DesignJob(

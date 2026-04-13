@@ -138,6 +138,7 @@ async def test_generator_agent_synthesizes_phone_case_dsl_from_research_dimensio
     assert job.geometry_dsl["operations"][0]["type"] == "phone_case_shell"
     assert job.scad_source is not None
     assert "module phone_case_body()" in job.scad_source
+    assert "module screen_window()" in job.scad_source
     assert "camera_opening" in job.scad_source
     assert "port_opening" in job.scad_source
     assert "minkowski()" not in job.scad_source
@@ -189,6 +190,9 @@ async def test_generator_agent_prefers_object_model_synthesis_for_mac_studio_bas
     assert job.scad_source is not None
     assert "top_alignment_pocket" in job.scad_source
     assert "cable_relief" in job.scad_source
+    assert "pocket_width =" in job.scad_source
+    assert "pocket_depth =" in job.scad_source
+    assert "cable_relief_width =" in job.scad_source
     assert "240.000" in job.scad_source
     assert "205.000" in job.scad_source
 
