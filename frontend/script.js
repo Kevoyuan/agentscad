@@ -23,6 +23,7 @@ const state = {
     justRebuilt: false,
     lastStableStlUrl: null,
     lastStableViewerJobId: null,
+    eventSource: null,
 };
 
 const elements = {
@@ -60,6 +61,7 @@ const elements = {
     timelinePanel: document.getElementById('timelinePanel'),
     resetParametersButton: document.getElementById('resetParametersButton'),
     copyTraceButton: document.getElementById('copyTraceButton'),
+    canvasArtifactActions: document.getElementById('canvasArtifactActions'),
 };
 
 function setupResizers() {
@@ -291,6 +293,12 @@ async function fetchJobDetail(jobId) {
         } else {
             state.validations = normalizeValidations(state.selectedJob.validation_results);
         }
+
+        state.isLoadingDetail = false;
+        renderWorkspace();
+
+        // Establish streaming connection for real-time updates
+        setupJobEventStream(jobId);
     } catch (error) {
         state.selectedJob = null;
         state.validations = [];
@@ -301,6 +309,65 @@ async function fetchJobDetail(jobId) {
         state.isLoadingDetail = false;
         renderWorkspace();
     }
+}
+
+/**
+ * Establishment of SSE connection for real-time job updates
+ */
+function setupJobEventStream(jobId) {
+    if (state.eventSource) {
+        state.eventSource.close();
+        state.eventSource = null;
+    }
+
+    const streamUrl = `${API_BASE}/jobs/${jobId}/events`;
+    console.log(`[Stream] Connecting to ${streamUrl}`);
+    
+    const es = new EventSource(streamUrl);
+    state.eventSource = es;
+
+    es.onmessage = (event) => {
+        try {
+            const updatedJob = JSON.parse(event.data);
+            console.log(`[Stream] Update for ${jobId}: ${updatedJob.state}`);
+
+            // Only update if we are still looking at the same job
+            if (state.selectedJobId !== updatedJob.id) {
+                es.close();
+                return;
+            }
+
+            const prevState = state.selectedJob?.state;
+            state.selectedJob = updatedJob;
+
+            // Update validations if they exist in the job
+            if (updatedJob.validation_results && updatedJob.validation_results.length > 0) {
+                state.validations = normalizeValidations(updatedJob.validation_results);
+            }
+
+            // Trigger targeted UI updates
+            renderWorkspace();
+
+            // If job reached terminal state, we can close the stream after a small delay
+            if (TERMINAL_STATES.has(updatedJob.state)) {
+                console.log(`[Stream] Terminal state reached: ${updatedJob.state}. Closing.`);
+                setTimeout(() => {
+                    if (state.selectedJobId === updatedJob.id) {
+                        es.close();
+                        if (state.eventSource === es) state.eventSource = null;
+                    }
+                }, 2000);
+            }
+        } catch (err) {
+            console.error('[Stream] Parse error:', err);
+        }
+    };
+
+    es.onerror = (err) => {
+        console.error('[Stream] Connection error:', err);
+        es.close();
+        if (state.eventSource === es) state.eventSource = null;
+    };
 }
 
 async function handleCreateJob(event) {
@@ -793,6 +860,7 @@ function renderCanvas() {
             : formatCompactDate(job.updated_at);
     }
     elements.artifactActions.innerHTML = buildArtifactActions(job);
+    renderCanvasArtifacts(job);
     initializeStlPreview(job);
 }
 
@@ -864,50 +932,28 @@ function renderParameterCard(parameter) {
     const value = state.parameterOverrides[overrideKey] ?? parameter.value;
     const range = deriveParameterRange(parameter, value);
 
-    if (parameter.editable === false) {
-        return `
-            <div class="parameter-card is-locked">
-                <div class="parameter-head">
-                    <strong>${escapeHtml(parameter.label)}</strong>
-                    <span>${escapeHtml(parameter.description)}</span>
-                </div>
-                <div class="parameter-readout">
-                    <input
-                        class="parameter-value"
-                        type="number"
-                        value="${escapeHtml(String(roundNumber(value, range.step)))}"
-                        step="${escapeHtml(String(range.step))}"
-                        disabled
-                    >
-                    <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
-                </div>
-            </div>
-        `;
-    }
+    const commonAttributes = `
+        data-parameter-key="${escapeHtml(parameter.key)}"
+        min="${escapeHtml(String(range.min))}"
+        max="${escapeHtml(String(range.max))}"
+        step="${escapeHtml(String(range.step))}"
+    `;
 
     return `
-        <div class="parameter-card">
+        <div class="parameter-card ${parameter.editable === false ? 'is-locked' : ''}">
             <div class="parameter-head">
-                <strong>${escapeHtml(parameter.label)}</strong>
-                <span>${escapeHtml(parameter.description)}</span>
+                <strong title="${escapeHtml(parameter.description || '')}">${escapeHtml(parameter.label)}</strong>
             </div>
             <input
-                data-parameter-key="${escapeHtml(parameter.key)}"
-                type="range"
-                min="${escapeHtml(String(range.min))}"
-                max="${escapeHtml(String(range.max))}"
+                class="parameter-value"
+                type="number"
+                data-parameter-input="${escapeHtml(parameter.key)}"
+                value="${escapeHtml(String(roundNumber(value, range.step)))}"
                 step="${escapeHtml(String(range.step))}"
-                value="${escapeHtml(String(value))}"
+                ${parameter.editable === false ? 'disabled' : ''}
             >
             <div class="parameter-readout">
-                <input
-                    class="parameter-value"
-                    data-parameter-input="${escapeHtml(parameter.key)}"
-                    type="number"
-                    value="${escapeHtml(String(roundNumber(value, range.step)))}"
-                    step="${escapeHtml(String(range.step))}"
-                >
-                <span class="parameter-unit">${escapeHtml(parameter.unit || 'value')}</span>
+                ${parameter.editable === false ? '' : `<input type="range" ${commonAttributes} value="${escapeHtml(String(value))}">`}
             </div>
         </div>
     `;
@@ -1007,10 +1053,9 @@ function renderPerformance() {
     ];
 
     elements.performancePanel.innerHTML = cards.map((card) => `
-        <div class="telemetry-card ${escapeHtml(card.tone)}">
+        <div class="telemetry-row ${escapeHtml(card.tone)}">
             <span>${escapeHtml(card.label)}</span>
             <strong>${escapeHtml(card.value)}</strong>
-            <p>${escapeHtml(card.meta)}</p>
         </div>
     `).join('');
 }
@@ -1034,12 +1079,12 @@ function renderValidation() {
     }
 
     elements.validationPanel.innerHTML = state.validations.map((rule) => `
-        <div class="validation-card ${rule.passed ? 'is-passed' : 'is-failed'}">
+        <div class="validation-row ${rule.passed ? 'is-passed' : 'is-failed'}">
             <div class="rule-row">
                 <strong>${escapeHtml(rule.rule_name || rule.rule_id)}</strong>
                 <span class="rule-chip ${rule.is_critical ? 'is-critical' : ''}">${escapeHtml(rule.passed ? 'pass' : 'fail')}</span>
             </div>
-            <div class="validation-copy">${escapeHtml(rule.message || 'No validation message.')}</div>
+            ${rule.message ? `<div class="validation-copy">${escapeHtml(rule.message)}</div>` : ''}
         </div>
     `).join('');
 }
@@ -1058,9 +1103,9 @@ function renderTimeline() {
     }
 
     elements.timelinePanel.innerHTML = logs.slice().reverse().map((log, index) => `
-        <div class="timeline-card">
+        <div class="timeline-row">
             <div class="timeline-head">
-                <strong class="timeline-title">${escapeHtml(log.agent || `agent-${index + 1}`)} · ${escapeHtml(log.action || 'event')}</strong>
+                <strong>${escapeHtml(log.agent || `agent-${index + 1}`)} · ${escapeHtml(log.action || 'event')}</strong>
                 <span class="timeline-meta">${escapeHtml(formatCompactDate(log.timestamp || log.created_at || ''))}</span>
             </div>
             <div class="timeline-copy">${formatTimelineBody(log)}</div>
@@ -1143,25 +1188,53 @@ function summarizeObjectModel(job) {
 }
 
 function buildArtifactActions(job) {
-    const actions = [];
+    // Current primary artifacts (STL, SCAD, PNG) are now in renderCanvasArtifacts overlay.
+    // We return empty string here to save vertical space as requested.
+    return '';
+}
+
+function renderCanvasArtifacts(job) {
+    if (!elements.canvasArtifactActions) return;
+    elements.canvasArtifactActions.innerHTML = '';
+    
+    if (!job || (!job.artifacts?.stl_path && !job.scad_content)) {
+        return;
+    }
+
+    const stlUrl = `${API_BASE}/jobs/${job.job_id}/artifacts/stl`;
+    const scadUrl = `${API_BASE}/jobs/${job.job_id}/artifacts/scad`;
+
+    let html = '';
+
     if (job.artifacts?.stl_path) {
-        actions.push(linkCard('Download STL', `${API_BASE}/jobs/${job.job_id}/artifacts/stl`, 'Manufacturable mesh export'));
+        html += `
+            <a href="${escapeHtml(stlUrl)}" class="canvas-action-btn" target="_blank" rel="noreferrer" title="Download STL Mesh">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Download STL</span>
+            </a>
+        `;
     }
+
     if (job.artifacts?.png_path) {
-        actions.push(linkCard('Download PNG', `${API_BASE}/jobs/${job.job_id}/artifacts/png`, 'Rendered preview image'));
+        const pngUrl = `${API_BASE}/jobs/${job.job_id}/artifacts/png`;
+        html += `
+            <a href="${escapeHtml(pngUrl)}" class="canvas-action-btn" target="_blank" rel="noreferrer" title="View Preview Image">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <span>Preview PNG</span>
+            </a>
+        `;
     }
-    if (job.scad_content) {
-        actions.push(`
-            <div class="artifact-link">
-                <strong>OpenSCAD source</strong>
-                <span>${escapeHtml(truncate(job.scad_content.replace(/\s+/g, ' '), 84))}</span>
-            </div>
-        `);
+
+    if (job.scad_content || true) { // Always show scad link if we have a job
+        html += `
+            <button class="canvas-action-btn" onclick="copySource('${escapeHtml(scadUrl)}', this)" title="Copy OpenSCAD Source">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>OpenSCAD source</span>
+            </button>
+        `;
     }
-    if (!actions.length) {
-        actions.push('<div class="artifact-link"><strong>Artifacts pending</strong><span>Files will appear here as soon as execution finishes.</span></div>');
-    }
-    return actions.join('');
+
+    elements.canvasArtifactActions.innerHTML = html;
 }
 
 function extractParameters(job) {
@@ -1349,13 +1422,46 @@ function syncParameterSlider(key, value) {
     }
 }
 
-function linkCard(label, href, copy) {
+function linkCard(label, href, description, showCopy = false) {
     return `
-        <a class="artifact-link" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
-            <strong>${escapeHtml(label)}</strong>
-            <span>${escapeHtml(copy)}</span>
-        </a>
+        <div class="artifact-link">
+            <a href="${escapeHtml(href)}" class="artifact-link-info" target="_blank" rel="noreferrer">
+                <strong>${escapeHtml(label)}</strong>
+                <span>${escapeHtml(description)}</span>
+            </a>
+            ${showCopy ? `
+                <div class="artifact-row-actions">
+                    <button class="copy-artifact-btn" onclick="copySource('${escapeHtml(href)}', this)" title="Copy source to clipboard">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+            ` : ''}
+        </div>
     `;
+}
+
+async function copySource(url, btn) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Fetch failed');
+        const text = await response.text();
+        await navigator.clipboard.writeText(text);
+        
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        btn.classList.add('is-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalContent;
+            btn.classList.remove('is-success');
+        }, 2000);
+    } catch (error) {
+        console.error('Copy failed:', error);
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
+        setTimeout(() => {
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+        }, 2000);
+    }
 }
 
 function destroyViewer() {

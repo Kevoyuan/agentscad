@@ -135,14 +135,27 @@
                 </header>
 
                 <div class="viewer-shell">
+                    <div id="canvasArtifactActions" class="canvas-actions-overlay"></div>
                     <div id="stlViewer" class="viewer-canvas"></div>
                     <div id="viewerPlaceholder" class="viewer-placeholder">
                         <p>Select a creation to inspect the generated STL here.</p>
                     </div>
-
                 </div>
 
                 <section id="artifactActions" class="artifact-actions"></section>
+
+                <section class="inspector-panel canvas-integrated">
+                    <div class="inspector-header">
+                        <div>
+                            <p class="section-kicker">Parameters</p>
+                            <h3>Editable model inputs</h3>
+                        </div>
+                        <button id="resetParametersButton" class="icon-button" type="button">Reset</button>
+                    </div>
+                    <div id="parametersPanel" class="parameters-panel horizontal-parameters">
+                        <div class="empty-copy">Generated parameters will appear here after the request is parsed.</div>
+                    </div>
+                </section>
             </section>
 
             <div class="resizer" id="resizer-right"></div>
@@ -151,13 +164,13 @@
                 <section class="inspector-panel">
                     <div class="inspector-header">
                         <div>
-                            <p class="section-kicker">Parameters</p>
-                            <h3>Editable model inputs</h3>
+                            <p class="section-kicker">Execution</p>
+                            <h3>System trace</h3>
                         </div>
-                        <button id="resetParametersButton" class="icon-button" type="button">Reset</button>
+                        <button id="copyTraceButton" class="icon-button" type="button">Copy</button>
                     </div>
-                    <div id="parametersPanel" class="parameters-panel">
-                        <div class="empty-copy">Generated parameters will appear here after the request is parsed.</div>
+                    <div id="timelinePanel" class="timeline-panel">
+                        <div class="empty-copy">Execution logs will appear here.</div>
                     </div>
                 </section>
 
@@ -185,18 +198,6 @@
                 <section class="inspector-panel">
                     <div class="inspector-header">
                         <div>
-                            <p class="section-kicker">Performance</p>
-                            <h3>Update telemetry</h3>
-                        </div>
-                    </div>
-                    <div id="performancePanel" class="parameters-panel">
-                        <div class="empty-copy">Patch and rebuild metrics will appear after parameter edits.</div>
-                    </div>
-                </section>
-
-                <section class="inspector-panel">
-                    <div class="inspector-header">
-                        <div>
                             <p class="section-kicker">Validation</p>
                             <h3>Design review</h3>
                         </div>
@@ -209,13 +210,12 @@
                 <section class="inspector-panel">
                     <div class="inspector-header">
                         <div>
-                            <p class="section-kicker">Execution</p>
-                            <h3>System trace</h3>
+                            <p class="section-kicker">Performance</p>
+                            <h3>Update telemetry</h3>
                         </div>
-                        <button id="copyTraceButton" class="icon-button" type="button">Copy</button>
                     </div>
-                    <div id="timelinePanel" class="timeline-panel">
-                        <div class="empty-copy">Execution logs will appear here.</div>
+                    <div id="performancePanel" class="parameters-panel">
+                        <div class="empty-copy">Patch and rebuild metrics will appear after parameter edits.</div>
                     </div>
                 </section>
             </aside>
