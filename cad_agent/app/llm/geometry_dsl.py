@@ -288,6 +288,10 @@ class GeometryDSLCompiler:
         inner_depth = body_depth + side_clearance
         inner_radius = max(outer_radius - wall_thickness, wall_thickness * 0.7)
         inner_translate_z = (wall_thickness - lip_height) / 2
+        screen_window_length = max(body_length - wall_thickness * 3.2, body_length * 0.82)
+        screen_window_width = max(body_width - wall_thickness * 3.2, body_width * 0.8)
+        screen_window_z = wall_thickness + lip_height / 2
+        screen_window_radius = max(inner_radius - wall_thickness * 0.35, 1.2)
 
         camera_offset_x = outer_length * 0.26
         camera_offset_y = outer_width * 0.18
@@ -314,11 +318,16 @@ class GeometryDSLCompiler:
             f"  translate([{port_offset_x:.3f}, 0, 0])\n"
             f"    cube([{port_opening_depth + 0.3:.3f}, {port_opening_width:.3f}, {outer_depth + 1.0:.3f}], center=true);\n"
             "}\n\n"
+            "module screen_window() {\n"
+            f"  translate([0, 0, {screen_window_z:.3f}])\n"
+            f"    rounded_box([{screen_window_length:.3f}, {screen_window_width:.3f}, {outer_depth + 2.0:.3f}], radius={screen_window_radius:.3f});\n"
+            "}\n\n"
             f"module {operation.name}() {{\n"
             "  union() {\n"
             "    difference() {\n"
             f"      rounded_box([{outer_length:.3f}, {outer_width:.3f}, {outer_depth:.3f}], radius={outer_radius:.3f});\n"
             f"      translate([0, 0, {inner_translate_z:.3f}]) rounded_box([{inner_length:.3f}, {inner_width:.3f}, {inner_depth:.3f}], radius={inner_radius:.3f});\n"
+            "      screen_window();\n"
             "      camera_opening();\n"
             "      port_opening();\n"
             "    }\n"
@@ -345,6 +354,16 @@ class GeometryDSLCompiler:
         cable_relief_y = -(base_depth / 2 - cable_relief_depth / 2) + 0.05
 
         return (
+            f"base_width = {base_width:.3f};\n"
+            f"base_depth = {base_depth:.3f};\n"
+            f"base_height = {base_height:.3f};\n"
+            f"pocket_width = {pocket_width:.3f};\n"
+            f"pocket_depth = {pocket_depth:.3f};\n"
+            f"pocket_height = {pocket_height:.3f};\n"
+            f"cable_relief_width = {cable_relief_width:.3f};\n"
+            f"cable_relief_depth = {cable_relief_depth:.3f};\n"
+            f"edge_radius = {edge_radius:.3f};\n"
+            f"wall_thickness = {wall_thickness:.3f};\n\n"
             "module rounded_prism(size=[10, 10, 10], radius=2) {\n"
             "  linear_extrude(height=size[2], center=true)\n"
             "    offset(r=radius)\n"
@@ -355,15 +374,15 @@ class GeometryDSLCompiler:
             "}\n\n"
             "module top_alignment_pocket() {\n"
             f"  translate([0, 0, {pocket_z:.3f}])\n"
-            f"    rounded_prism([{pocket_width:.3f}, {pocket_depth:.3f}, {pocket_height + 0.2:.3f}], radius={pocket_radius:.3f});\n"
+            f"    rounded_prism([pocket_width, pocket_depth, {pocket_height + 0.2:.3f}], radius={pocket_radius:.3f});\n"
             "}\n\n"
             "module cable_relief() {\n"
             f"  translate([0, {cable_relief_y:.3f}, 0])\n"
-            f"    cube([{cable_relief_width:.3f}, {cable_relief_depth + 0.2:.3f}, {base_height + 1.0:.3f}], center=true);\n"
+            f"    cube([cable_relief_width, {cable_relief_depth + 0.2:.3f}, {base_height + 1.0:.3f}], center=true);\n"
             "}\n\n"
             f"module {operation.name}() {{\n"
             "  difference() {\n"
-            f"    rounded_prism([{base_width:.3f}, {base_depth:.3f}, {base_height:.3f}], radius={edge_radius:.3f});\n"
+            "    rounded_prism([base_width, base_depth, base_height], radius=edge_radius);\n"
             "    top_alignment_pocket();\n"
             "    cable_relief();\n"
             f"    translate([0, 0, {-base_height / 2 + wall_thickness * 0.55:.3f}]) cube([{max(base_width - wall_thickness * 4, 0.1):.3f}, {max(base_depth * 0.34, 0.1):.3f}, {max(base_height * 0.45, 0.1):.3f}], center=true);\n"
