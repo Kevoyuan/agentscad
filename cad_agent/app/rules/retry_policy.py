@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from cad_agent.app.llm.pipeline_utils import has_resolved_part_family
 from cad_agent.app.models.design_job import DesignJob, JobState
 
 
@@ -25,12 +24,7 @@ class RetryPolicy:
         if job.retry_count >= self.max_retries:
             return True
 
-        intent_confidence = getattr(job.intent_result, "confidence", None)
-        intent_part_family = getattr(job.intent_result, "part_family", None)
-        if intent_confidence is not None and has_resolved_part_family(intent_part_family) and intent_confidence < self.min_confidence:
-            return True
-
-        if not has_resolved_part_family(job.part_family) and not job.spec and job.retry_count > 0:
+        if not job.scad_source and job.retry_count > 0:
             return True
 
         return False
@@ -54,13 +48,12 @@ class RetryPolicy:
         if failed_state == JobState.GEOMETRY_FAILED.value:
             return JobState.REPAIRING
 
-        if failed_state == JobState.PARAMETER_FAILED.value:
-            return JobState.DESIGN_RESOLVED
-
-        if failed_state == JobState.DESIGN_FAILED.value:
-            return JobState.INTENT_RESOLVED
-
-        if failed_state == JobState.INTENT_FAILED.value:
-            return JobState.RESEARCHED
+        if failed_state in {
+            JobState.PARAMETER_FAILED.value,
+            JobState.DESIGN_FAILED.value,
+            JobState.INTENT_FAILED.value,
+            JobState.SPEC_FAILED.value,
+        }:
+            return JobState.REPAIRING
 
         return job.state

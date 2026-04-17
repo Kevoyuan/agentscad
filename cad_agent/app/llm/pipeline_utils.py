@@ -1,4 +1,4 @@
-"""Deterministic helpers for the redesign pipeline."""
+"""Small helper utilities shared by the remaining single-pass pipeline."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from cad_agent.app.llm.pipeline_models import PartFamily
+PartFamily = str
 
 
 @dataclass(frozen=True)
@@ -29,24 +29,22 @@ def normalize_entity_text(request: str) -> str:
 
 
 def infer_part_family(request: str) -> PartFamily:
-    """Classify a request into a supported part family."""
+    """Classify a request into a coarse string family."""
     text = normalize_entity_text(request)
 
     if any(token in text for token in ("gear", "齿轮", "spur gear", "helical gear", "bevel gear", "worm gear")):
-        return PartFamily.SPUR_GEAR
+        return "spur_gear"
     if any(token in text for token in ("phone case", "iphone case", "手机壳", "保护壳", "case for iphone")):
-        return PartFamily.PHONE_CASE
+        return "phone_case"
     if any(token in text for token in ("stand", "底座", "dock", "cradle", "holder", "support", "支架")):
-        return PartFamily.DEVICE_STAND
+        return "device_stand"
     if any(token in text for token in ("enclosure", "case", "box", "shell", "housing", "机箱", "外壳")):
-        return PartFamily.ELECTRONICS_ENCLOSURE
-    return PartFamily.UNKNOWN
+        return "electronics_enclosure"
+    return "unknown"
 
 
 def normalize_part_family_value(part_family: PartFamily | str | None) -> str:
     """Normalize a family enum/string into a stable lowercase value."""
-    if isinstance(part_family, PartFamily):
-        return part_family.value
     if part_family is None:
         return ""
     return str(part_family).strip().lower()
@@ -89,24 +87,25 @@ def extract_numbers(request: str) -> ParsedDimensions:
     raw_numbers = [float(item) for item in re.findall(r"(\d+(?:\.\d+)?)", request)]
     text = request.lower()
 
-    if family := infer_part_family(request):
-        if family == PartFamily.SPUR_GEAR:
+    family = infer_part_family(request)
+    if family and family != "unknown":
+        if family == "spur_gear":
             _assign_dimension(values, text, "teeth", r"(\d+)\s*(?:齿|tooth|teeth)")
             _assign_dimension(values, text, "outer_diameter", r"(?:outer|outside|od|外径|外)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "inner_diameter", r"(?:inner|bore|hole|id|内径|内)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "thickness", r"(?:thickness|thick|厚度|厚)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "pressure_angle", r"(\d+(?:\.\d+)?)\s*deg(?:ree)?")
-        elif family == PartFamily.DEVICE_STAND:
+        elif family == "device_stand":
             _assign_dimension(values, text, "device_width", r"(?:width|w)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "device_depth", r"(?:depth|d)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "stand_height", r"(?:height|h)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "wall_thickness", r"(?:wall|thickness)[^\d]*(\d+(?:\.\d+)?)\s*mm")
-        elif family == PartFamily.ELECTRONICS_ENCLOSURE:
+        elif family == "electronics_enclosure":
             _assign_dimension(values, text, "outer_width", r"(?:width|w|宽度|宽)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "outer_depth", r"(?:depth|d|深度|深)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "outer_height", r"(?:height|h|高度|高)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "wall_thickness", r"(?:wall|thickness|壁厚|厚)[^\d]*(\d+(?:\.\d+)?)\s*mm")
-        elif family == PartFamily.PHONE_CASE:
+        elif family == "phone_case":
             _assign_dimension(values, text, "body_length", r"(?:length|long|长)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "body_width", r"(?:width|wide|宽)[^\d]*(\d+(?:\.\d+)?)\s*mm")
             _assign_dimension(values, text, "body_depth", r"(?:depth|thickness|厚)[^\d]*(\d+(?:\.\d+)?)\s*mm")
@@ -117,7 +116,7 @@ def extract_numbers(request: str) -> ParsedDimensions:
 
 def family_default_values(family: PartFamily) -> dict[str, float]:
     """Return stable default values for supported families."""
-    if family == PartFamily.SPUR_GEAR:
+    if family == "spur_gear":
         return {
             "teeth": 17.0,
             "outer_diameter": 30.0,
@@ -125,7 +124,7 @@ def family_default_values(family: PartFamily) -> dict[str, float]:
             "thickness": 3.0,
             "pressure_angle": 20.0,
         }
-    if family == PartFamily.DEVICE_STAND:
+    if family == "device_stand":
         return {
             "device_width": 130.0,
             "device_depth": 130.0,
@@ -137,7 +136,7 @@ def family_default_values(family: PartFamily) -> dict[str, float]:
             "arch_radius": 61.0,
             "arch_peak": 22.0,
         }
-    if family == PartFamily.ELECTRONICS_ENCLOSURE:
+    if family == "electronics_enclosure":
         return {
             "outer_width": 100.0,
             "outer_depth": 70.0,
@@ -150,7 +149,7 @@ def family_default_values(family: PartFamily) -> dict[str, float]:
             "boss_diameter": 5.0,
             "vent_spacing": 12.0,
         }
-    if family == PartFamily.PHONE_CASE:
+    if family == "phone_case":
         return {
             "body_length": 149.6,
             "body_width": 71.5,
@@ -182,20 +181,20 @@ def unit_for_key(key: str) -> str:
 def infer_missing_questions(family: PartFamily, values: dict[str, float]) -> list[str]:
     """Return open questions that still matter for the family."""
     questions = {
-        PartFamily.SPUR_GEAR: [
+        "spur_gear": [
             "Should the gear be hubbed or flat?",
             "Is the pressure angle standard 20 degrees?",
         ],
-        PartFamily.DEVICE_STAND: [
+        "device_stand": [
             "What exact device footprint should the stand fit?",
             "Should the stand prioritize airflow or enclosure?",
         ],
-        PartFamily.ELECTRONICS_ENCLOSURE: [
+        "electronics_enclosure": [
             "How much internal clearance is needed around the electronics?",
             "Does the enclosure need a split line or a one-piece shell?",
             "Are there specific cutouts or mounting bosses required?",
         ],
-        PartFamily.PHONE_CASE: [
+        "phone_case": [
             "How protective should the case be around the corners and camera island?",
             "Should the bottom edge stay open for easier port access?",
             "How much front lip should protect the screen?",
@@ -203,13 +202,13 @@ def infer_missing_questions(family: PartFamily, values: dict[str, float]) -> lis
     }
 
     base = questions.get(family, [])
-    if family == PartFamily.SPUR_GEAR and "teeth" not in values:
+    if family == "spur_gear" and "teeth" not in values:
         base = base + ["How many teeth should the gear have?"]
-    if family == PartFamily.DEVICE_STAND and "device_width" not in values:
+    if family == "device_stand" and "device_width" not in values:
         base = base + ["What is the supported device size?"]
-    if family == PartFamily.ELECTRONICS_ENCLOSURE and "outer_width" not in values:
+    if family == "electronics_enclosure" and "outer_width" not in values:
         base = base + ["What are the target outer dimensions?"]
-    if family == PartFamily.PHONE_CASE and "body_length" not in values:
+    if family == "phone_case" and "body_length" not in values:
         base = base + ["What exact phone dimensions should the case wrap around?"]
     return list(dict.fromkeys(base))
 
@@ -218,9 +217,9 @@ def build_search_queries(request: str, family: PartFamily) -> list[str]:
     """Create research-oriented search queries."""
     text = request.strip()
     normalized_text = normalize_entity_text(text)
-    if family == PartFamily.SPUR_GEAR:
+    if family == "spur_gear":
         return [f"{text} standard gear dimensions", f"{text} module pressure angle"]
-    if family == PartFamily.DEVICE_STAND:
+    if family == "device_stand":
         normalized = normalize_known_object_name(text)
         request_lower = normalized_text
         if "mac mini" in request_lower:
@@ -252,9 +251,9 @@ def build_search_queries(request: str, family: PartFamily) -> list[str]:
                 f"{normalized} footprint rubber feet",
             ]
         return [f"{normalized} product dimensions", f"{normalized} device footprint stand"]
-    if family == PartFamily.ELECTRONICS_ENCLOSURE:
+    if family == "electronics_enclosure":
         return [f"{text} enclosure clearance", f"{text} electronics case dimensions"]
-    if family == PartFamily.PHONE_CASE:
+    if family == "phone_case":
         normalized = normalize_known_object_name(text)
         return [
             f"{normalized} dimensions",

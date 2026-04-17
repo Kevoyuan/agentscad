@@ -77,22 +77,19 @@ class ValidatorAgent:
 
         critical_failures = [v for v in validation_results if v.is_critical]
 
-        review_state = JobState.REVIEWED if job.part_family else JobState.VALIDATED
-
         if critical_failures:
             result = AgentResult(
                 success=False,
                 agent=AgentRole.VALIDATOR,
-                state_reached=JobState.REVIEW_FAILED.value if job.part_family else JobState.VALIDATION_FAILED.value,
+                state_reached=JobState.VALIDATION_FAILED.value,
                 data={"validation_results": [v.model_dump() for v in validation_results]},
                 error=f"Critical validation failure: {critical_failures[0].rule_id}",
             )
         else:
-            job.transition_to(review_state)
             result = AgentResult(
                 success=True,
                 agent=AgentRole.VALIDATOR,
-                state_reached=review_state.value,
+                state_reached=JobState.VALIDATED.value,
                 data={"validation_results": [v.model_dump() for v in validation_results]},
             )
 
@@ -136,7 +133,7 @@ class ValidatorAgent:
         """Layer 2: Validate engineering rules."""
         dimensions: dict[str, Any] = {}
 
-        if job.part_family and job.parameter_values:
+        if job.parameter_values:
             dimensions = job.get_effective_parameter_values()
         elif job.spec:
             dimensions = job.spec.dimensions.copy()
@@ -182,20 +179,19 @@ class ValidatorAgent:
         if family not in {"phone_case", "device_stand"}:
             return []
 
-        exact_fit_required = False
+        object_model = job.research_result.object_model if isinstance(job.research_result.object_model, dict) else {}
         if family == "phone_case":
-            exact_fit_required = True
-        elif family == "device_stand":
-            object_model = job.research_result.object_model if isinstance(job.research_result.object_model, dict) else {}
-            exact_fit_required = object_model.get("synthesis_kind") == "support_base"
-
-        if not exact_fit_required:
+            passed = self._has_verified_fit_reference(job)
+            success_message = "Fit-critical geometry is backed by verified device dimensions or uploaded visual references."
+            failure_message = "Fit-critical geometry is missing verified device dimensions or uploaded visual references."
+        elif family == "device_stand" and object_model.get("synthesis_kind") == "support_base":
+            passed = self._has_support_geometry_reference(job)
+            success_message = "Support geometry is backed by either verified references or a complete device envelope for stand generation."
+            failure_message = "Support-base geometry is missing both verified references and a complete device envelope."
+        else:
             return []
 
-        has_verified_dimensions = bool(job.research_result.reference_dimensions)
-        has_visual_reference = bool(job.research_result.image_reference_used and job.research_result.image_analysis_summaries)
-
-        if has_verified_dimensions or has_visual_reference:
+        if passed:
             return [
                 ValidationResult(
                     rule_id="S002",
@@ -204,7 +200,7 @@ class ValidatorAgent:
                     rule_type=RuleType.SEMANTIC,
                     passed=True,
                     severity="error",
-                    message="Fit-critical geometry is backed by verified device dimensions or uploaded visual references.",
+                    message=success_message,
                 )
             ]
 
@@ -216,14 +212,31 @@ class ValidatorAgent:
                 rule_type=RuleType.SEMANTIC,
                 passed=False,
                 severity="error",
-                message="Fit-critical geometry is missing verified device dimensions or uploaded visual references.",
+                message=failure_message,
                 details={
                     "needs_web_search": bool(job.research_result.needs_web_search),
                     "web_research_used": bool(job.research_result.web_research_used),
                     "image_reference_used": bool(job.research_result.image_reference_used),
+                    "has_reference_dimensions": bool(job.research_result.reference_dimensions),
+                    "has_object_envelope": self._has_complete_object_envelope(job),
                 },
             )
         ]
+
+    def _has_verified_fit_reference(self, job: DesignJob) -> bool:
+        return bool(job.research_result and job.research_result.reference_dimensions) or bool(
+            job.research_result
+            and job.research_result.image_reference_used
+            and job.research_result.image_analysis_summaries
+        )
+
+    def _has_complete_object_envelope(self, job: DesignJob) -> bool:
+        object_model = job.research_result.object_model if job.research_result and isinstance(job.research_result.object_model, dict) else {}
+        envelope = object_model.get("envelope_mm", {}) if isinstance(object_model, dict) else {}
+        return all(isinstance(envelope.get(axis), (int, float)) for axis in ("width", "depth", "height"))
+
+    def _has_support_geometry_reference(self, job: DesignJob) -> bool:
+        return self._has_verified_fit_reference(job) or self._has_complete_object_envelope(job)
 
     def _validate_business_layer(self, job: DesignJob) -> list[ValidationResult]:
         """Layer 3: Validate business acceptance criteria."""

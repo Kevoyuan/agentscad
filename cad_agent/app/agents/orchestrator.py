@@ -7,24 +7,13 @@ from typing import TYPE_CHECKING, Optional
 
 import structlog
 
-from cad_agent.app.llm.geometry_intent import infer_geometry_intent
-from cad_agent.app.llm.object_model import enrich_object_model_from_spec
-from cad_agent.app.llm.pipeline_utils import (
-    has_resolved_part_family,
-    normalize_part_family_value,
-)
 from cad_agent.app.models.agent_result import AgentResult, AgentRole
 from cad_agent.app.models.case import Case
-from cad_agent.app.models.design_job import DesignJob, JobState, ParameterSchema
+from cad_agent.app.models.design_job import DesignJob, JobState
 from cad_agent.app.rules.retry_policy import RetryPolicy
 
 if TYPE_CHECKING:
     from cad_agent.app.services.case_memory import CaseMemoryService
-    from cad_agent.app.agents.research_agent import ResearchAgent
-    from cad_agent.app.agents.intake_agent import IntakeAgent
-    from cad_agent.app.agents.intent_agent import IntentAgent
-    from cad_agent.app.agents.design_agent import DesignAgent
-    from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
     from cad_agent.app.agents.generator_agent import GeneratorAgent
     from cad_agent.app.agents.executor_agent import ExecutorAgent
     from cad_agent.app.agents.validator_agent import ValidatorAgent
@@ -50,24 +39,23 @@ class OrchestratorAgent:
 
     def set_agents(
         self,
-        research: "ResearchAgent",
-        intake: "IntakeAgent",
-        intent: "IntentAgent",
-        design: "DesignAgent",
-        parameters: "ParameterSchemaAgent",
-        generator: "GeneratorAgent",
-        executor: "ExecutorAgent",
-        validator: "ValidatorAgent",
-        debug: "DebugAgent",
-        report: "ReportAgent",
+        research: object | None = None,
+        intake: object | None = None,
+        intent: object | None = None,
+        design: object | None = None,
+        parameters: object | None = None,
+        generator: "GeneratorAgent" | None = None,
+        executor: "ExecutorAgent" | None = None,
+        validator: "ValidatorAgent" | None = None,
+        debug: "DebugAgent" | None = None,
+        report: "ReportAgent" | None = None,
     ) -> None:
-        """Set all agent references for delegation."""
+        """Set agent references for delegation.
+
+        Legacy arguments are accepted for API compatibility, but only the
+        single-pass generator harness is used by the current pipeline.
+        """
         self._agents = {
-            "research": research,
-            "intake": intake,
-            "intent": intent,
-            "design": design,
-            "parameters": parameters,
             "generator": generator,
             "executor": executor,
             "validator": validator,
@@ -80,14 +68,7 @@ class OrchestratorAgent:
         self.case_memory = case_memory
 
     async def process(self, job: DesignJob) -> AgentResult:
-        """Main orchestration loop - process a job through states.
-
-        Args:
-            job: The DesignJob to process
-
-        Returns:
-            AgentResult with final state and any output data
-        """
+        """Main orchestration loop - process a job through states."""
         start_time = time.time()
         logger.info("orchestrator_started", job_id=job.id, state=job.state.value)
 
@@ -107,14 +88,14 @@ class OrchestratorAgent:
                 job.transition_to(next_state)
             elif not result.success:
                 job.transition_to(JobState.HUMAN_REVIEW)
-            if result.success:
+            else:
                 job.transition_to(JobState(result.state_reached))
 
             if self.on_update:
                 await self.on_update(job)
 
         duration_ms = int((time.time() - start_time) * 1000)
-        if self._is_terminal_state(job.state):
+        if job.state == JobState.DELIVERED:
             self._store_success_case(job)
         return AgentResult(
             success=self._is_terminal_state(job.state),
@@ -137,7 +118,6 @@ class OrchestratorAgent:
             JobState.RENDERED,
             JobState.GEOMETRY_FAILED,
             JobState.RENDER_FAILED,
-            JobState.SPEC_FAILED,
             JobState.HUMAN_REVIEW,
             JobState.CANCELLED,
         }
@@ -170,55 +150,13 @@ class OrchestratorAgent:
         )
 
     async def _route_to_agent(self, job: DesignJob) -> AgentResult:
-        """Route job to appropriate agent based on current state.
-
-        Args:
-            job: The DesignJob to route
-
-        Returns:
-            AgentResult from the called agent
-        """
-        if self._requires_verified_fit_reference_before_generation(job):
-            result = AgentResult(
-                success=True,
-                agent=AgentRole.ORCHESTRATOR,
-                state_reached=JobState.HUMAN_REVIEW.value,
-                data={
-                    "reason": "missing_verified_fit_reference",
-                    "part_family": normalize_part_family_value(
-                        job.part_family or getattr(job.research_result, "part_family", None)
-                    ),
-                },
-                error=(
-                    "Fit-critical geometry requires verified device dimensions or uploaded "
-                    "visual references before generation."
-                ),
-            )
-            job.add_log(
-                {
-                    "agent": "orchestrator",
-                    "action": "gate_fit_reference",
-                    "success": True,
-                    "state_reached": result.state_reached,
-                    "error_message": result.error,
-                    "output_data": result.data,
-                    "duration_ms": result.duration_ms,
-                }
-            )
-            return result
-
+        """Route job to appropriate agent based on current state."""
         state_to_agent = {
-            JobState.NEW: ("research", "research"),
-            JobState.RESEARCHED: ("intake", "process"),
-            JobState.SPEC_PARSED: ("intent", "resolve"),
-            JobState.INTENT_RESOLVED: ("design", "design"),
-            JobState.DESIGN_RESOLVED: ("parameters", "build_schema"),
-            JobState.PARAMETERS_GENERATED: ("generator", "generate"),
+            JobState.NEW: ("generator", "generate"),
             JobState.SCAD_GENERATED: ("executor", "execute"),
             JobState.RENDERED: ("validator", "validate"),
-            JobState.REVIEWED: ("intake", "accept"),
-            JobState.VALIDATED: ("intake", "accept"),
-            JobState.ACCEPTED: ("report", "generate"),
+            JobState.VALIDATED: ("report", "generate"),
+            JobState.REVIEWED: ("report", "generate"),
             JobState.DEBUGGING: ("debug", "diagnose"),
             JobState.REPAIRING: ("generator", "repair"),
         }
@@ -252,82 +190,7 @@ class OrchestratorAgent:
             )
 
         logger.info("routing_to_agent", job_id=job.id, agent=agent_name, state=job.state.value)
-        if agent_name == "research":
-            payload = await method(
-                job.input_request,
-                job.part_family,
-                [image.stored_path for image in job.reference_images],
-            )
-            job.research_result = payload
-            if getattr(payload, "part_family", None):
-                job.part_family = str(payload.part_family.value if hasattr(payload.part_family, "value") else payload.part_family)
-            if getattr(payload, "object_model", None):
-                if not job.business_context:
-                    job.business_context = {}
-                job.business_context["object_model"] = dict(payload.object_model)
-            result = AgentResult(
-                success=not bool(getattr(payload, "error_message", None)),
-                agent=AgentRole.RESEARCH,
-                state_reached=JobState.RESEARCHED.value if not getattr(payload, "error_message", None) else JobState.RESEARCH_FAILED.value,
-                data={"research_result": payload.model_dump(mode="json")},
-                error=getattr(payload, "error_message", None),
-            )
-        elif agent_name == "intake" and method_name == "process":
-            result = await method(job)
-            geometry_intent = infer_geometry_intent(
-                job.input_request,
-                job.spec.dimensions if job.spec else None,
-                job.spec.geometric_type if job.spec else "",
-            )
-            if geometry_intent:
-                if not job.business_context:
-                    job.business_context = {}
-                job.business_context["geometry_intent"] = geometry_intent
-            if job.spec and job.research_result:
-                merged_object_model = enrich_object_model_from_spec(
-                    getattr(job.research_result, "object_model", None),
-                    job.spec.dimensions,
-                )
-                if merged_object_model:
-                    job.research_result.object_model = merged_object_model
-                    if not job.business_context:
-                        job.business_context = {}
-                    job.business_context["object_model"] = merged_object_model
-        elif agent_name == "intent":
-            payload = await method(job.input_request, job.research_result)
-            job.intent_result = payload
-            if getattr(payload, "part_family", None):
-                job.part_family = str(payload.part_family.value if hasattr(payload.part_family, "value") else payload.part_family)
-            result = AgentResult(
-                success=not bool(getattr(payload, "error_message", None)),
-                agent=AgentRole.INTENT,
-                state_reached=JobState.INTENT_RESOLVED.value if not getattr(payload, "error_message", None) else JobState.INTENT_FAILED.value,
-                data={"intent_result": payload.model_dump(mode="json")},
-                error=getattr(payload, "error_message", None),
-            )
-        elif agent_name == "design":
-            payload = await method(job.intent_result, job.research_result)
-            job.design_result = payload
-            result = AgentResult(
-                success=not bool(getattr(payload, "error_message", None)),
-                agent=AgentRole.DESIGN,
-                state_reached=JobState.DESIGN_RESOLVED.value if not getattr(payload, "error_message", None) else JobState.DESIGN_FAILED.value,
-                data={"design_result": payload.model_dump(mode="json")},
-                error=getattr(payload, "error_message", None),
-            )
-        elif agent_name == "parameters":
-            payload = await method(job.input_request, job.intent_result, job.design_result, job.research_result, job.spec)
-            job.parameter_schema = ParameterSchema.model_validate(payload.model_dump(mode="json"))
-            job.set_parameter_values(job.parameter_schema.parameter_values())
-            result = AgentResult(
-                success=not bool(getattr(payload, "error_message", None)),
-                agent=AgentRole.PARAMETERS,
-                state_reached=JobState.PARAMETERS_GENERATED.value if not getattr(payload, "error_message", None) else JobState.PARAMETER_FAILED.value,
-                data={"parameter_schema": payload.model_dump(mode="json")},
-                error=getattr(payload, "error_message", None),
-            )
-        else:
-            result = await method(job)
+        result = await method(job)
 
         job.add_log(
             {
@@ -343,52 +206,22 @@ class OrchestratorAgent:
 
         return result
 
-    def _requires_verified_fit_reference_before_generation(self, job: DesignJob) -> bool:
-        """Block fit-critical jobs before geometry generation when references are missing."""
-        if job.state != JobState.PARAMETERS_GENERATED or not job.research_result:
-            return False
-
-        family = normalize_part_family_value(job.part_family or job.research_result.part_family)
-        object_model = getattr(job.research_result, "object_model", {}) or {}
-        synthesis_kind = str(object_model.get("synthesis_kind", "")).strip().lower()
-
-        is_fit_critical = family == "phone_case" or (
-            family == "device_stand" and synthesis_kind == "support_base"
-        )
-        if not is_fit_critical:
-            return False
-
-        has_reference_dimensions = bool(job.research_result.reference_dimensions)
-        has_visual_reference = bool(
-            job.research_result.image_reference_used and job.research_result.image_analysis_summaries
-        )
-        return not (has_reference_dimensions or has_visual_reference)
-
     def _store_success_case(self, job: DesignJob) -> None:
         """Persist successful jobs into case memory for future reuse."""
         if not self.case_memory:
             return
 
-        template_name = "unknown"
-        final_parameters: dict[str, object] = {}
-        tags: list[str] = []
+        template_name = job.generation_path or "direct_llm_parametric"
+        final_parameters = job.get_effective_parameter_values()
+        tags: list[str] = [template_name]
 
-        if job.generation_path:
-            template_name = job.generation_path
-            final_parameters = job.get_effective_parameter_values()
-        elif job.part_family:
-            template_name = job.builder_name or job.part_family
-            final_parameters = job.get_effective_parameter_values()
-
-        if job.spec:
-            tags.append(job.spec.geometric_type)
-        if template_name:
-            tags.append(template_name)
+        if job.parameter_schema and job.parameter_schema.design_summary:
+            tags.append("parametric")
 
         case = Case(
             id=job.case_id or job.id,
             input_request=job.input_request,
-            spec_summary=f"{job.spec.geometric_type} {job.spec.dimensions}" if job.spec else (job.part_family or "unknown"),
+            spec_summary=(job.business_context or {}).get("generation_summary", template_name),
             template_name=template_name,
             final_parameters=final_parameters,
             outcome="delivered",

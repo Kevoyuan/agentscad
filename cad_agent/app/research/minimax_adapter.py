@@ -192,17 +192,28 @@ class MiniMaxWebSearchAdapter:
         if dimensions:
             return dimensions
 
+        # Try format: "127 × 127 × 39 mm" (unit at end only)
         multi_match = re.search(
             r"(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)\s*(mm|cm)",
             text_lower,
             re.IGNORECASE,
         )
-        if not multi_match:
-            return dimensions
-
-        a = self._convert_unit_to_mm(float(multi_match.group(1)), multi_match.group(4))
-        b = self._convert_unit_to_mm(float(multi_match.group(2)), multi_match.group(4))
-        c = self._convert_unit_to_mm(float(multi_match.group(3)), multi_match.group(4))
+        if multi_match:
+            a = self._convert_unit_to_mm(float(multi_match.group(1)), multi_match.group(4))
+            b = self._convert_unit_to_mm(float(multi_match.group(2)), multi_match.group(4))
+            c = self._convert_unit_to_mm(float(multi_match.group(3)), multi_match.group(4))
+        else:
+            # Try format: "127 mm × 127 mm × 39 mm" (unit after each number)
+            multi_match = re.search(
+                r"(\d+(?:\.\d+)?)\s*(mm|cm)\s*[×x]\s*(\d+(?:\.\d+)?)\s*(mm|cm)\s*[×x]\s*(\d+(?:\.\d+)?)\s*(mm|cm)",
+                text_lower,
+                re.IGNORECASE,
+            )
+            if not multi_match:
+                return dimensions
+            a = self._convert_unit_to_mm(float(multi_match.group(1)), multi_match.group(2))
+            b = self._convert_unit_to_mm(float(multi_match.group(3)), multi_match.group(4))
+            c = self._convert_unit_to_mm(float(multi_match.group(5)), multi_match.group(6))
 
         if self._is_device_support_request(request_lower):
             return {
