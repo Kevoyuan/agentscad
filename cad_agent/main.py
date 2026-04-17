@@ -18,11 +18,6 @@ from cad_agent.app.models.design_job import DesignJob, JobState, ReferenceImage
 from cad_agent.app.models.agent_result import AgentRole
 from cad_agent.app.models.validation import ValidationLevel
 from cad_agent.app.agents.orchestrator import OrchestratorAgent
-from cad_agent.app.agents.research_agent import ResearchAgent
-from cad_agent.app.agents.intake_agent import IntakeAgent
-from cad_agent.app.agents.intent_agent import IntentAgent
-from cad_agent.app.agents.design_agent import DesignAgent
-from cad_agent.app.agents.parameter_schema_agent import ParameterSchemaAgent
 from cad_agent.app.agents.generator_agent import GeneratorAgent
 from cad_agent.app.agents.executor_agent import ExecutorAgent
 from cad_agent.app.agents.validator_agent import ValidatorAgent
@@ -33,12 +28,10 @@ from cad_agent.app.rules.retry_policy import RetryPolicy
 from cad_agent.app.storage.sqlite_repo import SQLiteJobRepository
 from cad_agent.app.services.case_memory import CaseMemoryService
 from cad_agent.app.tools.openscad_executor import OpenSCADExecutor
-from cad_agent.app.research import MiniMaxVisionAdapter, MiniMaxWebSearchAdapter
 from cad_agent.app.llm import (
     AnthropicCompatibleLLMClient,
     LLMDesignCritic,
     LLMScadGenerator,
-    LLMSpecParser,
 )
 from cad_agent.app.llm.scad_parameter_schema import apply_parameter_values_to_scad
 
@@ -228,42 +221,18 @@ async def lifespan(app: FastAPI):
         timeout_seconds=settings.render_timeout,
     )
 
-    llm_spec_parser = None
     llm_scad_generator = None
     llm_design_critic = None
     try:
         provider_config = settings.resolve_llm_provider_config()
         if provider_config.is_anthropic_compatible:
             llm_client = AnthropicCompatibleLLMClient(provider_config)
-            llm_spec_parser = LLMSpecParser(llm_client)
             llm_scad_generator = LLMScadGenerator(llm_client)
             llm_design_critic = LLMDesignCritic(llm_client)
     except ValueError:
-        llm_spec_parser = None
         llm_scad_generator = None
         llm_design_critic = None
 
-    web_research_adapter = None
-    if settings.web_research_enabled:
-        web_research_adapter = MiniMaxWebSearchAdapter(
-            timeout_seconds=settings.web_research_timeout,
-            user_agent=settings.web_research_user_agent,
-        )
-
-    vision_adapter = None
-    if settings.image_understanding_enabled:
-        vision_adapter = MiniMaxVisionAdapter(
-            timeout_seconds=settings.image_understanding_timeout,
-        )
-
-    research_agent = ResearchAgent(
-        web_research_adapter=web_research_adapter,
-        vision_adapter=vision_adapter,
-    )
-    intake_agent = IntakeAgent(spec_parser=llm_spec_parser)
-    intent_agent = IntentAgent()
-    design_agent = DesignAgent()
-    parameter_schema_agent = ParameterSchemaAgent()
     generator_agent = GeneratorAgent(llm_scad_generator=llm_scad_generator)
     executor_agent = ExecutorAgent(executor=openscad_executor)
     validator_agent = ValidatorAgent(
@@ -276,11 +245,6 @@ async def lifespan(app: FastAPI):
     _orchestrator = OrchestratorAgent(retry_policy=retry_policy, case_memory=_case_memory)
     _orchestrator.on_update = _event_bus.broadcast
     _orchestrator.set_agents(
-        research=research_agent,
-        intake=intake_agent,
-        intent=intent_agent,
-        design=design_agent,
-        parameters=parameter_schema_agent,
         generator=generator_agent,
         executor=executor_agent,
         validator=validator_agent,
@@ -399,7 +363,14 @@ async def process_job(job_id: str, background_tasks: BackgroundTasks) -> JSONRes
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    if job.state not in {JobState.NEW, JobState.RESEARCH_FAILED, JobState.INTENT_FAILED, JobState.DESIGN_FAILED, JobState.PARAMETER_FAILED, JobState.SPEC_FAILED, JobState.GEOMETRY_FAILED, JobState.REVIEW_FAILED}:
+    if job.state not in {
+        JobState.NEW,
+        JobState.GEOMETRY_FAILED,
+        JobState.RENDER_FAILED,
+        JobState.VALIDATION_FAILED,
+        JobState.DEBUGGING,
+        JobState.REPAIRING,
+    }:
         return JSONResponse(
             status_code=400,
             content={"detail": f"Job {job_id} is in state {job.state.value}, cannot process from this state"},

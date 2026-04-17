@@ -38,10 +38,10 @@ class ReportAgent:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     async def generate(self, job: DesignJob) -> AgentResult:
-        """Generate delivery report for accepted design.
+        """Generate delivery report for a validated design.
 
         Args:
-            job: DesignJob in ACCEPTED state
+            job: DesignJob in VALIDATED or ACCEPTED state
 
         Returns:
             AgentResult with report data
@@ -49,12 +49,12 @@ class ReportAgent:
         start_time = time.time()
         logger.info("generating_report", job_id=job.id)
 
-        if job.state != JobState.ACCEPTED:
+        if job.state not in {JobState.ACCEPTED, JobState.VALIDATED, JobState.REVIEWED}:
             return AgentResult(
                 success=False,
                 agent=AgentRole.REPORT,
                 state_reached=job.state.value,
-                error="Can only generate report for ACCEPTED designs",
+                error="Can only generate report for validated designs",
             )
 
         job.transition_to(JobState.DELIVERED)
