@@ -161,3 +161,59 @@ phone_case_body();
     trusted_dimensions = next(v for v in job.validation_results if v.rule_id == "S002")
     assert trusted_dimensions.passed is False
     assert "missing verified device dimensions" in trusted_dimensions.message.lower()
+
+
+@pytest.mark.asyncio
+async def test_validator_allows_device_stand_with_complete_object_envelope(tmp_path: Path) -> None:
+    stl_path = tmp_path / "design.stl"
+    stl_path.write_text("solid test\nendsolid test\n")
+
+    scad_source = """
+module support_base() {
+  difference() {
+    cube([221, 221, 30], center=false);
+    translate([11, 11, 0]) cube([199, 199, 24], center=false);
+  }
+}
+
+support_base();
+"""
+
+    job = DesignJob(
+        input_request="design new mac mini m4 stand",
+        state=JobState.RENDERED,
+        part_family="device_stand",
+        scad_source=scad_source,
+        artifacts=Artifacts(scad_source=scad_source, stl_path=str(stl_path)),
+        research_result=ResearchResult(
+            request="design new mac mini m4 stand",
+            part_family="device_stand",
+            object_name="Mac mini M4",
+            needs_web_search=True,
+            web_research_used=False,
+            image_reference_used=False,
+            reference_dimensions={},
+            object_model={
+                "synthesis_kind": "support_base",
+                "envelope_mm": {"width": 197.0, "depth": 197.0, "height": 35.6},
+            },
+        ),
+        spec=SpecResult(
+            success=True,
+            geometric_type="support_accessory",
+            dimensions={
+                "mac_mini_m4_width": 197.0,
+                "mac_mini_m4_depth": 197.0,
+                "mac_mini_m4_height": 35.6,
+            },
+            material="PLA",
+            tolerance=0.1,
+        ),
+    )
+
+    validator = ValidatorAgent()
+    result = await validator.validate(job)
+
+    trusted_dimensions = next(v for v in job.validation_results if v.rule_id == "S002")
+    assert trusted_dimensions.passed is True
+    assert result.success in {True, False}
