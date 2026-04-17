@@ -4,11 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CAD Agent is a Business-Closed-Loop CAD Agent System for OpenSCAD. It transforms natural language CAD requests into production-ready 3D models through a multi-agent orchestration pipeline.
-
-The system is undergoing a transition from a **template-first** approach to a **parametric builder** approach:
-- Old: `Prompt -> Choose Template -> Fill Variables -> Render`
-- New: `Prompt -> Research -> Design Intent -> Parameter Schema -> Parametric Builder -> Geometry -> Review`
+CAD Agent is a single-pass CAD Agent System for OpenSCAD. It transforms natural language CAD requests into editable parameterized OpenSCAD, then lets the deterministic harness render, validate, and deliver the result.
 
 ## Development Commands
 
@@ -47,8 +43,8 @@ python -m cad_agent.main
 The `OrchestratorAgent` drives jobs through these states:
 
 ```
-NEW -> RESEARCHED -> INTENT_RESOLVED -> DESIGN_RESOLVED -> PARAMETERS_GENERATED
-    -> GEOMETRY_BUILT -> RENDERED -> VALIDATED -> ACCEPTED -> DELIVERED
+NEW -> SCAD_GENERATED -> RENDERED -> VALIDATED -> DELIVERED
+                     -> DEBUGGING -> REPAIRING -> SCAD_GENERATED
 ```
 
 Failure states: `*_FAILED` trigger retry/repair loops. Terminal states: `DELIVERED`, `ARCHIVED`, `HUMAN_REVIEW`, `CANCELLED`.
@@ -57,31 +53,20 @@ Failure states: `*_FAILED` trigger retry/repair loops. Terminal states: `DELIVER
 
 | Agent | Purpose |
 |-------|---------|
-| `ResearchAgent` | Collects external reference facts (device dimensions, standards) |
-| `IntentAgent` | Classifies request into a part family (PHONE_CASE, SPUR_GEAR, DEVICE_STAND, etc.) |
-| `DesignAgent` | Proposes shape concept and editable controls |
-| `ParameterSchemaAgent` | Converts design into an editable parameter schema |
-| `GeneratorAgent` | Generates SCAD code via template or parametric builder |
+| `GeneratorAgent` | Produces explicit editable parameters and OpenSCAD |
 | `ExecutorAgent` | Executes OpenSCAD to render STL/PNG |
 | `ValidatorAgent` | Validates against engineering rules |
 | `DebugAgent` | Diagnoses failures |
 | `ReportAgent` | Generates delivery artifacts |
 
-### Parametric Builders
-
-The `ParametricPartEngine` (`cad_agent/app/parametric/`) replaces template substitution with deterministic geometry builders:
-- `SpurGearBuilder` - Involute gear geometry
-- `DeviceStandBuilder` - Device stands with arch/cradle geometry
-- `EnclosureBuilder` - Box enclosures with shell/snap-fit logic
-
 ### Data Model
 
 `DesignJob` (`cad_agent/app/models/design_job.py`) is the central state object. Key fields:
 - `state: JobState` — current position in the pipeline
-- `part_family` — classified family (e.g., "phone_case", "spur_gear")
-- `research_result`, `intent_result`, `design_result` — per-stage outputs
-- `parameter_schema: ParameterSchema` — editable controls with sources (user/research/derived)
-- `spec` — structured geometric specification
+- `parameter_schema: ParameterSchema` — editable controls returned directly by the generator
+- `parameter_values` — current editable values used for patch/re-render
+- `scad_source` — generated OpenSCAD source
+- `validation_results` — harness output used by the repair loop
 
 ### LLM Integration
 
@@ -90,16 +75,11 @@ LLM providers are configured via `config.py` settings (env prefix `CAD_AGENT_`):
 
 LLM clients are in `cad_agent/app/llm/`:
 - `LLMScadGenerator` — generates SCAD code
-- `LLMSpecParser` — parses structured specs from prompts
 - `LLMDesignCritic` — reviews generated geometry
 
 ### Storage
 
 Jobs are persisted to SQLite via `SQLiteJobRepository` (`cad_agent/app/storage/sqlite_repo.py`). Case memory (`cad_agent/app/services/case_memory.py`) stores successful patterns for reuse.
-
-### Templates
-
-Jinja2 templates in `cad_agent/app/templates/` (e.g., `rounded_block_v1.scad.j2`) are falling out of use in favor of parametric builders.
 
 ## Environment Configuration
 

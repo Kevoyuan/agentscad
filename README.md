@@ -1,12 +1,12 @@
 # CAD Agent System
 
-A Business-Closed-Loop CAD Agent System for OpenSCAD. Transforms natural language CAD requests into production-ready 3D models through a multi-agent orchestration pipeline.
+A single-pass CAD agent system for OpenSCAD. It turns natural language requests into editable parameters, OpenSCAD, rendered artifacts, and validation results.
 
 ## Features
 
 - **Natural Language Interface** — Describe what you want in plain language, get OpenSCAD code
-- **Multi-Agent Pipeline** — Coordinated agents for intake, research, intent resolution, design, parameter schema, generation, execution, validation, and reporting
-- **Parametric Builders** — Deterministic geometry builders (spur gears, device stands, enclosures) replacing template substitution
+- **Single-Pass Generation** — One LLM call returns explicit parameters and OpenSCAD together
+- **Deterministic Harness** — Rendering, validation, retry, and delivery stay outside the model loop
 - **Engineering Rules Engine** — Configurable validation rules ensure output quality
 - **Case Memory** — Remembers successful patterns from previous jobs for better results
 - **Retry & Recovery** — Automatic retry with intelligent state machine transitions
@@ -15,29 +15,19 @@ A Business-Closed-Loop CAD Agent System for OpenSCAD. Transforms natural languag
 ## Architecture
 
 ```
-NEW -> RESEARCHED -> INTENT_RESOLVED -> DESIGN_RESOLVED -> PARAMETERS_GENERATED
-    -> GEOMETRY_BUILT -> RENDERED -> VALIDATED -> ACCEPTED -> DELIVERED
+NEW -> SCAD_GENERATED -> RENDERED -> VALIDATED -> DELIVERED
+                     -> DEBUGGING -> REPAIRING -> SCAD_GENERATED
 ```
 
 ### Key Agents
 
 | Agent | Purpose |
 |-------|---------|
-| `ResearchAgent` | Collects external reference facts (device dimensions, standards) |
-| `IntentAgent` | Classifies request into a part family (PHONE_CASE, SPUR_GEAR, DEVICE_STAND, etc.) |
-| `DesignAgent` | Proposes shape concept and editable controls |
-| `ParameterSchemaAgent` | Converts design into an editable parameter schema |
-| `GeneratorAgent` | Generates SCAD code via parametric builder or LLM |
+| `GeneratorAgent` | Generates parameter metadata and SCAD in one step |
 | `ExecutorAgent` | Executes OpenSCAD to render STL/PNG |
 | `ValidatorAgent` | Validates against engineering rules |
 | `DebugAgent` | Diagnoses failures |
 | `ReportAgent` | Generates delivery artifacts |
-
-### Parametric Builders
-
-- `SpurGearBuilder` — Involute gear geometry
-- `DeviceStandBuilder` — Device stands with arch/cradle geometry
-- `EnclosureBuilder` — Box enclosures with shell/snap-fit logic
 
 ## Requirements
 
@@ -111,14 +101,12 @@ PYTHONPATH=. .venv/bin/python -m pytest
 agentscad/
 ├── cad_agent/
 │   ├── app/
-│   │   ├── agents/        # OrchestratorAgent, IntentAgent, GeneratorAgent, etc.
-│   │   ├── llm/           # LLM clients, spec parser, SCAD generator
+│   │   ├── agents/        # OrchestratorAgent + harness agents
+│   │   ├── llm/           # LLM clients, single-pass generator, design critic
 │   │   ├── models/        # DesignJob, JobState, agent results
-│   │   ├── parametric/    # ParametricPartEngine
-│   │   ├── research/      # ResearchAgent, MinimaxVisionAdapter
 │   │   ├── rules/         # Engineering rules, retry policies
 │   │   ├── storage/       # SQLiteJobRepository
-│   │   └── templates/     # Jinja2 SCAD templates (deprecated)
+│   │   └── tools/         # OpenSCAD executor
 │   ├── tests/
 │   ├── cli.py
 │   ├── config.py
