@@ -6,6 +6,7 @@ const state = {
     jobs: [],
     selectedJobId: null,
     selectedJob: null,
+    detailRequestSeq: 0,
     health: null,
     validations: [],
     similarCases: [],
@@ -271,7 +272,10 @@ function sortJobsByRecency(jobs) {
 
 async function fetchJobDetail(jobId) {
     cancelPendingParameterUpdate();
+    const requestSeq = ++state.detailRequestSeq;
+    state.selectedJobId = jobId;
     state.isLoadingDetail = true;
+    renderJobsList();
     renderWorkspace();
 
     try {
@@ -284,8 +288,12 @@ async function fetchJobDetail(jobId) {
             throw new Error('Failed to load creation detail');
         }
 
-        state.selectedJob = await detailResponse.json();
-        state.selectedJobId = jobId;
+        const detail = await detailResponse.json();
+        if (requestSeq !== state.detailRequestSeq || state.selectedJobId !== jobId) {
+            return;
+        }
+
+        state.selectedJob = detail;
         state.parameterOverrides = {};
 
         if (validationResponse.ok) {
@@ -300,12 +308,18 @@ async function fetchJobDetail(jobId) {
         // Establish streaming connection for real-time updates
         setupJobEventStream(jobId);
     } catch (error) {
+        if (requestSeq !== state.detailRequestSeq || state.selectedJobId !== jobId) {
+            return;
+        }
         state.selectedJob = null;
         state.validations = [];
         destroyViewer();
         elements.viewerPlaceholder.classList.remove('hidden');
         elements.viewerPlaceholder.innerHTML = `<p>${escapeHtml(error.message || 'Failed to load creation.')}</p>`;
     } finally {
+        if (requestSeq !== state.detailRequestSeq || state.selectedJobId !== jobId) {
+            return;
+        }
         state.isLoadingDetail = false;
         renderWorkspace();
     }
@@ -329,16 +343,18 @@ function setupJobEventStream(jobId) {
     es.onmessage = (event) => {
         try {
             const updatedJob = JSON.parse(event.data);
+            const streamedJobId = updatedJob.job_id || updatedJob.id;
             console.log(`[Stream] Update for ${jobId}: ${updatedJob.state}`);
 
             // Only update if we are still looking at the same job
-            if (state.selectedJobId !== updatedJob.id) {
+            if (!streamedJobId || state.selectedJobId !== streamedJobId) {
                 es.close();
+                if (state.eventSource === es) state.eventSource = null;
                 return;
             }
 
-            const prevState = state.selectedJob?.state;
             state.selectedJob = updatedJob;
+            state.jobs = state.jobs.map((job) => (job.job_id === streamedJobId ? { ...job, ...updatedJob } : job));
 
             // Update validations if they exist in the job
             if (updatedJob.validation_results && updatedJob.validation_results.length > 0) {
@@ -346,13 +362,15 @@ function setupJobEventStream(jobId) {
             }
 
             // Trigger targeted UI updates
+            renderStats();
+            renderJobsList();
             renderWorkspace();
 
             // If job reached terminal state, we can close the stream after a small delay
             if (TERMINAL_STATES.has(updatedJob.state)) {
                 console.log(`[Stream] Terminal state reached: ${updatedJob.state}. Closing.`);
                 setTimeout(() => {
-                    if (state.selectedJobId === updatedJob.id) {
+                    if (state.selectedJobId === streamedJobId) {
                         es.close();
                         if (state.eventSource === es) state.eventSource = null;
                     }
@@ -521,11 +539,17 @@ async function handleCopyTrace() {
 
 function focusComposer() {
     cancelPendingParameterUpdate();
+    state.detailRequestSeq += 1;
     state.selectedJobId = null;
     state.selectedJob = null;
     state.validations = [];
     state.parameterOverrides = {};
+    if (state.eventSource) {
+        state.eventSource.close();
+        state.eventSource = null;
+    }
     elements.requestInput.focus();
+    renderJobsList();
     renderWorkspace();
 }
 
@@ -749,13 +773,23 @@ function renderWorkspace() {
 
 function renderConversation() {
     if (!state.selectedJob) {
-        elements.threadTitle.textContent = 'Start a new CAD creation';
-        elements.conversationStream.innerHTML = `
-            <div class="empty-thread">
-                <h3>Describe the part you want.</h3>
-                <p>Try a gear, enclosure, bracket, mount, or clip with real dimensions and manufacturing intent.</p>
-            </div>
-        `;
+        if (state.isLoadingDetail && state.selectedJobId) {
+            elements.threadTitle.textContent = 'Loading creation…';
+            elements.conversationStream.innerHTML = `
+                <div class="empty-thread">
+                    <h3>Loading selected creation</h3>
+                    <p>Fetching the latest model thread, parameters, validation, and execution trace.</p>
+                </div>
+            `;
+        } else {
+            elements.threadTitle.textContent = 'Start a new CAD creation';
+            elements.conversationStream.innerHTML = `
+                <div class="empty-thread">
+                    <h3>Describe the part you want.</h3>
+                    <p>Try a gear, enclosure, bracket, mount, or clip with real dimensions and manufacturing intent.</p>
+                </div>
+            `;
+        }
         return;
     }
 
@@ -831,10 +865,10 @@ function renderCanvas() {
     const job = state.selectedJob;
 
     if (!job) {
-        elements.viewerTitle.textContent = 'Viewport ready';
+        elements.viewerTitle.textContent = state.isLoadingDetail && state.selectedJobId ? 'Loading creation…' : 'Viewport ready';
         elements.viewerStateBadge.textContent = 'IDLE';
         elements.viewerStateBadge.className = 'state-chip';
-        elements.viewerPathBadge.textContent = 'generation pending';
+        elements.viewerPathBadge.textContent = state.isLoadingDetail && state.selectedJobId ? 'loading detail' : 'generation pending';
         elements.viewerPathBadge.className = 'soft-chip';
         if (elements.artifactSummary) elements.artifactSummary.textContent = 'Pending';
         if (elements.validationSummary) elements.validationSummary.textContent = 'Waiting';
@@ -842,7 +876,9 @@ function renderCanvas() {
         elements.artifactActions.innerHTML = '';
         destroyViewer();
         elements.viewerPlaceholder.classList.remove('hidden');
-        elements.viewerPlaceholder.innerHTML = '<p>Select a creation to inspect the generated STL here.</p>';
+        elements.viewerPlaceholder.innerHTML = state.isLoadingDetail && state.selectedJobId
+            ? '<p>Loading the selected creation. The viewport will update as soon as the detail payload lands.</p>'
+            : '<p>Select a creation to inspect the generated STL here.</p>';
         return;
     }
 
