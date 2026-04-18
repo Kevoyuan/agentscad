@@ -8,6 +8,7 @@ import { GripVertical } from 'lucide-react'
 import { Job, CANCELABLE_STATES, timeAgo, getPriorityColor, getStateInfo } from './types'
 import { StateBadge } from './state-badge'
 import { PartFamilyIcon } from './part-family-icon'
+import { TagBadges } from './tag-badges'
 import { Button } from '@/components/ui/button'
 import {
   Play, Ban, Repeat, Trash2, CheckSquare, Square,
@@ -140,6 +141,7 @@ export function SortableJobCard({
           <StateBadge state={job.state} />
           <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
         </div>
+        <TagBadges customerId={job.customerId} maxDisplay={3} />
         {/* Action Buttons - Individual hover colors */}
         <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1 group-hover/card:translate-y-0" onClick={e => e.stopPropagation()}>
           {job.state === 'NEW' && (
@@ -194,6 +196,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
           <StateBadge state={job.state} />
           <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
         </div>
+        <TagBadges customerId={job.customerId} maxDisplay={3} />
       </div>
     </div>
   )

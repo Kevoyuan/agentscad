@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { broadcastWs } from '@/lib/ws-broadcast'
+import { trackVersion } from '@/lib/version-tracker'
 
 export async function PATCH(
   request: NextRequest,
@@ -19,6 +20,9 @@ export async function PATCH(
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
+
+    // Track version history before updating
+    await trackVersion(id, 'notes', job.notes, notes)
 
     const updated = await db.job.update({
       where: { id },

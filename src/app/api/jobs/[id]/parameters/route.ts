@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { broadcastWs } from "@/lib/ws-broadcast";
+import { trackVersion } from "@/lib/version-tracker";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -99,6 +100,9 @@ export async function PATCH(
         { status: 422 }
       );
     }
+
+    // Track version history before updating
+    await trackVersion(id, "parameters", job.parameterValues, JSON.stringify(currentValues));
 
     // Update the parameter values in the database
     const updatedJob = await db.job.update({

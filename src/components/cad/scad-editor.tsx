@@ -1,141 +1,14 @@
 'use client'
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { CheckCircle2, FileCode, Copy, Edit3, Save, RotateCcw, Code2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job } from './types'
 import { updateScadSource } from './api'
-
-// ─── OpenSCAD Syntax Highlighter ────────────────────────────────────────────
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-function highlightScad(code: string): string {
-  const keywords = ['module', 'function', 'if', 'else', 'for', 'each', 'let', 'assign']
-  const builtins = [
-    'cube', 'cylinder', 'sphere', 'translate', 'rotate', 'difference', 'union',
-    'intersection', 'linear_extrude', 'rotate_extrude', 'hull', 'minkowski',
-    'offset', 'color', 'echo', 'scale', 'resize', 'mirror', 'multmatrix',
-    'projection', 'render', 'children', 'search', 'concat', 'lookup',
-    'min', 'max', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
-    'abs', 'ceil', 'floor', 'round', 'pow', 'sqrt', 'exp', 'log', 'ln',
-    'len', 'str', 'chr', 'ord', 'norm', 'cross', 'rands', 'vector',
-  ]
-  const specialValues = ['true', 'false', 'undef']
-  const keywordPattern = new RegExp(`\\b(${keywords.join('|')})\\b`)
-  const builtinPattern = new RegExp(`\\b(${builtins.join('|')})\\b`)
-  const specialValuePattern = new RegExp(`\\b(${specialValues.join('|')})\\b`)
-
-  const lines = code.split('\n')
-  const highlighted = lines.map(line => {
-    let result = ''
-    let i = 0
-
-    while (i < line.length) {
-      if (line[i] === '/' && i + 1 < line.length && line[i + 1] === '*') {
-        let end = line.indexOf('*/', i + 2)
-        if (end === -1) {
-          result += `<span class="text-zinc-600 italic">${escapeHtml(line.slice(i))}</span>`
-          i = line.length
-        } else {
-          result += `<span class="text-zinc-600 italic">${escapeHtml(line.slice(i, end + 2))}</span>`
-          i = end + 2
-        }
-        continue
-      }
-
-      if (line[i] === '/' && i + 1 < line.length && line[i + 1] === '/') {
-        result += `<span class="text-zinc-600 italic">${escapeHtml(line.slice(i))}</span>`
-        i = line.length
-        continue
-      }
-
-      if (line[i] === '"') {
-        let j = i + 1
-        while (j < line.length && line[j] !== '"') {
-          if (line[j] === '\\') j++
-          j++
-        }
-        if (j < line.length) j++
-        result += `<span class="text-emerald-400">${escapeHtml(line.slice(i, j))}</span>`
-        i = j
-        continue
-      }
-
-      if (line[i] === '$' && i + 1 < line.length && /[a-zA-Z_]/.test(line[i + 1])) {
-        let j = i + 1
-        while (j < line.length && /[a-zA-Z0-9_]/.test(line[j])) j++
-        result += `<span class="text-rose-400">${escapeHtml(line.slice(i, j))}</span>`
-        i = j
-        continue
-      }
-
-      if (/[0-9]/.test(line[i]) || (line[i] === '.' && i + 1 < line.length && /[0-9]/.test(line[i + 1]))) {
-        let j = i
-        while (j < line.length && /[0-9]/.test(line[j])) j++
-        if (j < line.length && line[j] === '.' && j + 1 < line.length && /[0-9]/.test(line[j + 1])) {
-          j++
-          while (j < line.length && /[0-9]/.test(line[j])) j++
-        }
-        if (j < line.length && (line[j] === 'e' || line[j] === 'E')) {
-          j++
-          if (j < line.length && (line[j] === '+' || line[j] === '-')) j++
-          while (j < line.length && /[0-9]/.test(line[j])) j++
-        }
-        result += `<span class="text-amber-300">${escapeHtml(line.slice(i, j))}</span>`
-        i = j
-        continue
-      }
-
-      if (/[a-zA-Z_]/.test(line[i])) {
-        let j = i
-        while (j < line.length && /[a-zA-Z0-9_]/.test(line[j])) j++
-        const word = line.slice(i, j)
-        if (keywordPattern.test(word)) {
-          result += `<span class="text-violet-400">${word}</span>`
-        } else if (builtinPattern.test(word)) {
-          result += `<span class="text-cyan-400">${word}</span>`
-        } else if (specialValuePattern.test(word)) {
-          result += `<span class="text-orange-400">${word}</span>`
-        } else {
-          result += escapeHtml(word)
-        }
-        i = j
-        continue
-      }
-
-      if ('=+-*/%<>!&|'.includes(line[i])) {
-        let op = line[i]
-        let j = i + 1
-        if (j < line.length) {
-          const twoChar = line.slice(i, j + 1)
-          if (['==', '!=', '<=', '>=', '&&', '||'].includes(twoChar)) {
-            op = twoChar
-            j = i + 2
-          }
-        }
-        result += `<span class="text-zinc-500">${escapeHtml(op)}</span>`
-        i = j
-        continue
-      }
-
-      result += escapeHtml(line[i])
-      i++
-    }
-
-    return result
-  })
-
-  return highlighted.join('\n')
-}
+import { highlightScad } from '@/lib/scad-highlight'
 
 // ─── SCAD Editor Component ────────────────────────────────────────────────
 
@@ -273,8 +146,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
     </div>
   )
 
-  const originalLines = (job.scadSource || '').split('\n')
-  const displayLines = isEditing ? editSource.split('\n') : originalLines
+  const displayLines = isEditing ? editSource.split('\n') : (job.scadSource || '').split('\n')
 
   return (
     <div className="flex flex-col h-full">

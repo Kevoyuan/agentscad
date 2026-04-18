@@ -229,3 +229,29 @@ export async function batchOperation(action: 'delete' | 'cancel' | 'reprocess', 
   if (!res.ok) throw new Error('Batch operation failed')
   return res.json()
 }
+
+export interface JobVersion {
+  id: string
+  jobId: string
+  field: string
+  oldValue: string | null
+  newValue: string | null
+  changedBy: string
+  createdAt: string
+}
+
+export async function fetchJobVersions(id: string): Promise<{ versions: JobVersion[] }> {
+  const res = await fetch(`/api/jobs/${id}/versions`)
+  if (!res.ok) throw new Error('Failed to fetch versions')
+  return res.json()
+}
+
+export async function batchUpdateParameters(jobIds: string[], parameterValues: Record<string, number>): Promise<{ results: { success: string[]; failed: string[] } }> {
+  const res = await fetch('/api/jobs/batch-params', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobIds, parameterValues }),
+  })
+  if (!res.ok) throw new Error('Batch parameter update failed')
+  return res.json()
+}

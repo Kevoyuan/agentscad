@@ -1,0 +1,172 @@
+'use client'
+
+import { ReactNode } from 'react'
+import {
+  Play, RotateCcw, Copy, Ban, Trash2, ArrowUp, Link2, Clipboard, ExternalLink,
+} from 'lucide-react'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+  ContextMenuShortcut,
+} from '@/components/ui/context-menu'
+import { Job, CANCELABLE_STATES } from './types'
+
+// ─── Types ────────────────────────────────────────────────────────────────
+
+interface JobContextMenuProps {
+  job: Job
+  children: ReactNode
+  onProcess: (job: Job) => void
+  onDuplicate: (job: Job) => void
+  onCancel: (job: Job) => void
+  onDelete: (id: string) => void
+  onSetPriority: (id: string, priority: number) => void
+  onLinkParent: (job: Job) => void
+}
+
+// ─── Component ────────────────────────────────────────────────────────────
+
+export function JobContextMenu({
+  job,
+  children,
+  onProcess,
+  onDuplicate,
+  onCancel,
+  onDelete,
+  onSetPriority,
+  onLinkParent,
+}: JobContextMenuProps) {
+  const isCancelable = CANCELABLE_STATES.includes(job.state)
+  const canProcess = job.state === 'NEW' || job.state === 'DELIVERED'
+  const isProcessing = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW'].includes(job.state)
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(job.id)
+  }
+
+  const handleOpenInNewTab = () => {
+    const url = `${window.location.origin}/?job=${job.id}`
+    navigator.clipboard.writeText(url)
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        {children}
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-52 bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl">
+        {/* Process / Reprocess */}
+        {canProcess && (
+          <ContextMenuItem
+            className="text-[11px] gap-2 text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10"
+            onClick={() => onProcess(job)}
+          >
+            {job.state === 'DELIVERED' ? <RotateCcw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {job.state === 'DELIVERED' ? 'Reprocess' : 'Process'}
+            <ContextMenuShortcut className="text-[9px] text-zinc-600">⌘P</ContextMenuShortcut>
+          </ContextMenuItem>
+        )}
+
+        {/* Duplicate */}
+        <ContextMenuItem
+          className="text-[11px] gap-2 text-zinc-300 focus:text-zinc-200 focus:bg-zinc-500/10"
+          onClick={() => onDuplicate(job)}
+        >
+          <Copy className="w-3.5 h-3.5" />
+          Duplicate
+          <ContextMenuShortcut className="text-[9px] text-zinc-600">⌘D</ContextMenuShortcut>
+        </ContextMenuItem>
+
+        {/* Cancel (for active states) */}
+        {isCancelable && (
+          <ContextMenuItem
+            className="text-[11px] gap-2 text-orange-400 focus:text-orange-300 focus:bg-orange-500/10"
+            onClick={() => onCancel(job)}
+          >
+            <Ban className="w-3.5 h-3.5" />
+            Cancel
+          </ContextMenuItem>
+        )}
+
+        <ContextMenuSeparator className="bg-zinc-800/60" />
+
+        {/* Set Priority submenu */}
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="text-[11px] gap-2 text-zinc-300">
+            <ArrowUp className="w-3.5 h-3.5" />
+            Set Priority
+            <span className="ml-auto text-[9px] text-zinc-600">P{job.priority}</span>
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-36 bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(p => (
+              <ContextMenuItem
+                key={p}
+                className={`text-[10px] gap-2 font-mono ${
+                  p === job.priority ? 'text-violet-400 bg-violet-500/10' : 'text-zinc-400'
+                }`}
+                onClick={() => onSetPriority(job.id, p)}
+              >
+                <span className={`w-4 text-center ${p >= 8 ? 'text-rose-400' : p >= 6 ? 'text-orange-400' : p >= 4 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                  P{p}
+                </span>
+                {p === 1 && <span className="text-[8px] text-zinc-600">Low</span>}
+                {p === 5 && <span className="text-[8px] text-zinc-600">Normal</span>}
+                {p === 10 && <span className="text-[8px] text-zinc-600">Critical</span>}
+                {p === job.priority && <span className="ml-auto text-[8px] text-violet-400">●</span>}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+
+        {/* Link to Parent */}
+        <ContextMenuItem
+          className="text-[11px] gap-2 text-zinc-300 focus:text-zinc-200 focus:bg-zinc-500/10"
+          onClick={() => onLinkParent(job)}
+        >
+          <Link2 className="w-3.5 h-3.5" />
+          Link to Parent
+        </ContextMenuItem>
+
+        <ContextMenuSeparator className="bg-zinc-800/60" />
+
+        {/* Copy Job ID */}
+        <ContextMenuItem
+          className="text-[11px] gap-2 text-zinc-400 focus:text-zinc-300 focus:bg-zinc-500/10"
+          onClick={handleCopyId}
+        >
+          <Clipboard className="w-3.5 h-3.5" />
+          Copy Job ID
+          <ContextMenuShortcut className="text-[9px] text-zinc-600">⌘C</ContextMenuShortcut>
+        </ContextMenuItem>
+
+        {/* Open in New Tab (copies URL) */}
+        <ContextMenuItem
+          className="text-[11px] gap-2 text-zinc-400 focus:text-zinc-300 focus:bg-zinc-500/10"
+          onClick={handleOpenInNewTab}
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Copy URL
+        </ContextMenuItem>
+
+        <ContextMenuSeparator className="bg-zinc-800/60" />
+
+        {/* Delete - destructive */}
+        <ContextMenuItem
+          variant="destructive"
+          className="text-[11px] gap-2 text-rose-400 focus:text-rose-300 focus:bg-rose-500/10"
+          onClick={() => onDelete(job.id)}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Delete
+          <ContextMenuShortcut className="text-[9px] text-rose-600/60">Del</ContextMenuShortcut>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
+}

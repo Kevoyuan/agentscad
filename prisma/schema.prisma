@@ -37,4 +37,16 @@ model Job {
   completedAt     DateTime?
   parent          Job?     @relation("JobHierarchy", fields: [parentId], references: [id])
   children        Job[]    @relation("JobHierarchy")
+  versions        JobVersion[]
+}
+
+model JobVersion {
+  id          String   @id @default(cuid())
+  jobId       String
+  field       String   // which field changed: "parameters", "scadSource", "notes"
+  oldValue    String?  // JSON string of previous value
+  newValue    String?  // JSON string of new value
+  changedBy   String   @default("user")  // who made the change
+  createdAt   DateTime @default(now())
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }

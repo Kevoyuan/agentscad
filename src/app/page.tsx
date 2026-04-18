@@ -19,7 +19,7 @@ import {
   Keyboard, Sparkles, Hash, AlertCircle, Repeat, Maximize2,
   Ban, CheckSquare, Square, XSquare, StickyNote, BarChart3,
   GitCompare, Eye, Zap, FileJson, Wifi, WifiOff, Timer, Palette,
-  GitBranch
+  GitBranch, ArrowUp, ArrowDown, Wand2, Tag, History, Link2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +76,11 @@ import { PartFamilyIcon } from '@/components/cad/part-family-icon'
 import { JobTemplateCards } from '@/components/cad/job-templates'
 import { CaseMemory } from '@/components/cad/case-memory'
 import { SortableJobCard, DragOverlayCard } from '@/components/cad/sortable-job-card'
+import { JobVersionHistory } from '@/components/cad/job-version-history'
+import { JobContextMenu } from '@/components/cad/job-context-menu'
+import { BatchParameterEditor } from '@/components/cad/batch-parameter-editor'
+import { NotificationCenter, Notification, NotificationType } from '@/components/cad/notification-center'
+import { TagBadges, parseTags, buildCustomerId } from '@/components/cad/tag-badges'
 
 // Type & API imports
 import {
@@ -84,7 +89,8 @@ import {
 } from '@/components/cad/types'
 import {
   fetchJobs, createJob, deleteJob, processJob,
-  cancelJob, batchOperation, updatePriority
+  cancelJob, batchOperation, updatePriority, sendChatMessageStream,
+  batchUpdateParameters
 } from '@/components/cad/api'
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -115,8 +121,50 @@ export default function Home() {
   const [uptimeSeconds, setUptimeSeconds] = useState(0)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [dependencyCount, setDependencyCount] = useState(0)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [newJobTags, setNewJobTags] = useState('')
+  const [isAiEnhancing, setIsAiEnhancing] = useState(false)
   const { toast } = useToast()
   const startTimeRef = useRef(Date.now())
+
+  // ── Notification Helper ────────────────────────────────────────────────
+
+  const addNotification = useCallback((type: NotificationType, title: string, description: string) => {
+    const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    setNotifications(prev => {
+      const next = [{ id, type, title, description, timestamp: new Date(), read: false }, ...prev]
+      // Max 50 notifications, remove oldest
+      return next.slice(0, 50)
+    })
+  }, [])
+
+  const markNotificationRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+  }, [])
+
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  }, [])
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([])
+  }, [])
+
+  // ── Recent Requests (for composer) ────────────────────────────────────
+
+  const recentRequests = useMemo(() => {
+    const seen = new Set<string>()
+    const unique: string[] = []
+    for (const j of [...allJobs].reverse()) {
+      const req = j.inputRequest.trim()
+      if (req && !seen.has(req.toLowerCase())) {
+        seen.add(req.toLowerCase())
+        unique.push(req)
+        if (unique.length >= 5) break
+      }
+    }
+    return unique
+  }, [allJobs])
 
   // ── DnD Sensors ─────────────────────────────────────────────────────────
   const sensors = useSensors(
@@ -273,9 +321,25 @@ export default function Home() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+
+      // Ctrl+Shift+N: New job with focus on textarea
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'N') {
+        e.preventDefault()
+        setShowComposer(true)
+        // Focus textarea after dialog opens
+        setTimeout(() => {
+          const textarea = document.querySelector<HTMLTextAreaElement>('[data-composer-textarea]')
+          if (textarea) textarea.focus()
+        }, 100)
+        return
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
         setShowComposer(true)
+        return
       }
       if (e.key === 'Escape') {
         setShowComposer(false)
@@ -284,22 +348,59 @@ export default function Home() {
         setShowCompare(false)
         setShowSettings(false)
       }
-      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          setShowShortcuts(prev => !prev)
-        }
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !isInputFocused) {
+        setShowShortcuts(prev => !prev)
       }
-      if (e.key === 'Delete' && selectedJob && !showComposer) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          handleDelete(selectedJob.id)
-        }
+      if (e.key === 'Delete' && selectedJob && !showComposer && !isInputFocused) {
+        handleDelete(selectedJob.id)
+      }
+      // Space: Process selected job
+      if (e.key === ' ' && selectedJob && !showComposer && !isInputFocused) {
+        e.preventDefault()
+        if (selectedJob.state === 'NEW') handleProcess(selectedJob)
+      }
+      // E: Edit SCAD code
+      if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
+        setActiveTab('SCAD')
+      }
+      // D: Show dependencies
+      if (e.key === 'd' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
+        setActiveTab('DEPS')
+      }
+      // H: Show history (LOG tab)
+      if (e.key === 'h' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
+        setActiveTab('LOG')
+      }
+      // T: Open theme settings
+      if (e.key === 't' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
+        setShowSettings(true)
+      }
+      // 1-7: Switch inspector tabs
+      const tabMap: Record<string, string> = { '1': 'PARAMS', '2': 'RESEARCH', '3': 'VALIDATE', '4': 'SCAD', '5': 'LOG', '6': 'NOTES', '7': 'DEPS', '8': 'HISTORY', '9': 'AI' }
+      if (tabMap[e.key] && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
+        setActiveTab(tabMap[e.key])
+      }
+      // Shift+Up/Down: Move job priority
+      if (e.shiftKey && e.key === 'ArrowUp' && selectedJob && !isInputFocused) {
+        e.preventDefault()
+        const newPriority = Math.min(10, selectedJob.priority + 1)
+        updatePriority(selectedJob.id, newPriority).then(() => {
+          addNotification('parameter_updated', 'Priority increased', `Job ${selectedJob.id.slice(0, 8)} → P${newPriority}`)
+          loadJobs()
+        })
+      }
+      if (e.shiftKey && e.key === 'ArrowDown' && selectedJob && !isInputFocused) {
+        e.preventDefault()
+        const newPriority = Math.max(1, selectedJob.priority - 1)
+        updatePriority(selectedJob.id, newPriority).then(() => {
+          addNotification('parameter_updated', 'Priority decreased', `Job ${selectedJob.id.slice(0, 8)} → P${newPriority}`)
+          loadJobs()
+        })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedJob, showComposer])
+  }, [selectedJob, showComposer, addNotification, loadJobs])
 
   // ── Job Actions ───────────────────────────────────────────────────────────
 
@@ -307,10 +408,13 @@ export default function Home() {
     if (!newJobText.trim()) return
     setIsCreating(true)
     try {
-      const { job } = await createJob(newJobText.trim(), undefined, newJobPriority)
+      const tagsCustomerId = newJobTags.trim() ? buildCustomerId(newJobTags.split(',').map(t => t.trim()).filter(t => t)) : undefined
+      const { job } = await createJob(newJobText.trim(), tagsCustomerId, newJobPriority)
       toast({ title: 'Job created', description: `Priority ${newJobPriority}`, duration: 2000 })
+      addNotification('parameter_updated', 'Job created', newJobText.trim().slice(0, 60))
       setNewJobText('')
       setNewJobPriority(5)
+      setNewJobTags('')
       setShowComposer(false)
       await loadJobs()
       setSelectedJob(job)
@@ -374,17 +478,20 @@ export default function Home() {
         const step = data.step as string
         if (step === 'scad_generated') {
           toast({ title: 'SCAD Generated', description: 'Code generated successfully', duration: 1500 })
+          addNotification('scad_updated', 'SCAD Generated', `Job ${job.id.slice(0, 8)} - Code generated`)
         } else if (step === 'rendered') {
           toast({ title: 'Rendered', description: '3D model rendered', duration: 1500 })
         } else if (step === 'validated') {
           toast({ title: 'Validated', description: 'Quality checks passed', duration: 1500 })
         } else if (step === 'delivered') {
           toast({ title: 'Delivered!', description: 'All deliverables ready', duration: 2000 })
+          addNotification('job_completed', 'Job Delivered', `Job ${job.id.slice(0, 8)} - All deliverables ready`)
         }
       })
       await loadJobs()
     } catch {
       toast({ title: 'Processing failed', variant: 'destructive', duration: 3000 })
+      addNotification('job_failed', 'Processing Failed', `Job ${job.id.slice(0, 8)} - An error occurred`)
     } finally {
       setIsProcessing(false)
     }
@@ -417,6 +524,7 @@ export default function Home() {
     try {
       await cancelJob(job.id)
       toast({ title: 'Job cancelled', duration: 1500 })
+      addNotification('job_cancelled', 'Job Cancelled', `Job ${job.id.slice(0, 8)} - Cancelled by user`)
       setCancelTarget(null)
       await loadJobs()
     } catch {
@@ -447,6 +555,22 @@ export default function Home() {
       return next
     })
   }
+
+  const handleSetPriority = useCallback(async (id: string, priority: number) => {
+    try {
+      await updatePriority(id, priority)
+      toast({ title: `Priority set to P${priority}`, duration: 1500 })
+      addNotification('parameter_updated', 'Priority updated', `Job ${id.slice(0, 8)} → P${priority}`)
+      await loadJobs()
+    } catch {
+      toast({ title: 'Failed to update priority', variant: 'destructive', duration: 2000 })
+    }
+  }, [toast, addNotification, loadJobs])
+
+  const handleLinkParent = useCallback((job: Job) => {
+    setSelectedJob(job)
+    setActiveTab('DEPS')
+  }, [])
 
   // ── Computed Values ───────────────────────────────────────────────────────
 
@@ -547,6 +671,22 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+  // ── AI Enhancement for Job Request ──────────────────────────────────────
+  const handleAiEnhance = useCallback(() => {
+    if (!newJobText.trim() || isAiEnhancing) return
+    setIsAiEnhancing(true)
+    let enhanced = ''
+    const abort = sendChatMessageStream(
+      [{ role: 'user', content: `Enhance this CAD request to be more specific and detailed for manufacturing. Add dimensions, tolerances, and material specifications where appropriate. Only return the enhanced request, nothing else:\n\n${newJobText}` }],
+      undefined,
+      (token) => { enhanced += token; setNewJobText(enhanced) },
+      () => { setIsAiEnhancing(false) },
+      () => { setIsAiEnhancing(false); toast({ title: 'AI enhancement failed', variant: 'destructive', duration: 2000 }) }
+    )
+    // Auto-abort after 15s
+    setTimeout(() => { if (isAiEnhancing) abort() }, 15000)
+  }, [newJobText, isAiEnhancing, toast])
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -588,6 +728,12 @@ export default function Home() {
               <TooltipContent><p className="text-xs">Compare Jobs</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          <NotificationCenter
+            notifications={notifications}
+            onMarkRead={markNotificationRead}
+            onMarkAllRead={markAllNotificationsRead}
+            onClearAll={clearAllNotifications}
+          />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -699,18 +845,28 @@ export default function Home() {
                   >
                     <div className="p-2 space-y-1">
                       {jobs.sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(job => (
-                        <SortableJobCard
+                        <JobContextMenu
                           key={job.id}
                           job={job}
-                          isSelected={selectedJob?.id === job.id}
-                          isChecked={selectedIds.has(job.id)}
-                          onSelect={(j) => { setSelectedJob(j); setActiveTab('PARAMS') }}
-                          onToggleSelect={toggleSelect}
                           onProcess={handleProcess}
-                          onCancel={(j) => setCancelTarget(j)}
                           onDuplicate={handleDuplicate}
+                          onCancel={(j) => setCancelTarget(j)}
                           onDelete={handleDelete}
-                        />
+                          onSetPriority={handleSetPriority}
+                          onLinkParent={handleLinkParent}
+                        >
+                          <SortableJobCard
+                            job={job}
+                            isSelected={selectedJob?.id === job.id}
+                            isChecked={selectedIds.has(job.id)}
+                            onSelect={(j) => { setSelectedJob(j); setActiveTab('PARAMS') }}
+                            onToggleSelect={toggleSelect}
+                            onProcess={handleProcess}
+                            onCancel={(j) => setCancelTarget(j)}
+                            onDuplicate={handleDuplicate}
+                            onDelete={handleDelete}
+                          />
+                        </JobContextMenu>
                       ))}
                       {jobs.length === 0 && (
                         <div className="relative flex flex-col items-center justify-center py-12 text-zinc-600 gap-3">
@@ -831,7 +987,7 @@ export default function Home() {
             <div className="flex flex-col h-full bg-[#0a0818]">
               {selectedJob ? (
                 <Tabs value={activeTab} onValueChange={(v) => {
-                  const tabOrder = ['PARAMS', 'RESEARCH', 'VALIDATE', 'SCAD', 'LOG', 'NOTES', 'DEPS', 'AI']
+                  const tabOrder = ['PARAMS', 'RESEARCH', 'VALIDATE', 'SCAD', 'LOG', 'NOTES', 'DEPS', 'HISTORY', 'AI']
                   const newIdx = tabOrder.indexOf(v)
                   const oldIdx = tabOrder.indexOf(activeTab)
                   setTabDirection(newIdx > oldIdx ? 1 : -1)
@@ -853,6 +1009,7 @@ export default function Home() {
                       { key: 'LOG', label: 'LOG', icon: Clock },
                       { key: 'NOTES', label: 'NOTES', icon: StickyNote },
                       { key: 'DEPS', label: 'DEPS', icon: GitBranch },
+                      { key: 'HISTORY', label: 'HISTORY', icon: History },
                       { key: 'AI', label: 'AI', icon: Zap },
                     ].map(tab => (
                       <TabsTrigger
@@ -887,6 +1044,9 @@ export default function Home() {
                         </TabsContent>
                         <TabsContent value="DEPS" className="h-full m-0 data-[state=inactive]:hidden">
                           <JobDependencies job={selectedJob} allJobs={allJobs} onUpdate={loadJobs} onNavigateToJob={(jobId) => { const found = allJobs.find(j => j.id === jobId); if (found) { setSelectedJob(found); setActiveTab('PARAMS') } }} />
+                        </TabsContent>
+                        <TabsContent value="HISTORY" className="h-full m-0 data-[state=inactive]:hidden">
+                          <JobVersionHistory key={selectedJob.id} job={selectedJob} />
                         </TabsContent>
                         <TabsContent value="AI" className="h-full m-0 data-[state=inactive]:hidden">
                           <ChatPanel key={selectedJob.id} job={selectedJob} />
@@ -950,9 +1110,40 @@ export default function Home() {
           </DialogHeader>
           <div className="gradient-divider" />
           <div className="space-y-4">
+            {/* Recent Requests */}
+            {recentRequests.length > 0 && (
+              <div>
+                <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">Recent Requests</label>
+                <div className="flex flex-col gap-1 max-h-20 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+                  {recentRequests.map((req, i) => (
+                    <button
+                      key={i}
+                      className="recent-request-item text-left text-[10px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-800/40 truncate"
+                      onClick={() => setNewJobText(req)}
+                    >
+                      {req.slice(0, 80)}{req.length > 80 ? '...' : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <JobTemplateCards onSelect={(template) => setNewJobText(template)} />
             <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase">Request</label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-5 text-[8px] gap-1 ${isAiEnhancing ? 'ai-enhance-glow text-violet-400' : 'text-violet-500 hover:text-violet-300'}`}
+                  onClick={handleAiEnhance}
+                  disabled={!newJobText.trim() || isAiEnhancing}
+                >
+                  <Wand2 className="w-2.5 h-2.5" />
+                  {isAiEnhancing ? 'Enhancing...' : 'Enhance with AI'}
+                </Button>
+              </div>
               <Textarea
+                data-composer-textarea
                 value={newJobText}
                 onChange={e => setNewJobText(e.target.value)}
                 placeholder="e.g. A 40mm×30mm×15mm electronics enclosure with 2mm walls"
@@ -995,6 +1186,23 @@ export default function Home() {
                 <span>Critical</span>
               </div>
             </div>
+            {/* Tags Input */}
+            <div>
+              <label className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
+                <Tag className="w-2.5 h-2.5" />Tags
+              </label>
+              <Input
+                value={newJobTags}
+                onChange={e => setNewJobTags(e.target.value)}
+                placeholder="e.g. enclosure, prototype, urgent (comma-separated)"
+                className="h-7 text-[11px] bg-[#080810] border-zinc-800/60 placeholder:text-zinc-700 focus:border-violet-500/40"
+              />
+              {newJobTags.trim() && (
+                <div className="mt-1.5">
+                  <TagBadges customerId={buildCustomerId(newJobTags.split(',').map(t => t.trim()).filter(t => t))} maxDisplay={6} />
+                </div>
+              )}
+            </div>
             <Button
               className="w-full bg-violet-600 hover:bg-violet-500 btn-press"
               onClick={handleCreate}
@@ -1027,25 +1235,105 @@ export default function Home() {
 
       {/* Keyboard Shortcuts */}
       <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-xs backdrop-blur-xl dialog-elastic-enter">
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-md backdrop-blur-xl dialog-elastic-enter">
           <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
-              <Keyboard className="w-4 h-4 text-violet-400" />Shortcuts
+              <Keyboard className="w-4 h-4 text-violet-400" />Keyboard Shortcuts
             </DialogTitle>
           </DialogHeader>
           <div className="gradient-divider" />
-          <div className="space-y-2">
-            {[
-              ['⌘/Ctrl + N', 'New job'],
-              ['Escape', 'Close dialog'],
-              ['Delete', 'Delete selected job'],
-              ['?', 'Toggle shortcuts'],
-            ].map(([key, desc]) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-[11px] text-zinc-400">{desc}</span>
-                <kbd className="text-[9px] font-mono bg-zinc-800/60 text-zinc-500 px-1.5 py-0.5 rounded border border-zinc-700/50">{key}</kbd>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+            {/* Navigation */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <ArrowUpDown className="w-3 h-3 text-violet-400" />
+                <span className="text-[10px] font-mono tracking-widest text-violet-400 uppercase">Navigation</span>
               </div>
-            ))}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {[
+                  { keys: ['?', ''], desc: 'Toggle shortcuts' },
+                  { keys: ['1', '-', '7'], desc: 'Switch inspector tab' },
+                  { keys: ['E', ''], desc: 'Edit SCAD code' },
+                  { keys: ['D', ''], desc: 'Show dependencies' },
+                  { keys: ['H', ''], desc: 'Show history (LOG)' },
+                  { keys: ['T', ''], desc: 'Open theme settings' },
+                ].map((s) => (
+                  <div key={s.desc} className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-zinc-500">{s.desc}</span>
+                    <div className="flex items-center gap-0.5">
+                      {s.keys.map((k, i) => k ? <span key={i} className="keyboard-key">{k}</span> : <span key={i} />)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Job Actions */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Play className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-mono tracking-widest text-emerald-400 uppercase">Job Actions</span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {[
+                  { keys: ['⌘', 'N'], desc: 'New job' },
+                  { keys: ['⌘', '⇧', 'N'], desc: 'New job (focus input)' },
+                  { keys: ['Space'], desc: 'Process selected' },
+                  { keys: ['Del'], desc: 'Delete selected' },
+                  { keys: ['⇧', '↑'], desc: 'Priority up' },
+                  { keys: ['⇧', '↓'], desc: 'Priority down' },
+                ].map((s) => (
+                  <div key={s.desc} className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-zinc-500">{s.desc}</span>
+                    <div className="flex items-center gap-0.5">
+                      {s.keys.map((k, i) => <span key={i} className="keyboard-key">{k}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Inspector */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="w-3 h-3 text-amber-400" />
+                <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase">Inspector Tabs</span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {[
+                  { key: '1', tab: 'PARAMS' },
+                  { key: '2', tab: 'RESEARCH' },
+                  { key: '3', tab: 'VALIDATE' },
+                  { key: '4', tab: 'SCAD' },
+                  { key: '5', tab: 'LOG' },
+                  { key: '6', tab: 'NOTES' },
+                  { key: '7', tab: 'DEPS' },
+                ].map((s) => (
+                  <div key={s.tab} className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-zinc-500 font-mono">{s.tab}</span>
+                    <span className="keyboard-key">{s.key}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* General */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">General</span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {[
+                  { keys: ['Esc'], desc: 'Close dialog' },
+                  { keys: ['?'], desc: 'Toggle this panel' },
+                ].map((s) => (
+                  <div key={s.desc} className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-zinc-500">{s.desc}</span>
+                    <div className="flex items-center gap-0.5">
+                      {s.keys.map((k, i) => <span key={i} className="keyboard-key">{k}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

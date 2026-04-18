@@ -1260,3 +1260,80 @@ pre:hover .code-copy-btn {
 .breadcrumb-fade-in {
   animation: breadcrumb-fade 0.3s ease-out;
 }
+
+/* ─── Session 8: Notification, Keyboard Key, Tag Badge, AI Glow ─────── */
+
+/* ── Notification Slide-In Animation ─────────────────────────────── */
+@keyframes notification-slide {
+  0% { opacity: 0; transform: translateX(16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Notification Item Hover & Border-Left ────────────────────────── */
+.notification-item {
+  transition: background-color 0.15s ease, border-left-color 0.15s ease;
+}
+
+.notification-item:hover {
+  background-color: rgba(139, 92, 246, 0.04);
+}
+
+/* ── Keyboard Key Styled Like Physical Key ────────────────────────── */
+.keyboard-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 9px;
+  font-family: var(--font-mono), monospace;
+  font-weight: 500;
+  color: #a1a1aa;
+  background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
+  border: 1px solid #3f3f46;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.keyboard-key-lg {
+  min-width: 28px;
+  height: 24px;
+  font-size: 10px;
+  padding: 0 6px;
+}
+
+/* ── Tag Badge Animation & Style ──────────────────────────────────── */
+@keyframes tag-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.tag-badge {
+  animation: tag-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  line-height: 1.4;
+}
+
+/* ── AI Enhance Glow Pulse ────────────────────────────────────────── */
+@keyframes ai-enhance-pulse {
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(139, 92, 246, 0.2), 0 0 8px 0 rgba(139, 92, 246, 0.1); }
+  50% { box-shadow: 0 0 8px 2px rgba(139, 92, 246, 0.35), 0 0 16px 4px rgba(139, 92, 246, 0.15); }
+}
+
+.ai-enhance-glow {
+  animation: ai-enhance-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Recent Request Item Hover ────────────────────────────────────── */
+.recent-request-item {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.recent-request-item:hover {
+  background-color: rgba(139, 92, 246, 0.06);
+  border-color: rgba(139, 92, 246, 0.2);
+}
