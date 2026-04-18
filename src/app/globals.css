@@ -229,9 +229,390 @@ pre code {
 
 /* Subtle glow for active elements */
 .glow-violet {
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
 }
 
 .glow-lime {
   box-shadow: 0 0 15px rgba(132, 204, 22, 0.15);
+}
+
+/* ─── AgentSCAD Enhanced Animations ──────────────────────────────────── */
+
+/* Noise texture overlay for entire page */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Animated gradient border for header */
+@keyframes header-gradient-slide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.header-gradient-border {
+  position: relative;
+}
+
+.header-gradient-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), rgba(217, 70, 239, 0.3), rgba(139, 92, 246, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: header-gradient-slide 6s ease-in-out infinite;
+}
+
+/* Logo pulse animation */
+@keyframes logo-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(139, 92, 246, 0.25); }
+}
+
+.logo-pulse {
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+/* New Job button glow */
+@keyframes btn-glow {
+  0%, 100% { box-shadow: 0 0 8px 0 rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 16px 2px rgba(139, 92, 246, 0.3); }
+}
+
+.btn-glow {
+  animation: btn-glow 2.5s ease-in-out infinite;
+}
+
+/* Footer gradient border */
+.footer-gradient-border {
+  position: relative;
+}
+
+.footer-gradient-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), transparent);
+}
+
+/* Footer diagonal pattern overlay */
+.footer-pattern {
+  position: relative;
+}
+
+.footer-pattern::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(139, 92, 246, 0.5) 4px,
+    rgba(139, 92, 246, 0.5) 5px
+  );
+}
+
+/* Online pulse dot */
+@keyframes online-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+.online-pulse-dot {
+  animation: online-pulse 2s ease-in-out infinite;
+}
+
+/* Job card left border indicator */
+.job-card-left-border {
+  position: relative;
+}
+
+.job-card-left-border::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  transition: background-color 0.2s;
+  background-color: var(--border-color, #71717a);
+}
+
+/* Shimmer sweep on selected card */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.card-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: shimmer-sweep 3s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+/* Selected card glow pulse */
+@keyframes selected-glow {
+  0%, 100% { box-shadow: 0 0 8px 0 rgba(139, 92, 246, 0.1), inset 0 0 8px 0 rgba(139, 92, 246, 0.03); }
+  50% { box-shadow: 0 0 16px 2px rgba(139, 92, 246, 0.2), inset 0 0 12px 0 rgba(139, 92, 246, 0.06); }
+}
+
+.selected-card-glow {
+  animation: selected-glow 2.5s ease-in-out infinite;
+}
+
+/* Priority badge glow for high priority */
+@keyframes priority-glow {
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(244, 63, 94, 0); }
+  50% { box-shadow: 0 0 8px 1px rgba(244, 63, 94, 0.3); }
+}
+
+.priority-high-glow {
+  animation: priority-glow 2s ease-in-out infinite;
+}
+
+/* Inspector breadcrumb */
+.inspector-breadcrumb {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.08), transparent);
+}
+
+/* Active tab glow */
+.tab-active-glow {
+  position: relative;
+}
+
+.tab-active-glow::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+}
+
+/* 3D Viewer vignette */
+.viewer-vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(8, 8, 16, 0.6) 100%);
+  z-index: 2;
+}
+
+/* 3D Viewer scanlines */
+.viewer-scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.03;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(139, 92, 246, 0.3) 2px,
+    rgba(139, 92, 246, 0.3) 4px
+  );
+}
+
+/* Corner bracket decorations for 3D viewer */
+@keyframes bracket-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.viewer-corner-bracket {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  z-index: 4;
+  pointer-events: none;
+  animation: bracket-pulse 3s ease-in-out infinite;
+}
+
+.viewer-corner-bracket::before,
+.viewer-corner-bracket::after {
+  content: '';
+  position: absolute;
+  background: rgba(139, 92, 246, 0.4);
+}
+
+.viewer-corner-bracket.tl::before { top: 0; left: 0; width: 12px; height: 1px; }
+.viewer-corner-bracket.tl::after { top: 0; left: 0; width: 1px; height: 12px; }
+.viewer-corner-bracket.tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.viewer-corner-bracket.tr::after { top: 0; right: 0; width: 1px; height: 12px; }
+.viewer-corner-bracket.bl::before { bottom: 0; left: 0; width: 12px; height: 1px; }
+.viewer-corner-bracket.bl::after { bottom: 0; left: 0; width: 1px; height: 12px; }
+.viewer-corner-bracket.br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.viewer-corner-bracket.br::after { bottom: 0; right: 0; width: 1px; height: 12px; }
+
+/* Empty state floating animation */
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.empty-float {
+  animation: gentle-float 4s ease-in-out infinite;
+}
+
+/* Gradient text for empty states */
+.gradient-text-muted {
+  background: linear-gradient(135deg, #71717a, #a1a1aa, #71717a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Failed badge shake */
+@keyframes badge-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-2px); }
+  30% { transform: translateX(2px); }
+  45% { transform: translateX(-1px); }
+  60% { transform: translateX(1px); }
+  75% { transform: translateX(0); }
+}
+
+.badge-shake {
+  animation: badge-shake 0.6s ease-in-out;
+}
+
+/* Breathing animation for active badges */
+@keyframes badge-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.badge-breathe {
+  animation: badge-breathe 2.5s ease-in-out infinite;
+}
+
+/* DELIVERED badge sparkle */
+@keyframes sparkle {
+  0% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+  100% { opacity: 0; transform: scale(0) rotate(360deg); }
+}
+
+.badge-sparkle::before {
+  content: '✦';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 6px;
+  color: #a3e635;
+  animation: sparkle 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Dialog entrance animation */
+@keyframes dialog-enter {
+  0% { opacity: 0; transform: scale(0.95) translateY(4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dialog-enter {
+  animation: dialog-enter 0.2s ease-out;
+}
+
+/* Dialog header glow */
+.dialog-header-glow {
+  position: relative;
+}
+
+.dialog-header-glow::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+}
+
+/* Gradient divider */
+.gradient-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent);
+  margin: 0.5rem 0;
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: linear-gradient(90deg, rgba(39, 39, 42, 0.4) 25%, rgba(63, 63, 70, 0.4) 50%, rgba(39, 39, 42, 0.4) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+/* Focus glow ring for inputs */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15), 0 0 12px 0 rgba(139, 92, 246, 0.1);
+}
+
+/* Smooth content transitions */
+.content-fade-in {
+  animation: content-fade 0.25s ease-out;
+}
+
+@keyframes content-fade {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* State badge gradient backgrounds */
+.badge-gradient-new { background: linear-gradient(135deg, rgba(100, 116, 139, 0.2), rgba(100, 116, 139, 0.1)); }
+.badge-gradient-scad { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1)); }
+.badge-gradient-render { background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 0.1)); }
+.badge-gradient-validated { background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(52, 211, 153, 0.1)); }
+.badge-gradient-delivered { background: linear-gradient(135deg, rgba(163, 230, 53, 0.2), rgba(163, 230, 53, 0.1)); }
+.badge-gradient-failed { background: linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(244, 63, 94, 0.1)); }
+.badge-gradient-cancelled { background: linear-gradient(135deg, rgba(113, 113, 122, 0.2), rgba(113, 113, 122, 0.1)); }
+
+/* Particle dots for empty states */
+@keyframes particle-drift {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-20px) scale(1); }
+}
+
+.particle-dot {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.4);
+  pointer-events: none;
 }

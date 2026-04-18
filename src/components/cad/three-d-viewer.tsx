@@ -432,7 +432,12 @@ export function ThreeDViewer({ job }: { job: Job }) {
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full viewer-vignette viewer-scanlines">
+      {/* Corner brackets */}
+      <div className="viewer-corner-bracket tl" style={{ top: 8, left: 8 }} />
+      <div className="viewer-corner-bracket tr" style={{ top: 8, right: 8 }} />
+      <div className="viewer-corner-bracket bl" style={{ bottom: 8, left: 8 }} />
+      <div className="viewer-corner-bracket br" style={{ bottom: 8, right: 8 }} />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2">
@@ -442,13 +447,17 @@ export function ThreeDViewer({ job }: { job: Job }) {
         </div>
       )}
       <div ref={mountRef} className="w-full h-full" />
-      <div className="absolute bottom-2 left-2 flex items-center gap-2">
+      <div className="absolute bottom-2 left-2 flex items-center gap-2 z-[5]">
         <span className="text-[9px] font-mono text-zinc-600 bg-black/40 px-1.5 py-0.5 rounded">
           {partFamily === 'spur_gear' ? `${teeth}T ⌀${outerDiam}mm` :
            partFamily === 'phone_case' ? `${safeNum(values.body_length, 158)}×${safeNum(values.body_width, 78)}mm` :
            partFamily === 'device_stand' ? `${safeNum(values.device_width, 75)}mm stand` :
            `${width}×${depth}×${height}mm`}
         </span>
+      </div>
+      {/* Watermark */}
+      <div className="absolute bottom-2 right-3 z-[5] pointer-events-none">
+        <span className="text-[8px] font-mono text-zinc-700/30 tracking-widest">AgentSCAD Preview</span>
       </div>
       {/* Viewer Controls */}
       <ViewerControls

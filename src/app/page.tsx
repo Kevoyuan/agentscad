@@ -9,7 +9,7 @@ import {
   RefreshCw, Search, Plus, ArrowUpDown, RotateCcw, X,
   Keyboard, Sparkles, Hash, AlertCircle, Repeat, Maximize2,
   Ban, CheckSquare, Square, XSquare, StickyNote, BarChart3,
-  GitCompare, Eye, Zap
+  GitCompare, Eye, Zap, FileJson, Wifi, WifiOff, Timer
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -60,6 +60,7 @@ import { NotesPanel } from '@/components/cad/notes-panel'
 import { StatsDashboard } from '@/components/cad/stats-dashboard'
 import { JobCompare } from '@/components/cad/job-compare'
 import { PartFamilyIcon } from '@/components/cad/part-family-icon'
+import { JobTemplateCards } from '@/components/cad/job-templates'
 
 // Type & API imports
 import {
@@ -90,6 +91,8 @@ export default function Home() {
   const [cancelTarget, setCancelTarget] = useState<Job | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState('PARAMS')
+  const [wsConnected, setWsConnected] = useState(false)
+  const [uptimeSeconds, setUptimeSeconds] = useState(0)
   const { toast } = useToast()
   const startTimeRef = useRef(Date.now())
 
@@ -154,6 +157,7 @@ export default function Home() {
 
     socket.on('connect', () => {
       console.log('[WS] Connected to ws-service')
+      setWsConnected(true)
       stopPolling() // Stop polling when WS is connected
     })
 
@@ -163,6 +167,7 @@ export default function Home() {
 
     socket.on('disconnect', () => {
       console.log('[WS] Disconnected from ws-service, falling back to polling')
+      setWsConnected(false)
       startPolling() // Start polling when WS disconnects
     })
 
@@ -368,17 +373,75 @@ export default function Home() {
     return counts
   }, [allJobs])
 
-  const uptime = Math.floor((Date.now() - startTimeRef.current) / 1000)
+  // Uptime counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUptimeSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const uptime = uptimeSeconds
+
+  // ── Download Helpers ──────────────────────────────────────────────────
+
+  const downloadScad = (job: Job) => {
+    if (!job.scadSource) return
+    const blob = new Blob([job.scadSource], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${job.id.slice(0, 8)}-${job.partFamily || 'part'}.scad`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({ title: 'SCAD file downloaded', duration: 1500 })
+  }
+
+  const exportAllData = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      version: '0.5',
+      totalJobs: allJobs.length,
+      jobs: allJobs,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `agentscad-export-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({ title: 'Data exported', description: `${allJobs.length} jobs`, duration: 2000 })
+  }
+
+  const formatUptime = (s: number) => {
+    if (s < 60) return `${s}s`
+    if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`
+    return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`
+  }
+
+  const successRate = useMemo(() => {
+    const finished = allJobs.filter(j =>
+      ['DELIVERED', 'VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(j.state)
+    )
+    if (finished.length === 0) return 0
+    const succeeded = finished.filter(j => j.state === 'DELIVERED').length
+    return Math.round((succeeded / finished.length) * 100)
+  }, [allJobs])
 
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-[#080810] text-zinc-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#080810] text-zinc-100 overflow-hidden noise-overlay">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 header-gradient-border">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center logo-pulse">
               <Box className="w-3.5 h-3.5 text-white" />
             </div>
             <h1 className="text-sm font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
@@ -419,7 +482,7 @@ export default function Home() {
               <TooltipContent><p className="text-xs">Shortcuts (?)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500" onClick={() => setShowComposer(true)}>
+          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 btn-glow" onClick={() => setShowComposer(true)}>
             <Plus className="w-3 h-3" />New Job
           </Button>
         </div>
@@ -503,16 +566,25 @@ export default function Home() {
                     const isSelected = selectedJob?.id === job.id
                     const isChecked = selectedIds.has(job.id)
                     const isCancelable = CANCELABLE_STATES.includes(job.state)
+                    // Map state colors for left border
+                    const borderColorMap: Record<string, string> = {
+                      NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
+                      VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
+                      REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
+                      RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
+                    }
+                    const leftBorderColor = borderColorMap[job.state] || '#71717a'
                     return (
                       <motion.div
                         key={job.id}
                         layout
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`group/card relative rounded-lg p-2.5 cursor-pointer transition-all duration-150 ${
+                        style={{ '--border-color': leftBorderColor } as React.CSSProperties}
+                        className={`group/card relative rounded-lg p-2.5 cursor-pointer transition-all duration-150 overflow-hidden job-card-left-border ${
                           isSelected
-                            ? 'bg-violet-600/10 border border-violet-500/30 ring-1 ring-violet-500/20'
-                            : 'bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 hover:border-zinc-700/50'
+                            ? 'bg-violet-600/10 border border-violet-500/30 ring-1 ring-violet-500/20 selected-card-glow card-shimmer'
+                            : 'bg-zinc-900/30 border border-zinc-800/40 hover:bg-[radial-gradient(ellipse_at_top_left,rgba(139,92,246,0.06),transparent_70%)] hover:border-zinc-700/50'
                         }`}
                         onClick={() => { setSelectedJob(job); setActiveTab('PARAMS') }}
                       >
@@ -533,7 +605,7 @@ export default function Home() {
                             <p className="text-[11px] text-zinc-300 leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
                             <div className="flex items-center gap-1 shrink-0">
                               <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-                              <span className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)}`}>
+                              <span className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} ${job.priority >= 8 ? 'priority-high-glow' : ''}`}>
                                 P{job.priority}
                               </span>
                             </div>
@@ -543,7 +615,7 @@ export default function Home() {
                             <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
                           </div>
                           {/* Action Buttons */}
-                          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1 group-hover/card:translate-y-0" onClick={e => e.stopPropagation()}>
                             {job.state === 'NEW' && (
                               <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-emerald-400 hover:text-emerald-300" onClick={() => handleProcess(job)}>
                                 <Play className="w-2.5 h-2.5" />Process
@@ -566,14 +638,18 @@ export default function Home() {
                     )
                   })}
                   {jobs.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-zinc-600 gap-3">
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-800/20 flex items-center justify-center">
+                    <div className="relative flex flex-col items-center justify-center py-12 text-zinc-600 gap-3">
+                      <div className="w-14 h-14 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
                         <Layers className="w-7 h-7 opacity-20" />
                       </div>
                       <div className="text-center">
-                        <p className="text-sm">No jobs found</p>
+                        <p className="text-sm gradient-text-muted">No jobs found</p>
                         <p className="text-[10px] text-zinc-700 mt-1">Create a new job or adjust filters</p>
                       </div>
+                      {/* Subtle particle dots */}
+                      <div className="particle-dot" style={{ top: '20%', left: '30%', animation: 'particle-drift 3s ease-in-out infinite' }} />
+                      <div className="particle-dot" style={{ top: '40%', right: '25%', animation: 'particle-drift 4s ease-in-out infinite 1s' }} />
+                      <div className="particle-dot" style={{ bottom: '30%', left: '40%', animation: 'particle-drift 3.5s ease-in-out infinite 0.5s' }} />
                     </div>
                   )}
                 </div>
@@ -619,7 +695,7 @@ export default function Home() {
                         </Button>
                       )}
                       {selectedJob.scadSource && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300">
+                        <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => downloadScad(selectedJob)}>
                           <Download className="w-3 h-3" />SCAD
                         </Button>
                       )}
@@ -648,14 +724,17 @@ export default function Home() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-4">
-                  <div className="w-20 h-20 rounded-2xl bg-zinc-800/20 flex items-center justify-center">
+                <div className="relative flex flex-col items-center justify-center h-full text-zinc-600 gap-4">
+                  <div className="w-20 h-20 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
                     <Box className="w-10 h-10 opacity-15" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-zinc-500">No job selected</p>
+                    <p className="text-sm font-medium gradient-text-muted">No job selected</p>
                     <p className="text-[10px] text-zinc-700 mt-1">Select a job from the list or create a new one</p>
                   </div>
+                  <div className="particle-dot" style={{ top: '25%', left: '20%', animation: 'particle-drift 3s ease-in-out infinite' }} />
+                  <div className="particle-dot" style={{ top: '35%', right: '30%', animation: 'particle-drift 4s ease-in-out infinite 0.5s' }} />
+                  <div className="particle-dot" style={{ bottom: '30%', left: '35%', animation: 'particle-drift 3.5s ease-in-out infinite 1s' }} />
                   <Button size="sm" className="h-7 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 mt-2" onClick={() => setShowComposer(true)}>
                     <Plus className="w-3 h-3" />Create First Job
                   </Button>
@@ -671,6 +750,12 @@ export default function Home() {
             <div className="flex flex-col h-full bg-[#0a0818]">
               {selectedJob ? (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+                  {/* Inspector Breadcrumb */}
+                  <div className="inspector-breadcrumb px-3 py-1 flex items-center gap-1.5 text-[9px] font-mono shrink-0">
+                    <span className="text-zinc-600">{selectedJob.id.slice(0, 8)}</span>
+                    <span className="text-zinc-700">›</span>
+                    <span className="text-violet-400">{activeTab}</span>
+                  </div>
                   <TabsList className="w-full justify-start px-2 py-1 bg-transparent border-b border-zinc-800/60 h-auto rounded-none shrink-0">
                     {[
                       { key: 'PARAMS', label: 'PARAMS', icon: Settings },
@@ -684,43 +769,49 @@ export default function Home() {
                       <TabsTrigger
                         key={tab.key}
                         value={tab.key}
-                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 rounded-sm h-auto min-h-0"
+                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-200"
                       >
                         {tab.label}
                       </TabsTrigger>
                     ))}
                   </TabsList>
                   <div className="flex-1 overflow-hidden">
-                    <TabsContent value="PARAMS" className="h-full m-0 data-[state=inactive]:hidden">
-                      <ParameterPanel job={selectedJob} onUpdate={loadJobs} />
-                    </TabsContent>
-                    <TabsContent value="RESEARCH" className="h-full m-0 data-[state=inactive]:hidden">
-                      <ResearchPanel job={selectedJob} />
-                    </TabsContent>
-                    <TabsContent value="VALIDATE" className="h-full m-0 data-[state=inactive]:hidden">
-                      <ValidationPanel job={selectedJob} />
-                    </TabsContent>
-                    <TabsContent value="SCAD" className="h-full m-0 data-[state=inactive]:hidden">
-                      <ScadViewer code={selectedJob.scadSource} />
-                    </TabsContent>
-                    <TabsContent value="LOG" className="h-full m-0 data-[state=inactive]:hidden">
-                      <TimelinePanel job={selectedJob} />
-                    </TabsContent>
-                    <TabsContent value="NOTES" className="h-full m-0 data-[state=inactive]:hidden">
-                      <NotesPanel job={selectedJob} onUpdate={loadJobs} />
-                    </TabsContent>
-                    <TabsContent value="AI" className="h-full m-0 data-[state=inactive]:hidden">
-                      <ChatPanel job={selectedJob} />
-                    </TabsContent>
+                    <AnimatePresence mode="wait">
+                      <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }} className="h-full">
+                        <TabsContent value="PARAMS" className="h-full m-0 data-[state=inactive]:hidden">
+                          <ParameterPanel job={selectedJob} onUpdate={loadJobs} />
+                        </TabsContent>
+                        <TabsContent value="RESEARCH" className="h-full m-0 data-[state=inactive]:hidden">
+                          <ResearchPanel job={selectedJob} />
+                        </TabsContent>
+                        <TabsContent value="VALIDATE" className="h-full m-0 data-[state=inactive]:hidden">
+                          <ValidationPanel job={selectedJob} />
+                        </TabsContent>
+                        <TabsContent value="SCAD" className="h-full m-0 data-[state=inactive]:hidden">
+                          <ScadViewer code={selectedJob.scadSource} />
+                        </TabsContent>
+                        <TabsContent value="LOG" className="h-full m-0 data-[state=inactive]:hidden">
+                          <TimelinePanel job={selectedJob} />
+                        </TabsContent>
+                        <TabsContent value="NOTES" className="h-full m-0 data-[state=inactive]:hidden">
+                          <NotesPanel job={selectedJob} onUpdate={loadJobs} />
+                        </TabsContent>
+                        <TabsContent value="AI" className="h-full m-0 data-[state=inactive]:hidden">
+                          <ChatPanel key={selectedJob.id} job={selectedJob} />
+                        </TabsContent>
+                      </motion.div>
+                    </AnimatePresence>
                   </div>
                 </Tabs>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-                  <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+                <div className="relative flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center empty-float">
                     <Settings className="w-6 h-6 opacity-30" />
                   </div>
-                  <p className="text-sm">Inspector</p>
+                  <p className="text-sm gradient-text-muted">Inspector</p>
                   <p className="text-[10px] text-zinc-700">Select a job to inspect</p>
+                  <div className="particle-dot" style={{ top: '30%', right: '20%', animation: 'particle-drift 3s ease-in-out infinite' }} />
+                  <div className="particle-dot" style={{ bottom: '25%', left: '25%', animation: 'particle-drift 4s ease-in-out infinite 0.7s' }} />
                 </div>
               )}
             </div>
@@ -729,16 +820,21 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="flex items-center justify-between px-4 py-1 border-t border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0">
+      <footer className="flex items-center justify-between px-4 py-1 border-t border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 footer-gradient-border footer-pattern">
         <div className="flex items-center gap-4 text-[9px] font-mono text-zinc-600">
-          <span className="flex items-center gap-1"><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 online-pulse-dot" /><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
+          <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-pulse-dot' : 'bg-rose-500'}`} />WS: {wsConnected ? 'Connected' : 'Disconnected'}</span>
           <span>Jobs: {allJobs.length}</span>
           <span>Delivered: {stateCounts['DELIVERED'] || 0}</span>
           <span>Failed: {(stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0)}</span>
         </div>
         <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-700">
-          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.3</span>
-          <span className="flex items-center gap-1"><Hash className="w-2.5 h-2.5" />Engine: LLM-Parametric</span>
+          <span className="flex items-center gap-1"><Timer className="w-2.5 h-2.5" />{formatUptime(uptime)}</span>
+          <span className="flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" />{successRate}%</span>
+          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.5</span>
+          <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-zinc-600 hover:text-zinc-400" onClick={exportAllData}>
+            <FileJson className="w-2.5 h-2.5" />Export
+          </Button>
         </div>
       </footer>
 
@@ -746,13 +842,15 @@ export default function Home() {
 
       {/* Job Composer */}
       <Dialog open={showComposer} onOpenChange={setShowComposer}>
-        <DialogContent className="bg-[#0c0a14] border-zinc-800/60 max-w-lg">
-          <DialogHeader>
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-lg backdrop-blur-xl dialog-enter">
+          <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <Plus className="w-4 h-4 text-violet-400" />New CAD Job
             </DialogTitle>
           </DialogHeader>
+          <div className="gradient-divider" />
           <div className="space-y-4">
+            <JobTemplateCards onSelect={(template) => setNewJobText(template)} />
             <div>
               <Textarea
                 value={newJobText}
@@ -800,7 +898,7 @@ export default function Home() {
 
       {/* Cancel Confirmation */}
       <AlertDialog open={!!cancelTarget} onOpenChange={() => setCancelTarget(null)}>
-        <AlertDialogContent className="bg-[#0c0a14] border-zinc-800/60">
+        <AlertDialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl dialog-enter">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">Cancel Job?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-zinc-500">
@@ -818,12 +916,13 @@ export default function Home() {
 
       {/* Keyboard Shortcuts */}
       <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
-        <DialogContent className="bg-[#0c0a14] border-zinc-800/60 max-w-xs">
-          <DialogHeader>
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-xs backdrop-blur-xl dialog-enter">
+          <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <Keyboard className="w-4 h-4 text-violet-400" />Shortcuts
             </DialogTitle>
           </DialogHeader>
+          <div className="gradient-divider" />
           <div className="space-y-2">
             {[
               ['⌘/Ctrl + N', 'New job'],
@@ -842,8 +941,8 @@ export default function Home() {
 
       {/* Stats Dashboard */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent className="bg-[#0c0a14] border-zinc-800/60 max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-2xl backdrop-blur-xl dialog-enter">
+          <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-violet-400" />Stats Dashboard
             </DialogTitle>
@@ -854,8 +953,8 @@ export default function Home() {
 
       {/* Job Compare */}
       <Dialog open={showCompare} onOpenChange={setShowCompare}>
-        <DialogContent className="bg-[#0c0a14] border-zinc-800/60 max-w-4xl max-h-[80vh]">
-          <DialogHeader>
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-4xl max-h-[80vh] backdrop-blur-xl dialog-enter">
+          <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <GitCompare className="w-4 h-4 text-violet-400" />Compare Jobs
             </DialogTitle>

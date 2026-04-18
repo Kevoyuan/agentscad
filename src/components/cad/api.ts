@@ -59,6 +59,72 @@ export async function updateParameters(id: string, parameterValues: Record<strin
   return data.job
 }
 
+/**
+ * Send a chat message and receive a streaming response via SSE.
+ * Calls onToken for each token received, onDone when complete, and onError on failure.
+ * Returns an abort function to cancel the stream.
+ */
+export function sendChatMessageStream(
+  messages: Array<{ role: string; content: string }>,
+  jobId: string | undefined,
+  onToken: (token: string) => void,
+  onDone: () => void,
+  onError: (err: string) => void
+): () => void {
+  const controller = new AbortController()
+
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, jobId }),
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        onError('Chat request failed')
+        return
+      }
+      const reader = res.body?.getReader()
+      if (!reader) {
+        onError('No response body')
+        return
+      }
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.type === 'token' && data.content) {
+                onToken(data.content)
+              } else if (data.type === 'done') {
+                onDone()
+              } else if (data.type === 'error') {
+                onError(data.message || 'Stream error')
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
+      // Ensure done is called if stream ends without explicit done event
+      onDone()
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') {
+        onError(err instanceof Error ? err.message : 'Unknown error')
+      }
+    })
+
+  return () => controller.abort()
+}
+
+/** Legacy non-streaming chat (kept for backwards compatibility) */
 export async function sendChatMessage(messages: Array<{ role: string; content: string }>, jobId?: string): Promise<string> {
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -66,8 +132,30 @@ export async function sendChatMessage(messages: Array<{ role: string; content: s
     body: JSON.stringify({ messages, jobId }),
   })
   if (!res.ok) throw new Error('Chat request failed')
-  const data = await res.json()
-  return data.message?.content || 'No response'
+  // Handle SSE response - collect all tokens
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('No response body')
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let fullContent = ''
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6))
+          if (data.type === 'token' && data.content) {
+            fullContent += data.content
+          }
+        } catch { /* skip */ }
+      }
+    }
+  }
+  return fullContent || 'No response'
 }
 
 export async function cancelJob(id: string): Promise<Job> {

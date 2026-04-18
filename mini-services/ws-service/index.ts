@@ -100,7 +100,10 @@ httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`[ws-service] WebSocket service running on port ${PORT}`);
 });
 
-setInterval(() => {}, 30000);
+// Keep process alive with a heartbeat
+setInterval(() => {
+  console.log(`[ws-service] Heartbeat: ${connectedClients.size} clients connected`);
+}, 60000);
 
 process.on("uncaughtException", (err) => {
   console.error("[ws-service] Uncaught exception:", err);

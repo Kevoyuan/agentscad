@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json(
-        { error: "Messages array is required" },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: "Messages array is required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 - Answering questions about manufacturing constraints
 - Suggesting parameter values for specific use cases
 
-Be concise, technical, and helpful. When discussing code, use code blocks.`;
+Be concise, technical, and helpful. When discussing code, use code blocks with the appropriate language tag.`;
 
     if (jobId) {
       const job = await db.job.findUnique({ where: { id: jobId } });
@@ -57,7 +57,7 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       }
     }
 
-    // Try LLM via z-ai-web-dev-sdk
+    // Try LLM via z-ai-web-dev-sdk with streaming
     try {
       const ZAIModule = await import("z-ai-web-dev-sdk");
       const ZAI = ZAIModule.default;
@@ -68,18 +68,75 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        stream: false,
+        stream: true,
       });
 
+      // If the result is a streaming response (has iterator/async iterator)
+      if (result && typeof result === "object" && Symbol.asyncIterator in result) {
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              for await (const chunk of result) {
+                const content =
+                  chunk?.choices?.[0]?.delta?.content ??
+                  chunk?.data?.content ??
+                  "";
+                if (content) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: "token", content })}\n\n`)
+                  );
+                }
+              }
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+              );
+              controller.close();
+            } catch (streamErr) {
+              console.warn("Stream error:", streamErr);
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "error", message: "Stream interrupted" })}\n\n`)
+              );
+              controller.close();
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      }
+
+      // If result is not a stream but a regular response, still send as SSE
       const content =
         result?.choices?.[0]?.message?.content ??
         result?.data?.content ??
         (typeof result === "string" ? result : JSON.stringify(result));
 
-      return NextResponse.json({
-        message: {
-          role: "assistant",
-          content: typeof content === "string" ? content : JSON.stringify(content),
+      const fullContent = typeof content === "string" ? content : JSON.stringify(content);
+      const encoder = new TextEncoder();
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "token", content: fullContent })}\n\n`)
+          );
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+          );
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
         },
       });
     } catch (llmError) {
@@ -109,18 +166,33 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
           "You can adjust parameters using the sliders in the PARAMS tab. Changes are saved automatically. Key parameters to consider: wall thickness (min 1.2mm), overall dimensions, and corner radii.";
       }
 
-      return NextResponse.json({
-        message: {
-          role: "assistant",
-          content: fallbackContent,
+      // Send fallback as SSE too for consistent handling
+      const encoder = new TextEncoder();
+      const fallbackStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "token", content: fallbackContent })}\n\n`)
+          );
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+          );
+          controller.close();
+        },
+      });
+
+      return new Response(fallbackStream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
         },
       });
     }
   } catch (error) {
     console.error("Chat API error:", error);
-    return NextResponse.json(
-      { error: "Failed to process chat request" },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: "Failed to process chat request" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

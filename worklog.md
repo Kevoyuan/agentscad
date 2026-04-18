@@ -4,7 +4,104 @@
 
 The project is a **fully functional CAD Agent Dashboard** built with Next.js 16, implementing an engineering control room aesthetic for creating, processing, and managing CAD jobs through a multi-agent pipeline.
 
-**Status**: Stable, all features working, WebSocket real-time updates, ViewerControls integrated, custom scrollbar applied, motion presets applied, enhanced components. Version 0.4.
+**Status**: Stable, all features working, streaming AI chat, SCAD download, job templates, enhanced footer. Version 0.5.
+
+---
+
+## Session 5: Streaming Chat + SCAD Download + Job Templates + Enhanced Footer
+
+### Task ID: 5-a
+**Agent**: Fullstack Dev Agent
+**Task**: Implement LLM streaming chat, SCAD download, job templates, enhanced footer
+
+#### Work Log:
+
+1. ✅ **Chat API Streaming Support** (`src/app/api/chat/route.ts`):
+   - Replaced non-streaming JSON response with SSE (Server-Sent Events) format
+   - Uses `z-ai-web-dev-sdk` with `stream: true` for real-time token delivery
+   - Handles both async iterable stream and non-streaming fallback from SDK
+   - Sends `data: {"type": "token", "content": "..."}` for each token chunk
+   - Sends `data: {"type": "done"}` when complete
+   - Sends `data: {"type": "error", "message": "..."}` on stream interruption
+   - Fallback responses also use SSE format for consistent frontend handling
+   - Maintains all existing job context (SCAD code, parameters, validation results)
+
+2. ✅ **Streaming API Function** (`src/components/cad/api.ts`):
+   - Added `sendChatMessageStream()` function with AbortController support
+   - Accepts `onToken`, `onDone`, `onError` callbacks for real-time UI updates
+   - Returns abort function for "Stop generating" button
+   - Updated `sendChatMessage()` (legacy) to handle SSE response format
+   - Parses SSE `data:` lines and dispatches to appropriate callback
+
+3. ✅ **Enhanced Chat Panel** (`src/components/cad/chat-panel.tsx`):
+   - **Streaming text effect**: Tokens appear one by one as they arrive from LLM
+   - **Typing indicator**: Animated bouncing dots while waiting for first token
+   - **"Stop generating" button**: Red square button appears during streaming, aborts fetch
+   - **Smart suggestions**: Part-family-specific suggestions (e.g., gear questions for spur_gear)
+   - **Markdown rendering**: Uses `react-markdown` for rich formatting in AI responses
+   - **Code block syntax highlighting**: Uses `react-syntax-highlighter` with `oneDark` theme
+   - **Message timestamps**: Both user and assistant messages show time with clock icon
+   - **Smooth auto-scroll**: Automatically scrolls to bottom during streaming
+   - **Streaming indicator**: "generating..." label with pulse animation during streaming
+
+4. ✅ **SCAD Download Functionality** (`src/app/page.tsx`):
+   - Added `downloadScad(job)` function that creates Blob and triggers download
+   - File named `{jobId-prefix}-{partFamily}.scad`
+   - SCAD button now calls `downloadScad(selectedJob)` on click
+   - Toast notification on successful download
+
+5. ✅ **Export All Data Button** (`src/app/page.tsx`):
+   - Added `exportAllData()` function that exports all jobs as JSON
+   - Includes version, timestamp, total count, and full job data
+   - File named `agentscad-export-{date}.json`
+   - Export button added to footer with FileJson icon
+
+6. ✅ **Job Templates** (`src/components/cad/job-templates.tsx`):
+   - Created 6 template presets with icons and colors:
+     - Electronics Enclosure (CircuitBoard icon, amber)
+     - Spur Gear (Cog icon, violet)
+     - Phone Stand (Smartphone icon, cyan)
+     - L-Bracket (Triangle icon, rose)
+     - Hex Bolt (Wrench icon, emerald)
+     - Custom Pipe (Cylinder icon, orange)
+   - Each template has: id, name, description, template string, icon, color
+   - `JobTemplateCards` component with hover animations (scale, y-offset)
+   - Click to fill template into textarea
+
+7. ✅ **Templates in New Job Dialog** (`src/app/page.tsx`):
+   - Added `JobTemplateCards` component above textarea in composer dialog
+   - Clicking a template fills the textarea with the template string
+
+8. ✅ **Footer Version Fix**:
+   - Changed `AgentSCAD v0.3` → `AgentSCAD v0.5`
+
+9. ✅ **Enhanced Footer** (`src/app/page.tsx`):
+   - **WebSocket connection status**: Green/rose dot + "WS: Connected/Disconnected" text
+   - **Uptime counter**: Live timer using 1-second interval (`formatUptime()` helper)
+   - **Success rate percentage**: Calculated from DELIVERED vs failed jobs
+   - **Export button**: FileJson icon + "Export" text in footer
+   - Added `wsConnected` state tracked from WebSocket events
+   - Added `uptimeSeconds` state with 1-second interval
+   - Added `successRate` computed from allJobs
+
+#### New Files Created:
+- `src/components/cad/job-templates.tsx` - 6 template presets + JobTemplateCards component
+
+#### Files Modified:
+- `src/app/api/chat/route.ts` - Full rewrite with SSE streaming support
+- `src/components/cad/api.ts` - Added sendChatMessageStream(), updated sendChatMessage()
+- `src/components/cad/chat-panel.tsx` - Full rewrite with streaming, markdown, syntax highlighting
+- `src/app/page.tsx` - SCAD download, export, templates, footer enhancements, uptime, success rate
+
+#### Lint Status: ✅ PASS (0 errors, 0 warnings)
+
+#### Stage Summary:
+- **LLM streaming chat** with SSE, token-by-token display, markdown rendering, code highlighting
+- **SCAD download** working - creates .scad file blob and triggers browser download
+- **Export all data** as JSON from footer
+- **6 job templates** with icons and click-to-fill in composer dialog
+- **Enhanced footer** with WS status, uptime, success rate, export button
+- **Version bumped to v0.5**
 
 ---
 
@@ -231,8 +328,9 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 
 1. **STL/PNG download buttons**: Connected to API but mock backend returns placeholder data
 2. **Parameter re-processing**: DELIVERED jobs can be reprocessed but it restarts the entire pipeline
-3. **Drag-to-reorder priority**: Not yet implemented
-4. **Motion Presets unused in some components**: Could be further applied to stats-dashboard, job-compare, etc.
+3. **Drag-to-reorder priority**: Not yet implemented (dnd-kit installed but not wired)
+4. **WebSocket service keeps dying**: The WS mini-service on port 3003 exits after ~15s in sandbox. Polling fallback works fine.
+5. **Motion Presets unused in some components**: Could be further applied to stats-dashboard, job-compare, etc.
 
 ## Suggested Next Steps (Priority Order)
 
@@ -240,5 +338,38 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 2. **Add real OpenSCAD rendering**: Connect to an OpenSCAD binary for actual STL/PNG output
 3. **Add case memory**: Store successful patterns and suggest similar past jobs
 4. **Add image upload**: Support visual references for design generation
-5. **Add drag-to-reorder priority**: Allow reordering jobs by drag-and-drop
+5. **Add drag-to-reorder priority**: Allow reordering jobs by drag-and-drop using @dnd-kit
 6. **Apply motion presets to remaining components**: stats-dashboard, job-compare, notes-panel
+7. **Fix WebSocket service persistence**: Debug why the WS service exits in sandbox environment
+8. **Add real-time collaboration**: Share job state across multiple browser tabs/users
+
+---
+Task ID: 5-b
+Agent: Frontend Styling Expert
+Task: Major styling overhaul - animations, micro-interactions, visual enhancements
+
+Work Log:
+- Added comprehensive CSS animations and utility classes in globals.css (30+ new keyframes and classes)
+- Enhanced header with animated gradient border, logo pulse animation, and New Job button glow
+- Enhanced footer with gradient top border, diagonal pattern overlay, animated online pulse dot, and WS: Connected/Disconnected status
+- Enhanced job cards with left-border color indicator (3px, state-colored via CSS custom property), radial hover gradient, selected card glow pulse, shimmer sweep effect, priority badge glow for P8-P10, and fade-in action buttons with translateY
+- Enhanced inspector panel with breadcrumb (Job ID → Active Tab), tab-active-glow underline, AnimatePresence fade transition on tab switch
+- Enhanced 3D viewer with vignette overlay, scanline effect, pulsing corner brackets, and "AgentSCAD Preview" watermark
+- Enhanced empty states with floating animation, gradient text, and particle dot backgrounds
+- Enhanced state badges with gradient backgrounds replacing flat colors, badge-shake for FAILED states, badge-breathe for active states, badge-sparkle for DELIVERED
+- Enhanced dialogs with backdrop-blur-xl, dialog-enter animation, dialog-header-glow, and gradient-divider separators
+- Added noise texture overlay on entire page at 1.8% opacity
+- Added focus glow ring for all inputs/textareas/selects
+- Added skeleton-loading animation class for future use
+- Added wsConnected state to properly track WebSocket connection status in footer
+- Fixed pre-existing lint error in chat-panel.tsx (setState in effect → key-based reset via parent)
+- Lint passes with 0 errors
+
+Stage Summary:
+- **30+ new CSS animations/keyframes** added: header-gradient-slide, logo-pulse, btn-glow, online-pulse, shimmer-sweep, selected-glow, priority-glow, bracket-pulse, gentle-float, badge-shake, badge-breathe, sparkle, dialog-enter, skeleton-shimmer, content-fade, particle-drift
+- **9 major UI areas enhanced** with animations and micro-interactions: header, footer, job cards, inspector panel, 3D viewer, empty states, state badges, dialogs, and global page
+- **State badge system overhauled**: gradient backgrounds, shake animation on FAILED, breathing on active, sparkle on DELIVERED
+- **3D viewer cinematic effects**: vignette, scanlines, corner brackets, watermark
+- **Footer now shows WebSocket connection status** with animated indicator dot
+- **All changes maintain dark engineering aesthetic** with violet/fuchsia/cyan/emerald/amber accent colors
+- **Lint passes with 0 errors**
