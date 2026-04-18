@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { broadcastWs } from "@/lib/ws-broadcast";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -1021,6 +1022,7 @@ export async function POST(
             parameters: generationResult.parameters,
             partFamily,
           });
+          broadcastWs("job:update", { jobId: id, state: "SCAD_GENERATED", action: "scad_generated" }).catch(() => {});
           await delay(1200);
 
           // Step 2: SCAD_GENERATED → RENDERED
@@ -1063,6 +1065,7 @@ export async function POST(
             stlPath: mockStlPath,
             pngPath: mockPngPath,
           });
+          broadcastWs("job:update", { jobId: id, state: "RENDERED", action: "rendered" }).catch(() => {});
           await delay(1000);
 
           // Step 3: RENDERED → VALIDATED
@@ -1095,6 +1098,7 @@ export async function POST(
             message: "Validation passed - all critical rules satisfied",
             validationResults,
           });
+          broadcastWs("job:update", { jobId: id, state: "VALIDATED", action: "validated" }).catch(() => {});
           await delay(800);
 
           // Step 4: VALIDATED → DELIVERED
@@ -1126,6 +1130,7 @@ export async function POST(
             message: "Job completed successfully! All deliverables are ready.",
             job: finalJob,
           });
+          broadcastWs("job:update", { jobId: id, state: "DELIVERED", action: "delivered" }).catch(() => {});
 
           controller.close();
         } catch (error) {
@@ -1149,6 +1154,7 @@ export async function POST(
             step: "error",
             message: `Processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           });
+          broadcastWs("job:update", { jobId: id, state: "GEOMETRY_FAILED", action: "error" }).catch(() => {});
 
           controller.close();
         }

@@ -1,15 +1,37 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Box, Loader2, AlertCircle, Eye } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Box, Loader2, AlertCircle } from 'lucide-react'
 import { Job, parseJSON, safeNum } from './types'
+import { ViewerControls, useViewerControls, type ViewerControlsState } from './viewer-controls'
 
 export function ThreeDViewer({ job }: { job: Job }) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showWireframe, setShowWireframe] = useState(false)
+
+  // Viewer controls
+  const {
+    state: controlsState,
+    setState: setControlsState,
+    handleScreenshot,
+  } = useViewerControls({
+    autoRotate: true,
+    wireframe: false,
+    showGrid: true,
+    showAxes: true,
+    darkBg: true,
+  })
+
+  // Refs to Three.js objects so we can manipulate them from controls
+  const threeModuleRef = useRef<any>(null)
+  const sceneRef = useRef<any>(null)
+  const controlsObjRef = useRef<any>(null)
+  const gridHelperRef = useRef<any>(null)
+  const axisHelperRef = useRef<any>(null)
+  const cameraRef = useRef<any>(null)
+  const rendererRef = useRef<any>(null)
+  const mainGroupRef = useRef<any>(null)
 
   const values = parseJSON<Record<string, number>>(job.parameterValues, {})
   const width = safeNum(values.width, 40)
@@ -21,6 +43,79 @@ export function ThreeDViewer({ job }: { job: Job }) {
   const boreDiam = safeNum(values.bore_diameter, 8)
   const thickness = safeNum(values.thickness, 8)
   const partFamily = job.partFamily || 'unknown'
+
+  // Default camera position for reset
+  const defaultCameraPos = { x: 60, y: 50, z: 60 }
+  const defaultTarget = { x: 0, y: 0, z: 0 }
+
+  // Apply controls state changes to Three.js scene
+  useEffect(() => {
+    // Auto-rotate
+    if (controlsObjRef.current) {
+      controlsObjRef.current.autoRotate = controlsState.autoRotate
+    }
+
+    // Wireframe
+    if (mainGroupRef.current) {
+      mainGroupRef.current.traverse((child: any) => {
+        if (child.isMesh && child.material) {
+          child.material.wireframe = controlsState.wireframe
+        }
+      })
+    }
+
+    // Grid visibility
+    if (gridHelperRef.current) {
+      gridHelperRef.current.visible = controlsState.showGrid
+    }
+
+    // Axes visibility
+    if (axisHelperRef.current) {
+      axisHelperRef.current.visible = controlsState.showAxes
+    }
+
+    // Background
+    if (sceneRef.current && threeModuleRef.current) {
+      sceneRef.current.background = new threeModuleRef.current.Color(
+        controlsState.darkBg ? 0x080810 : 0x050508
+      )
+    }
+  }, [controlsState])
+
+  // Control handlers
+  const handleResetCamera = useCallback(() => {
+    if (cameraRef.current && controlsObjRef.current) {
+      cameraRef.current.position.set(defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z)
+      controlsObjRef.current.target.set(defaultTarget.x, defaultTarget.y, defaultTarget.z)
+      controlsObjRef.current.update()
+    }
+  }, [])
+
+  const handleZoomIn = useCallback(() => {
+    if (cameraRef.current) {
+      cameraRef.current.position.multiplyScalar(0.85)
+      if (controlsObjRef.current) controlsObjRef.current.update()
+    }
+  }, [])
+
+  const handleZoomOut = useCallback(() => {
+    if (cameraRef.current) {
+      cameraRef.current.position.multiplyScalar(1.15)
+      if (controlsObjRef.current) controlsObjRef.current.update()
+    }
+  }, [])
+
+  const handleScreenshotWithCanvas = useCallback(() => {
+    if (rendererRef.current) {
+      const canvas = rendererRef.current.domElement
+      if (canvas) {
+        const link = document.createElement('a')
+        link.download = `cad-preview-${Date.now()}.png`
+        link.href = canvas.toDataURL('image/png')
+        link.click()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!mountRef.current || job.state === 'NEW' || job.state === 'SCAD_GENERATED') return
@@ -44,22 +139,26 @@ export function ThreeDViewer({ job }: { job: Job }) {
     let animFrameId: number | null = null
 
     import('three').then(async (THREE) => {
+      threeModuleRef.current = THREE
       const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js')
 
       if (cancelled || !mountRef.current) return
 
       try {
         const scene = new THREE.Scene()
-        scene.background = new THREE.Color(0x080810)
+        scene.background = new THREE.Color(controlsState.darkBg ? 0x080810 : 0x050508)
         scene.fog = new THREE.Fog(0x080810, 100, 200)
+        sceneRef.current = scene
 
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000)
-        camera.position.set(60, 50, 60)
+        camera.position.set(defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z)
+        cameraRef.current = camera
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
         renderer.setSize(w, h)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.shadowMap.enabled = true
+        rendererRef.current = renderer
 
         // Clear previous content
         while (container.firstChild) {
@@ -70,17 +169,22 @@ export function ThreeDViewer({ job }: { job: Job }) {
         controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true
         controls.dampingFactor = 0.05
-        controls.autoRotate = true
+        controls.autoRotate = controlsState.autoRotate
         controls.autoRotateSpeed = 0.5
+        controlsObjRef.current = controls
 
         // Grid
         const gridHelper = new THREE.GridHelper(120, 24, 0x1a1a3e, 0x0d0d1f)
+        gridHelper.visible = controlsState.showGrid
         scene.add(gridHelper)
+        gridHelperRef.current = gridHelper
 
         // Axis helper
         const axisHelper = new THREE.AxesHelper(30)
         axisHelper.position.set(-50, 0.1, -50)
+        axisHelper.visible = controlsState.showAxes
         scene.add(axisHelper)
+        axisHelperRef.current = axisHelper
 
         // Build geometry based on part family
         const mainGroup = new THREE.Group()
@@ -94,6 +198,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
             transparent: true,
             opacity: 0.7,
             side: THREE.DoubleSide,
+            wireframe: controlsState.wireframe,
           })
           const gearMesh = new THREE.Mesh(gearGeo, gearMat)
           gearMesh.rotation.x = Math.PI / 2
@@ -105,6 +210,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
             const angle = (i / teeth) * Math.PI * 2
             const toothGeo = new THREE.BoxGeometry(outerDiam * 0.06, thickness, outerDiam * 0.08)
             const toothMesh = new THREE.Mesh(toothGeo, gearMat.clone())
+            toothMesh.material.wireframe = controlsState.wireframe
             toothMesh.position.x = Math.cos(angle) * (gearRadius + outerDiam * 0.02)
             toothMesh.position.z = Math.sin(angle) * (gearRadius + outerDiam * 0.02)
             toothMesh.position.y = thickness / 2
@@ -117,6 +223,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
           const boreMat = new THREE.MeshPhongMaterial({
             color: 0x080810,
             side: THREE.BackSide,
+            wireframe: controlsState.wireframe,
           })
           const boreMesh = new THREE.Mesh(boreGeo, boreMat)
           boreMesh.rotation.x = Math.PI / 2
@@ -138,7 +245,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
           // Base
           const baseGeo = new THREE.BoxGeometry(deviceW + wallT * 2 + 40, wallT, deviceW * 0.6)
-          const baseMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, transparent: true, opacity: 0.7 })
+          const baseMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, transparent: true, opacity: 0.7, wireframe: controlsState.wireframe })
           const baseMesh = new THREE.Mesh(baseGeo, baseMat)
           baseMesh.position.y = wallT / 2
           mainGroup.add(baseMesh)
@@ -146,6 +253,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
           // Back support
           const backGeo = new THREE.BoxGeometry(deviceW + wallT * 2, standH, wallT)
           const backMesh = new THREE.Mesh(backGeo, baseMat.clone())
+          backMesh.material.wireframe = controlsState.wireframe
           backMesh.position.y = standH / 2
           backMesh.position.z = -deviceW * 0.2
           mainGroup.add(backMesh)
@@ -153,6 +261,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
           // Front lip
           const lipGeo = new THREE.BoxGeometry(deviceW + wallT * 2, safeNum(values.lip_height, 10), wallT)
           const lipMesh = new THREE.Mesh(lipGeo, baseMat.clone())
+          lipMesh.material.wireframe = controlsState.wireframe
           lipMesh.position.y = safeNum(values.lip_height, 10) / 2
           lipMesh.position.z = deviceW * 0.2
           mainGroup.add(lipMesh)
@@ -175,14 +284,14 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
           // Outer shell
           const outerGeo = new THREE.BoxGeometry(bodyL + wallT * 2, bodyD + wallT, bodyW + wallT * 2)
-          const outerMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, transparent: true, opacity: 0.5 })
+          const outerMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, transparent: true, opacity: 0.5, wireframe: controlsState.wireframe })
           const outerMesh = new THREE.Mesh(outerGeo, outerMat)
           outerMesh.position.y = (bodyD + wallT) / 2
           mainGroup.add(outerMesh)
 
           // Inner cavity
           const innerGeo = new THREE.BoxGeometry(bodyL, bodyD, bodyW)
-          const innerMat = new THREE.MeshPhongMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.15, side: THREE.BackSide })
+          const innerMat = new THREE.MeshPhongMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.15, side: THREE.BackSide, wireframe: controlsState.wireframe })
           const innerMesh = new THREE.Mesh(innerGeo, innerMat)
           innerMesh.position.y = wallT + bodyD / 2
           mainGroup.add(innerMesh)
@@ -201,6 +310,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
             transparent: true,
             opacity: 0.3,
             side: THREE.DoubleSide,
+            wireframe: controlsState.wireframe,
           })
           const outerMesh = new THREE.Mesh(outerGeo, outerMat)
           outerMesh.position.y = height / 2
@@ -220,6 +330,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
             transparent: true,
             opacity: 0.08,
             side: THREE.BackSide,
+            wireframe: controlsState.wireframe,
           })
           const innerMesh = new THREE.Mesh(innerGeo, innerMat)
           innerMesh.position.y = height / 2
@@ -232,6 +343,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
         }
 
         scene.add(mainGroup)
+        mainGroupRef.current = mainGroup
 
         // Lights
         const ambient = new THREE.AmbientLight(0x404060, 2.5)
@@ -281,13 +393,22 @@ export function ThreeDViewer({ job }: { job: Job }) {
         controls.dispose()
         controls = null
       }
+      // Clear refs
+      threeModuleRef.current = null
+      sceneRef.current = null
+      controlsObjRef.current = null
+      gridHelperRef.current = null
+      axisHelperRef.current = null
+      cameraRef.current = null
+      rendererRef.current = null
+      mainGroupRef.current = null
       if (container) {
         while (container.firstChild) {
           container.removeChild(container.firstChild)
         }
       }
     }
-  }, [job.state, job.parameterValues, width, depth, height, wall, teeth, outerDiam, boreDiam, thickness, partFamily, showWireframe])
+  }, [job.state, job.parameterValues, width, depth, height, wall, teeth, outerDiam, boreDiam, thickness, partFamily])
 
   if (job.state === 'NEW' || job.state === 'SCAD_GENERATED') {
     return (
@@ -329,17 +450,15 @@ export function ThreeDViewer({ job }: { job: Job }) {
            `${width}×${depth}×${height}mm`}
         </span>
       </div>
-      <div className="absolute top-2 right-2 flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-5 w-5 p-0 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/50"
-          onClick={() => setShowWireframe(!showWireframe)}
-          title="Toggle wireframe"
-        >
-          <Eye className="w-3 h-3" />
-        </Button>
-      </div>
+      {/* Viewer Controls */}
+      <ViewerControls
+        state={controlsState}
+        onChange={setControlsState}
+        onResetCamera={handleResetCamera}
+        onScreenshot={handleScreenshotWithCanvas}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Shield } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job, ValidationResult, parseJSON } from './types'
+import { fadeInUp, fadeInUpTransition, staggerContainer, staggerChild, staggerTransition } from './motion-presets'
 
 export function ValidationPanel({ job }: { job: Job }) {
   const results = parseJSON<ValidationResult[]>(job.validationResults, [])
@@ -37,13 +38,18 @@ export function ValidationPanel({ job }: { job: Job }) {
         </div>
       </div>
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+        <motion.div
+          className="p-2 space-y-1"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
           {results.map((r, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+              variants={staggerChild}
+              transition={staggerTransition}
               className={`flex items-start gap-2 p-2.5 rounded-lg transition-colors ${
                 r.passed
                   ? 'bg-zinc-900/40 hover:bg-zinc-900/60'
@@ -69,7 +75,7 @@ export function ValidationPanel({ job }: { job: Job }) {
               </div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </ScrollArea>
     </div>
   )

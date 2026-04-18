@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { broadcastWs } from "@/lib/ws-broadcast";
 
 // Valid job states
 const VALID_STATES = [
@@ -177,6 +178,9 @@ export async function POST(request: NextRequest) {
         ]),
       },
     });
+
+    // Broadcast WebSocket event
+    broadcastWs("job:update", { jobId: job.id, state: job.state, action: "created" }).catch(() => {});
 
     return NextResponse.json({ job }, { status: 201 });
   } catch (error) {

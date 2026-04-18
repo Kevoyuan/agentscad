@@ -1,14 +1,70 @@
 'use client'
 
+import { motion } from 'framer-motion'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { getStateInfo } from './types'
+import { shimmerStyle, shimmer, shimmerTransition } from './motion-presets'
 
-export function StateBadge({ state, size = 'sm' }: { state: string; size?: 'sm' | 'md' }) {
+const ACTIVE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
+
+export function StateBadge({ state, size = 'sm', timestamp }: { state: string; size?: 'sm' | 'md'; timestamp?: string }) {
   const info = getStateInfo(state)
   const label = state.replace(/_/g, ' ')
+  const isActive = ACTIVE_STATES.includes(state)
+
+  const formatTimestamp = (ts: string) => {
+    try {
+      const d = new Date(ts)
+      return d.toLocaleString('en-US', {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      })
+    } catch {
+      return ts
+    }
+  }
+
+  const tooltipContent = (
+    <div className="text-xs">
+      <div className="font-mono font-semibold">{state}</div>
+      {timestamp && (
+        <div className="text-[10px] opacity-70 mt-0.5">{formatTimestamp(timestamp)}</div>
+      )}
+    </div>
+  )
+
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-md font-mono ${size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} ${info.bg} ${info.text} ${info.border} border`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${info.dot} ${state === 'DELIVERED' ? 'animate-pulse' : ''}`} />
-      {label}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <motion.span
+          key={state}
+          className={`inline-flex items-center gap-1.5 rounded-md font-mono relative overflow-hidden ${size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} ${info.bg} ${info.text} ${info.border} border`}
+          initial={{ scale: 1.2 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+        >
+          {/* Background shimmer for active states */}
+          {isActive && (
+            <motion.span
+              className="absolute inset-0 pointer-events-none"
+              style={shimmerStyle}
+              variants={shimmer}
+              initial="initial"
+              animate="animate"
+              transition={shimmerTransition}
+            />
+          )}
+          <span className={`relative w-1.5 h-1.5 rounded-full ${info.dot} ${state === 'DELIVERED' ? 'animate-pulse' : isActive ? 'animate-pulse' : ''}`} />
+          <span className="relative">{label}</span>
+        </motion.span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {tooltipContent}
+      </TooltipContent>
+    </Tooltip>
   )
 }

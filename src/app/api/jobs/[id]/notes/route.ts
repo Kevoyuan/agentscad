@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { broadcastWs } from '@/lib/ws-broadcast'
 
 export async function PATCH(
   request: NextRequest,
@@ -23,6 +24,9 @@ export async function PATCH(
       where: { id },
       data: { notes },
     })
+
+    // Broadcast WebSocket event
+    broadcastWs('job:update', { jobId: id, state: updated.state, action: 'notes_updated' }).catch(() => {})
 
     return NextResponse.json({ job: updated })
   } catch (error) {

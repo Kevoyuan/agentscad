@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { broadcastWs } from "@/lib/ws-broadcast";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -77,6 +78,9 @@ export async function DELETE(
     await db.job.delete({
       where: { id },
     });
+
+    // Broadcast WebSocket event
+    broadcastWs("job:update", { jobId: id, state: "DELETED", action: "deleted" }).catch(() => {});
 
     return NextResponse.json({
       message: `Job ${id} deleted successfully`,

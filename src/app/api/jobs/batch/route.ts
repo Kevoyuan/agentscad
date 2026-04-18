@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { broadcastWs } from '@/lib/ws-broadcast'
 
 const CANCELABLE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
 
@@ -64,6 +65,9 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })
     }
+
+    // Broadcast WebSocket event for batch operations
+    broadcastWs('job:update', { jobId: jobIds.join(','), state: action.toUpperCase(), action: `batch_${action}` }).catch(() => {})
 
     return NextResponse.json({ results })
   } catch (error) {

@@ -5,6 +5,7 @@ import { Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job, ExecutionLog, parseJSON, formatTime } from './types'
+import { slideInLeft, slideInLeftTransition, staggerContainer, staggerChild, staggerTransition } from './motion-presets'
 
 export function TimelinePanel({ job }: { job: Job }) {
   const logs = parseJSON<ExecutionLog[]>(job.executionLogs, [])
@@ -18,13 +19,18 @@ export function TimelinePanel({ job }: { job: Job }) {
         </Badge>
       </div>
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-0.5">
+        <motion.div
+          className="p-2 space-y-0.5"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
           {logs.map((log, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.03 }}
+              variants={{ ...slideInLeft }}
+              transition={{ ...slideInLeftTransition, delay: i * 0.03 }}
               className="flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/40 transition-colors group"
             >
               <span className="text-[8px] font-mono text-zinc-700 mt-0.5 whitespace-nowrap">{formatTime(log.timestamp)}</span>
@@ -45,7 +51,7 @@ export function TimelinePanel({ job }: { job: Job }) {
               <span className="text-xs">No events yet</span>
             </div>
           )}
-        </div>
+        </motion.div>
       </ScrollArea>
     </div>
   )

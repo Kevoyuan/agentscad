@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { broadcastWs } from "@/lib/ws-broadcast";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -115,6 +116,9 @@ export async function PATCH(
         ),
       },
     });
+
+    // Broadcast WebSocket event
+    broadcastWs("job:update", { jobId: id, state: updatedJob.state, action: "parameters_updated" }).catch(() => {});
 
     return NextResponse.json({
       job: updatedJob,

@@ -1,10 +1,12 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { Beaker, Lightbulb, Globe, Target, Cpu, Layers, Info } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job, parseJSON } from './types'
 import { SchemaInfoPanel } from './parameter-panel'
+import { fadeInUp, fadeInUpTransition, staggerContainer, staggerChild, staggerTransition, scaleIn, scaleInTransition } from './motion-presets'
 
 export function ResearchPanel({ job }: { job: Job }) {
   const research = parseJSON<Record<string, unknown> | null>(job.researchResult, null)
@@ -37,29 +39,55 @@ export function ResearchPanel({ job }: { job: Job }) {
         <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Research & Intent</h3>
       </div>
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
+        <motion.div
+          className="p-3 space-y-3"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
           {/* Part Family & Builder Tags */}
           <div className="flex items-center gap-2 flex-wrap">
             {job.partFamily && (
-              <Badge variant="outline" className="text-[9px] h-5 bg-violet-500/10 text-violet-400 border-violet-500/20 gap-1">
-                <Target className="w-2.5 h-2.5" />{job.partFamily.replace(/_/g, ' ')}
-              </Badge>
+              <motion.div
+                variants={scaleIn}
+                transition={scaleInTransition}
+              >
+                <Badge variant="outline" className="text-[9px] h-5 bg-violet-500/10 text-violet-400 border-violet-500/20 gap-1">
+                  <Target className="w-2.5 h-2.5" />{job.partFamily.replace(/_/g, ' ')}
+                </Badge>
+              </motion.div>
             )}
             {job.builderName && (
-              <Badge variant="outline" className="text-[9px] h-5 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 gap-1">
-                <Cpu className="w-2.5 h-2.5" />{job.builderName}
-              </Badge>
+              <motion.div
+                variants={scaleIn}
+                transition={scaleInTransition}
+              >
+                <Badge variant="outline" className="text-[9px] h-5 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 gap-1">
+                  <Cpu className="w-2.5 h-2.5" />{job.builderName}
+                </Badge>
+              </motion.div>
             )}
             {job.generationPath && (
-              <Badge variant="outline" className="text-[9px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
-                <Layers className="w-2.5 h-2.5" />{job.generationPath.replace(/_/g, ' ')}
-              </Badge>
+              <motion.div
+                variants={scaleIn}
+                transition={scaleInTransition}
+              >
+                <Badge variant="outline" className="text-[9px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                  <Layers className="w-2.5 h-2.5" />{job.generationPath.replace(/_/g, ' ')}
+                </Badge>
+              </motion.div>
             )}
           </div>
 
           {/* Data Sections */}
           {sections.map(({ data, icon: Icon, label, color }) => data && (
-            <div key={label} className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 overflow-hidden">
+            <motion.div
+              key={label}
+              variants={fadeInUp}
+              transition={fadeInUpTransition}
+              className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 overflow-hidden"
+            >
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/20 border-b border-zinc-800/40">
                 <Icon className={`w-3 h-3 ${color}`} />
                 <span className={`text-[9px] font-mono tracking-wider ${color} uppercase`}>{label}</span>
@@ -74,12 +102,16 @@ export function ResearchPanel({ job }: { job: Job }) {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
 
           {/* Parameter Schema Summary */}
           {job.parameterSchema && (
-            <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 overflow-hidden">
+            <motion.div
+              variants={fadeInUp}
+              transition={fadeInUpTransition}
+              className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 overflow-hidden"
+            >
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/20 border-b border-zinc-800/40">
                 <Info className="w-3 h-3 text-emerald-400" />
                 <span className="text-[9px] font-mono tracking-wider text-emerald-400 uppercase">Schema Info</span>
@@ -87,9 +119,9 @@ export function ResearchPanel({ job }: { job: Job }) {
               <div className="p-2.5">
                 <SchemaInfoPanel schemaStr={job.parameterSchema} />
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </ScrollArea>
     </div>
   )

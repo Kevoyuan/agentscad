@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { io, Socket } from 'socket.io-client'
 import {
   Box, Play, Trash2, Settings, Clock, CheckCircle2,
   Loader2, Download, Shield, Cpu, Activity, Layers,
@@ -122,11 +123,59 @@ export default function Home() {
     }
   }, [filterState, searchQuery, selectedJob])
 
+  // ── WebSocket + Polling Fallback ─────────────────────────────────────────
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const socketRef = useRef<Socket | null>(null)
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return
+    pollingRef.current = setInterval(loadJobs, 5000)
+  }, [loadJobs])
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     loadJobs()
-    const interval = setInterval(loadJobs, 5000)
-    return () => clearInterval(interval)
-  }, [loadJobs])
+
+    // Connect to WebSocket
+    const socket = io('/?XTransformPort=3003', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 2000,
+    })
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      console.log('[WS] Connected to ws-service')
+      stopPolling() // Stop polling when WS is connected
+    })
+
+    socket.on('job:update', () => {
+      loadJobs() // Refresh data on any job update
+    })
+
+    socket.on('disconnect', () => {
+      console.log('[WS] Disconnected from ws-service, falling back to polling')
+      startPolling() // Start polling when WS disconnects
+    })
+
+    socket.on('connect_error', () => {
+      startPolling() // Fallback to polling on connection error
+    })
+
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+      stopPolling()
+    }
+  }, [loadJobs, startPolling, stopPolling])
 
   // ── Keyboard Shortcuts ────────────────────────────────────────────────────
 
