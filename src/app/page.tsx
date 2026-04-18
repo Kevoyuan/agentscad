@@ -6,7 +6,8 @@ import {
   Box, Play, Trash2, Settings, ChevronRight, Clock, CheckCircle2,
   XCircle, AlertTriangle, Loader2, Download, Code2, Shield, Cpu,
   Activity, Layers, RefreshCw, Eye, Search, Plus, ArrowUpDown,
-  Wrench, Zap, FileCode, Image, RotateCcw, Send, X
+  Wrench, Zap, FileCode, Image, RotateCcw, Send, X, Lightbulb,
+  Beaker, Target, Globe, Info
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -353,7 +354,7 @@ function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }) {
                         max={param.max ?? 100}
                         step={param.step ?? 1}
                         onValueChange={([v]) => handleParamChange(param.key, v)}
-                        disabled={!param.editable || job.state === 'DELIVERED'}
+                        disabled={!param.editable}
                         className="py-1"
                       />
                     )}
@@ -598,12 +599,169 @@ function TimelinePanel({ job }: { job: Job }) {
   )
 }
 
+function ResearchPanel({ job }: { job: Job }) {
+  const research = parseJSON<Record<string, unknown> | null>(job.researchResult, null)
+  const intent = parseJSON<Record<string, unknown> | null>(job.intentResult, null)
+  const design = parseJSON<Record<string, unknown> | null>(job.designResult, null)
+
+  const hasData = research || intent || design
+
+  if (!hasData) return (
+    <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-2">
+      <Beaker className="w-6 h-6 opacity-30" />
+      <span className="text-xs">No research data yet</span>
+      <span className="text-[10px] text-zinc-700">Process a job to generate research</span>
+    </div>
+  )
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+        <h3 className="text-xs font-mono tracking-wider text-zinc-400 uppercase">Research & Intent</h3>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-3">
+          {/* Part Family & Builder */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {job.partFamily && (
+              <Badge variant="outline" className="text-[10px] h-5 bg-violet-500/10 text-violet-400 border-violet-500/20 gap-1">
+                <Target className="w-3 h-3" />{job.partFamily.replace(/_/g, ' ')}
+              </Badge>
+            )}
+            {job.builderName && (
+              <Badge variant="outline" className="text-[10px] h-5 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 gap-1">
+                <Cpu className="w-3 h-3" />{job.builderName}
+              </Badge>
+            )}
+            {job.generationPath && (
+              <Badge variant="outline" className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                <Layers className="w-3 h-3" />{job.generationPath.replace(/_/g, ' ')}
+              </Badge>
+            )}
+          </div>
+
+          {/* Research Result */}
+          {research && (
+            <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/30 border-b border-zinc-800/50">
+                <Globe className="w-3.5 h-3.5 text-sky-400" />
+                <span className="text-[10px] font-mono tracking-wider text-sky-400 uppercase">Research</span>
+              </div>
+              <div className="p-3 space-y-2">
+                {Object.entries(research).map(([key, value]) => (
+                  <div key={key} className="flex items-start gap-2">
+                    <span className="text-[10px] font-mono text-zinc-600 min-w-[100px] shrink-0">{key}</span>
+                    <span className="text-[11px] text-zinc-400 flex-1">
+                      {Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Intent Result */}
+          {intent && (
+            <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/30 border-b border-zinc-800/50">
+                <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] font-mono tracking-wider text-amber-400 uppercase">Intent</span>
+              </div>
+              <div className="p-3 space-y-2">
+                {Object.entries(intent).map(([key, value]) => (
+                  <div key={key} className="flex items-start gap-2">
+                    <span className="text-[10px] font-mono text-zinc-600 min-w-[100px] shrink-0">{key}</span>
+                    <span className="text-[11px] text-zinc-400 flex-1">
+                      {Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Design Result */}
+          {design && (
+            <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/30 border-b border-zinc-800/50">
+                <Beaker className="w-3.5 h-3.5 text-violet-400" />
+                <span className="text-[10px] font-mono tracking-wider text-violet-400 uppercase">Design</span>
+              </div>
+              <div className="p-3 space-y-2">
+                {Object.entries(design).map(([key, value]) => (
+                  <div key={key} className="flex items-start gap-2">
+                    <span className="text-[10px] font-mono text-zinc-600 min-w-[100px] shrink-0">{key}</span>
+                    <span className="text-[11px] text-zinc-400 flex-1">
+                      {Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Parameter Schema Summary */}
+          {job.parameterSchema && (
+            <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/30 border-b border-zinc-800/50">
+                <Info className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[10px] font-mono tracking-wider text-emerald-400 uppercase">Schema Info</span>
+              </div>
+              <div className="p-3">
+                <SchemaInfoPanel schemaStr={job.parameterSchema} />
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}
+
+function SchemaInfoPanel({ schemaStr }: { schemaStr: string }) {
+  const schema = parseJSON<ParameterSchema | null>(schemaStr, null)
+  if (!schema) return <span className="text-zinc-600 text-xs">Invalid schema</span>
+
+  const sourceCounts: Record<string, number> = {}
+  for (const p of schema.parameters) {
+    sourceCounts[p.source] = (sourceCounts[p.source] || 0) + 1
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800 text-zinc-400 border-zinc-700">
+          {schema.part_family || 'unknown'}
+        </Badge>
+        <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800 text-zinc-400 border-zinc-700">
+          {schema.parameters.length} params
+        </Badge>
+        {Object.entries(sourceCounts).map(([source, count]) => (
+          <Badge key={source} variant="outline" className={`text-[9px] h-4 ${
+            source === 'user' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
+            source === 'inferred' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+            source === 'design_derived' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+            'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          }`}>
+            {count} {source.replace('_', ' ')}
+          </Badge>
+        ))}
+      </div>
+      {schema.design_summary && (
+        <p className="text-[11px] text-zinc-500 leading-relaxed">{schema.design_summary}</p>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [allJobs, setAllJobs] = useState<Job[]>([])  // unfiltered for stats
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [filterState, setFilterState] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -615,10 +773,15 @@ export default function Home() {
 
   const loadJobs = useCallback(async () => {
     try {
+      // Always load all jobs for stats
+      const allData = await fetchJobs()
+      setAllJobs(allData.jobs)
+
+      // Load filtered jobs for display
       const data = await fetchJobs(filterState || undefined)
       setJobs(data.jobs)
       if (selectedJob) {
-        const updated = data.jobs.find(j => j.id === selectedJob.id)
+        const updated = allData.jobs.find(j => j.id === selectedJob.id)
         if (updated) setSelectedJob(updated)
       }
     } catch (err) {
@@ -626,13 +789,13 @@ export default function Home() {
     } finally {
       setIsLoading(false)
     }
-  }, [filterState, selectedJob])
+  }, [filterState]) // removed selectedJob dependency to avoid infinite loops
 
   useEffect(() => {
     loadJobs()
-  }, [filterState])
+  }, [filterState, loadJobs])
 
-  // Auto-poll for updates
+  // Auto-poll for updates - stable interval
   useEffect(() => {
     pollRef.current = setInterval(loadJobs, 5000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
@@ -683,12 +846,18 @@ export default function Home() {
     }
   }
 
+  // Stats use allJobs (unfiltered) so they don't change when filtering
   const stats = {
-    total: jobs.length,
-    delivered: jobs.filter(j => j.state === 'DELIVERED').length,
-    processing: jobs.filter(j => !['DELIVERED', 'CANCELLED', 'HUMAN_REVIEW'].includes(j.state)).length,
-    failed: jobs.filter(j => j.state.includes('FAILED')).length,
+    total: allJobs.length,
+    delivered: allJobs.filter(j => j.state === 'DELIVERED').length,
+    processing: allJobs.filter(j => !['DELIVERED', 'CANCELLED', 'HUMAN_REVIEW'].includes(j.state)).length,
+    failed: allJobs.filter(j => j.state.includes('FAILED')).length,
   }
+
+  // Search-filtered jobs (applied on top of state filter)
+  const displayedJobs = searchQuery
+    ? jobs.filter(j => j.inputRequest.toLowerCase().includes(searchQuery.toLowerCase()))
+    : jobs
 
   return (
     <div className="flex flex-col h-screen bg-[#0c0a14] text-zinc-100 overflow-hidden">
@@ -727,14 +896,26 @@ export default function Home() {
         {/* ─── Left Panel: Jobs List ─────────────────────────── */}
         <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
           <div className="flex flex-col h-full bg-[#0e0c16]">
+            {/* Search bar */}
+            <div className="px-3 py-2 border-b border-zinc-800/50">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search jobs..."
+                  className="h-7 text-xs bg-[#0c0a14] border-zinc-800 pl-8 placeholder:text-zinc-700 focus:border-violet-500/50"
+                />
+              </div>
+            </div>
             {/* Filter pills */}
-            <div className="flex items-center gap-1 px-3 py-2 border-b border-zinc-800/50 overflow-x-auto">
-              {['ALL', 'NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DELIVERED'].map(s => (
+            <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-800/50 overflow-x-auto">
+              {['ALL', 'NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DELIVERED', 'FAILED'].map(s => (
                 <button
                   key={s}
-                  onClick={() => setFilterState(s === 'ALL' ? null : s)}
+                  onClick={() => setFilterState(s === 'ALL' ? null : s === 'FAILED' ? 'VALIDATION_FAILED' : s)}
                   className={`text-[9px] font-mono tracking-wider px-2 py-1 rounded-md transition-colors whitespace-nowrap ${
-                    (filterState === null && s === 'ALL') || filterState === s
+                    (filterState === null && s === 'ALL') || filterState === s || (s === 'FAILED' && filterState === 'VALIDATION_FAILED')
                       ? 'bg-violet-500/20 text-violet-300'
                       : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/50'
                   }`}
@@ -751,7 +932,7 @@ export default function Home() {
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
                   </div>
-                ) : jobs.length === 0 ? (
+                ) : displayedJobs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-zinc-600 gap-2">
                     <InboxIcon className="w-8 h-8 opacity-30" />
                     <span className="text-xs">No jobs yet</span>
@@ -760,7 +941,7 @@ export default function Home() {
                     </Button>
                   </div>
                 ) : (
-                  jobs.map(job => (
+                  displayedJobs.map(job => (
                     <motion.div
                       key={job.id}
                       layout
@@ -768,9 +949,12 @@ export default function Home() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.15 }}
                     >
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelectedJob(job)}
-                        className={`w-full text-left p-2.5 rounded-lg transition-all duration-150 group ${
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedJob(job) }}
+                        className={`w-full text-left p-2.5 rounded-lg transition-all duration-150 group cursor-pointer ${
                           selectedJob?.id === job.id
                             ? 'bg-violet-500/10 border border-violet-500/20'
                             : 'hover:bg-zinc-800/40 border border-transparent'
@@ -801,7 +985,7 @@ export default function Home() {
                             </button>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     </motion.div>
                   ))
                 )}
@@ -838,11 +1022,18 @@ export default function Home() {
                       )}
                       {selectedJob.state === 'DELIVERED' && (
                         <>
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-zinc-700 text-zinc-400">
-                            <Download className="w-3 h-3" /> STL
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs gap-1.5 bg-amber-600 hover:bg-amber-500"
+                            onClick={() => { setSelectedJob({...selectedJob, state: 'NEW'}); handleProcess({...selectedJob, state: 'NEW'}) }}
+                          >
+                            <RotateCcw className="w-3 h-3" /> Reprocess
                           </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-zinc-700 text-zinc-400">
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-zinc-700 text-zinc-400" onClick={() => window.open(`/api/jobs/${selectedJob.id}/artifacts/scad`, '_blank')}>
                             <Download className="w-3 h-3" /> SCAD
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-zinc-700 text-zinc-400" onClick={() => window.open(`/api/jobs/${selectedJob.id}/artifacts/stl`, '_blank')}>
+                            <Download className="w-3 h-3" /> STL
                           </Button>
                         </>
                       )}
@@ -852,6 +1043,17 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-sm text-zinc-300 mt-2">{selectedJob.inputRequest}</p>
+                  {/* Job metadata row */}
+                  <div className="flex items-center gap-3 mt-2 text-[10px] font-mono text-zinc-600">
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Created {formatDate(selectedJob.createdAt)} {formatTime(selectedJob.createdAt)}</span>
+                    {selectedJob.completedAt && <span className="flex items-center gap-1 text-lime-500"><CheckCircle2 className="w-3 h-3" />Completed {formatTime(selectedJob.completedAt)}</span>}
+                    {selectedJob.partFamily && <span className="flex items-center gap-1 text-violet-400"><Target className="w-3 h-3" />{selectedJob.partFamily.replace(/_/g, ' ')}</span>}
+                    {selectedJob.renderLog && (() => {
+                      const rl = parseJSON<Record<string, unknown> | null>(selectedJob.renderLog, null)
+                      return rl?.render_time_ms ? <span className="flex items-center gap-1 text-cyan-400"><Zap className="w-3 h-3" />Render {rl.render_time_ms}ms</span> : null
+                    })()}
+                    {selectedJob.retryCount > 0 && <span className="flex items-center gap-1 text-amber-400"><RotateCcw className="w-3 h-3" />{selectedJob.retryCount} retries</span>}
+                  </div>
 
                   {/* Processing progress */}
                   {isProcessing && processingState && (
@@ -894,22 +1096,28 @@ export default function Home() {
           <div className="flex flex-col h-full bg-[#0e0c16]">
             {selectedJob ? (
               <Tabs value={rightTab} onValueChange={setRightTab} className="flex flex-col h-full">
-                <TabsList className="w-full justify-start rounded-none border-b border-zinc-800/50 bg-transparent p-0 h-9 shrink-0">
-                  <TabsTrigger value="parameters" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9">
+                <TabsList className="w-full justify-start rounded-none border-b border-zinc-800/50 bg-transparent p-0 h-9 shrink-0 overflow-x-auto">
+                  <TabsTrigger value="parameters" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9 shrink-0">
                     <Wrench className="w-3 h-3 mr-1.5" />PARAMS
                   </TabsTrigger>
-                  <TabsTrigger value="validation" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9">
+                  <TabsTrigger value="research" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9 shrink-0">
+                    <Globe className="w-3 h-3 mr-1.5" />RESEARCH
+                  </TabsTrigger>
+                  <TabsTrigger value="validation" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9 shrink-0">
                     <Shield className="w-3 h-3 mr-1.5" />VALIDATE
                   </TabsTrigger>
-                  <TabsTrigger value="scad" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9">
+                  <TabsTrigger value="scad" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9 shrink-0">
                     <FileCode className="w-3 h-3 mr-1.5" />SCAD
                   </TabsTrigger>
-                  <TabsTrigger value="timeline" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9">
+                  <TabsTrigger value="timeline" className="text-[10px] font-mono tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 h-9 shrink-0">
                     <Clock className="w-3 h-3 mr-1.5" />LOG
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="parameters" className="flex-1 min-h-0 mt-0">
                   <ParameterPanel job={selectedJob} onUpdate={loadJobs} />
+                </TabsContent>
+                <TabsContent value="research" className="flex-1 min-h-0 mt-0">
+                  <ResearchPanel job={selectedJob} />
                 </TabsContent>
                 <TabsContent value="validation" className="flex-1 min-h-0 mt-0">
                   <ValidationPanel job={selectedJob} />
