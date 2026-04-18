@@ -64,6 +64,7 @@ export interface Job {
   renderLog: string | null
   validationResults: string | null
   executionLogs: string | null
+  notes: string | null
   retryCount: number
   maxRetries: number
   createdAt: string
@@ -112,8 +113,24 @@ export const FILTER_STATES = [
   { key: 'RENDERED', label: 'RENDER' },
   { key: 'VALIDATED', label: 'VALID' },
   { key: 'DELIVERED', label: 'DONE' },
+  { key: 'CANCELLED', label: 'CANCELLED' },
   { key: 'FAILED', label: 'FAILED', stateKey: 'VALIDATION_FAILED' },
 ]
+
+export const CANCELABLE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
+
+export const PRIORITY_COLORS: Record<number, string> = {
+  1: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+  2: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+  3: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+  4: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+  5: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  6: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  7: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  8: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  9: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  10: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+}
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
@@ -156,4 +173,8 @@ export function getPipelineProgress(state: string): number {
 export function safeNum(val: unknown, fallback: number): number {
   if (typeof val === 'number' && !isNaN(val)) return val
   return fallback
+}
+
+export function getPriorityColor(priority: number): string {
+  return PRIORITY_COLORS[priority] || PRIORITY_COLORS[5]
 }

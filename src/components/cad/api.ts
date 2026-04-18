@@ -69,3 +69,31 @@ export async function sendChatMessage(messages: Array<{ role: string; content: s
   const data = await res.json()
   return data.message?.content || 'No response'
 }
+
+export async function cancelJob(id: string): Promise<Job> {
+  const res = await fetch(`/api/jobs/${id}/cancel`, { method: 'PATCH' })
+  if (!res.ok) throw new Error('Failed to cancel job')
+  const data = await res.json()
+  return data.job
+}
+
+export async function updateNotes(id: string, notes: string): Promise<Job> {
+  const res = await fetch(`/api/jobs/${id}/notes`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+  })
+  if (!res.ok) throw new Error('Failed to update notes')
+  const data = await res.json()
+  return data.job
+}
+
+export async function batchOperation(action: 'delete' | 'cancel' | 'reprocess', jobIds: string[]): Promise<{ results: { success: string[]; failed: string[] } }> {
+  const res = await fetch('/api/jobs/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, jobIds }),
+  })
+  if (!res.ok) throw new Error('Batch operation failed')
+  return res.json()
+}
