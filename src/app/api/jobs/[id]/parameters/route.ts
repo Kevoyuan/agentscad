@@ -1,0 +1,152 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+/**
+ * PATCH /api/jobs/[id]/parameters
+ * Update parameter values for a job
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { parameters } = body;
+
+    if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
+      return NextResponse.json(
+        { error: "parameters must be an object with key-value pairs" },
+        { status: 400 }
+      );
+    }
+
+    const job = await db.job.findUnique({ where: { id } });
+
+    if (!job) {
+      return NextResponse.json(
+        { error: `Job not found with id: ${id}` },
+        { status: 404 }
+      );
+    }
+
+    // Parse existing parameter values and schema
+    let currentValues: Record<string, unknown> = {};
+    if (job.parameterValues) {
+      try {
+        currentValues = JSON.parse(job.parameterValues);
+      } catch {
+        currentValues = {};
+      }
+    }
+
+    let schemaObj: Record<string, unknown> = {};
+    if (job.parameterSchema) {
+      try {
+        schemaObj = JSON.parse(job.parameterSchema);
+      } catch {
+        schemaObj = {};
+      }
+    }
+
+    // Validate parameters against schema constraints
+    const schemaParams = (schemaObj.parameters as Array<Record<string, unknown>>) || [];
+    const validationErrors: string[] = [];
+
+    for (const [key, value] of Object.entries(parameters)) {
+      const schemaParam = schemaParams.find((p) => p.key === key);
+
+      if (schemaParam) {
+        // Check if parameter is editable
+        if (schemaParam.editable === false) {
+          validationErrors.push(`Parameter '${key}' is not editable`);
+          continue;
+        }
+
+        // Type and range validation for number parameters
+        if (schemaParam.kind === "number" && typeof value === "number") {
+          const min = schemaParam.min as number | undefined;
+          const max = schemaParam.max as number | undefined;
+          const step = schemaParam.step as number | undefined;
+
+          if (min !== undefined && value < min) {
+            validationErrors.push(`Parameter '${key}' value ${value} is below minimum ${min}`);
+          }
+          if (max !== undefined && value > max) {
+            validationErrors.push(`Parameter '${key}' value ${value} is above maximum ${max}`);
+          }
+          if (step !== undefined) {
+            const roundedValue = Math.round(value / step) * step;
+            if (Math.abs(roundedValue - value) > 0.0001) {
+              validationErrors.push(`Parameter '${key}' value ${value} doesn't match step ${step}`);
+            }
+          }
+        }
+      }
+
+      // Update the value even if there are warnings - client can decide
+      currentValues[key] = value;
+    }
+
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: "Parameter validation failed", validationErrors },
+        { status: 422 }
+      );
+    }
+
+    // Update the parameter values in the database
+    const updatedJob = await db.job.update({
+      where: { id },
+      data: {
+        parameterValues: JSON.stringify(currentValues),
+        // If job was already processed, reset to SCAD_GENERATED to allow re-processing
+        ...(job.state !== "NEW" && job.state !== "CANCELLED" && job.state !== "DELIVERED"
+          ? {}
+          : {}),
+        executionLogs: appendLog(
+          job.executionLogs,
+          "PARAMETERS_UPDATED",
+          `Parameters updated: ${Object.keys(parameters).join(", ")}`
+        ),
+      },
+    });
+
+    return NextResponse.json({
+      job: updatedJob,
+      updatedParameters: Object.keys(parameters),
+      parameterValues: currentValues,
+    });
+  } catch (error) {
+    console.error("Error updating parameters:", error);
+    return NextResponse.json(
+      { error: "Failed to update parameters" },
+      { status: 500 }
+    );
+  }
+}
+
+function appendLog(
+  existingLogs: string | null,
+  event: string,
+  message: string
+): string {
+  let logs: Array<{ timestamp: string; event: string; message: string }> = [];
+  if (existingLogs) {
+    try {
+      logs = JSON.parse(existingLogs);
+    } catch {
+      logs = [];
+    }
+  }
+  logs.push({
+    timestamp: new Date().toISOString(),
+    event,
+    message,
+  });
+  return JSON.stringify(logs);
+}

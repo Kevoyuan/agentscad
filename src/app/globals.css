@@ -120,3 +120,118 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── AgentSCAD Engineering Control Room Theme ───────────── */
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2640;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d3660;
+}
+
+/* Slider styling for parameter controls */
+[data-radix-slider-root] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  touch-action: none;
+}
+
+[data-radix-slider-root] > span:first-child {
+  position: relative;
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #1e1b2e;
+}
+
+[data-radix-slider-range] {
+  position: absolute;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6d5fc1, #8b7ae8);
+}
+
+[data-radix-slider-thumb] {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #8b7ae8;
+  border: 2px solid #151222;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+  outline: none;
+}
+
+[data-radix-slider-thumb]:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+}
+
+[data-radix-slider-thumb]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+[data-radix-slider-thumb][data-disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Progress bar animation */
+[data-slot="progress-indicator"] {
+  background: linear-gradient(90deg, #6d5fc1, #22d3ee);
+  transition: width 0.5s ease;
+}
+
+/* Resizable handle */
+[data-panel-group-direction="horizontal"] > [data-resize-handle] {
+  transition: background 0.2s;
+}
+
+[data-resize-handle][data-resize-handle-active] {
+  background: #6d5fc1 !important;
+}
+
+/* Code block styling for SCAD viewer */
+pre code {
+  font-variant-ligatures: none;
+}
+
+/* Tab indicator animation */
+[data-state="active"][role="tab"] {
+  transition: border-color 0.2s ease;
+}
+
+/* Pulse animation for processing states */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+/* Subtle glow for active elements */
+.glow-violet {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+}
+
+.glow-lime {
+  box-shadow: 0 0 15px rgba(132, 204, 22, 0.15);
+}
