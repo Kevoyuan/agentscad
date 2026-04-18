@@ -86,7 +86,7 @@ export function ResearchPanel({ job }: { job: Job }) {
               key={label}
               variants={fadeInUp}
               transition={fadeInUpTransition}
-              className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 overflow-hidden"
+              className="rounded-lg linear-surface linear-border overflow-hidden"
             >
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/20 border-b border-zinc-800/40">
                 <Icon className={`w-3 h-3 ${color}`} />
@@ -110,7 +110,7 @@ export function ResearchPanel({ job }: { job: Job }) {
             <motion.div
               variants={fadeInUp}
               transition={fadeInUpTransition}
-              className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 overflow-hidden"
+              className="rounded-lg linear-surface linear-border overflow-hidden"
             >
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/20 border-b border-zinc-800/40">
                 <Info className="w-3 h-3 text-emerald-400" />

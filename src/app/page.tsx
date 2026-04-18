@@ -619,7 +619,7 @@ export default function Home() {
   const exportAllData = () => {
     const data = {
       exportedAt: new Date().toISOString(),
-      version: '0.7',
+      version: '0.9',
       totalJobs: allJobs.length,
       jobs: allJobs,
     }
@@ -661,15 +661,6 @@ export default function Home() {
     }
   }, [allJobs.length])
 
-  // ── Mouse tracking for ambient glow effect ─────────────────────────────
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`)
-      document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`)
-    }
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
 
   // ── AI Enhancement for Job Request ──────────────────────────────────────
   const handleAiEnhance = useCallback(() => {
@@ -690,21 +681,19 @@ export default function Home() {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-[#080810] text-zinc-100 overflow-hidden noise-overlay crt-scanline">
-      {/* Mouse-following ambient glow */}
-      <div className="mouse-glow" />
+    <div className="h-screen flex flex-col bg-[#09090b] text-zinc-100 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 header-gradient-border depth-3">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-[#141414] shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center logo-pulse">
+            <div className="w-6 h-6 rounded-md bg-[#7c3aed] flex items-center justify-center">
               <Box className="w-3.5 h-3.5 text-white" />
             </div>
-            <h1 className="text-sm font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            <h1 className="text-sm font-semibold text-zinc-100">
               AgentSCAD
             </h1>
           </div>
-          <Separator orientation="vertical" className="h-4 bg-zinc-800/60" />
+          <Separator orientation="vertical" className="h-4 bg-white/[0.06]" />
           <PipelineVisualization state={selectedJob?.state || 'NEW'} />
         </div>
         <div className="flex items-center gap-1.5">
@@ -754,7 +743,7 @@ export default function Home() {
               <TooltipContent><p className="text-xs">Shortcuts (?)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 btn-glow btn-ripple btn-hover-lift" onClick={() => setShowComposer(true)}>
+          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 linear-transition" onClick={() => setShowComposer(true)}>
             <Plus className="w-3 h-3" />New Job
           </Button>
         </div>
@@ -765,22 +754,22 @@ export default function Home() {
         <ResizablePanelGroup direction="horizontal">
           {/* Left: Jobs List */}
           <ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
-            <div className="flex flex-col h-full bg-[#0a0818]">
+            <div className="flex flex-col h-full bg-[#141414]">
               {/* Search */}
-              <div className="px-3 py-2 border-b border-zinc-800/60">
+              <div className="px-3 py-2 border-b border-white/[0.06]">
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
                   <Input
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search jobs..."
-                    className="h-7 pl-7 text-[11px] bg-[#0c0a14] border-zinc-800/60 placeholder:text-zinc-700"
+                    className="h-7 pl-7 text-[11px] bg-[#09090b] border-white/[0.06] placeholder:text-zinc-700"
                   />
                 </div>
               </div>
 
               {/* Filter Pills */}
-              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-800/60 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-white/[0.06] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                 {FILTER_STATES.map(f => {
                   const count = f.key === 'ALL' ? allJobs.length :
                     f.key === 'FAILED' ? (stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0) :
@@ -807,7 +796,7 @@ export default function Home() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden border-b border-zinc-800/60 bg-violet-600/10"
+                    className="overflow-hidden border-b border-white/[0.06] bg-violet-600/10"
                   >
                     <div className="flex items-center justify-between px-3 py-1.5">
                       <span className="text-[9px] font-mono text-violet-300">{selectedIds.size} selected</span>
@@ -874,12 +863,10 @@ export default function Home() {
                             <Layers className="w-7 h-7 opacity-20" />
                           </div>
                           <div className="text-center">
-                            <p className="text-sm gradient-text-muted">No jobs found</p>
+                            <p className="text-sm text-zinc-500">No jobs found</p>
                             <p className="text-[10px] text-zinc-700 mt-1">Create a new job or adjust filters</p>
                           </div>
-                          <div className="particle-dot" style={{ top: '20%', left: '30%', animation: 'particle-drift 3s ease-in-out infinite' }} />
-                          <div className="particle-dot" style={{ top: '40%', right: '25%', animation: 'particle-drift 4s ease-in-out infinite 1s' }} />
-                          <div className="particle-dot" style={{ bottom: '30%', left: '40%', animation: 'particle-drift 3.5s ease-in-out infinite 0.5s' }} />
+
                         </div>
                       )}
                     </div>
@@ -898,11 +885,11 @@ export default function Home() {
 
           {/* Center: 3D Viewer */}
           <ResizablePanel defaultSize={40} minSize={25}>
-            <div className="flex flex-col h-full bg-[#080810] depth-0">
+            <div className="flex flex-col h-full bg-[#09090b]">
               {selectedJob ? (
                 <>
                   {/* Job Detail Header */}
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60 bg-[#0a0818]/50 shrink-0">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] bg-[#141414]/50 shrink-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <PartFamilyIcon family={selectedJob.partFamily || 'unknown'} size="sm" />
                       <div className="min-w-0">
@@ -916,7 +903,7 @@ export default function Home() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {selectedJob.state === 'NEW' && (
-                        <Button size="sm" className="h-6 text-[9px] gap-1 bg-emerald-600 hover:bg-emerald-500 btn-ripple btn-hover-lift" onClick={() => handleProcess(selectedJob)} disabled={isProcessing}>
+                        <Button size="sm" className="h-6 text-[9px] gap-1 bg-emerald-600 hover:bg-emerald-500 linear-transition" onClick={() => handleProcess(selectedJob)} disabled={isProcessing}>
                           {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                           {isProcessing ? 'Processing...' : 'Process'}
                         </Button>
@@ -966,12 +953,10 @@ export default function Home() {
                     <Box className="w-10 h-10 opacity-15" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium gradient-text-muted">No job selected</p>
+                    <p className="text-sm font-medium text-zinc-500">No job selected</p>
                     <p className="text-[10px] text-zinc-700 mt-1">Select a job from the list or create a new one</p>
                   </div>
-                  <div className="particle-dot" style={{ top: '25%', left: '20%', animation: 'particle-drift 3s ease-in-out infinite' }} />
-                  <div className="particle-dot" style={{ top: '35%', right: '30%', animation: 'particle-drift 4s ease-in-out infinite 0.5s' }} />
-                  <div className="particle-dot" style={{ bottom: '30%', left: '35%', animation: 'particle-drift 3.5s ease-in-out infinite 1s' }} />
+
                   <Button size="sm" className="h-7 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 mt-2" onClick={() => setShowComposer(true)}>
                     <Plus className="w-3 h-3" />Create First Job
                   </Button>
@@ -984,7 +969,7 @@ export default function Home() {
 
           {/* Right: Inspector Panel */}
           <ResizablePanel defaultSize={38} minSize={25} maxSize={50}>
-            <div className="flex flex-col h-full bg-[#0a0818]">
+            <div className="flex flex-col h-full bg-[#141414]">
               {selectedJob ? (
                 <Tabs value={activeTab} onValueChange={(v) => {
                   const tabOrder = ['PARAMS', 'RESEARCH', 'VALIDATE', 'SCAD', 'LOG', 'NOTES', 'DEPS', 'HISTORY', 'AI']
@@ -1000,7 +985,7 @@ export default function Home() {
                     <span className="text-zinc-700">›</span>
                     <span className="text-violet-400">{activeTab}</span>
                   </div>
-                  <TabsList className="w-full justify-start px-2 py-1 bg-transparent border-b border-zinc-800/60 h-auto rounded-none shrink-0">
+                  <TabsList className="w-full justify-start px-2 py-1 bg-transparent border-b border-white/[0.06] h-auto rounded-none shrink-0">
                     {[
                       { key: 'PARAMS', label: 'PARAMS', icon: Settings },
                       { key: 'RESEARCH', label: 'RESEARCH', icon: Sparkles },
@@ -1015,7 +1000,7 @@ export default function Home() {
                       <TabsTrigger
                         key={tab.key}
                         value={tab.key}
-                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-200 tab-slide-underline depth-1 tab-click-feedback"
+                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
                       >
                         {tab.label}
                       </TabsTrigger>
@@ -1060,10 +1045,9 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center empty-float">
                     <Settings className="w-6 h-6 opacity-30" />
                   </div>
-                  <p className="text-sm gradient-text-muted">Inspector</p>
+                  <p className="text-sm text-zinc-500">Inspector</p>
                   <p className="text-[10px] text-zinc-700">Select a job to inspect</p>
-                  <div className="particle-dot" style={{ top: '30%', right: '20%', animation: 'particle-drift 3s ease-in-out infinite' }} />
-                  <div className="particle-dot" style={{ bottom: '25%', left: '25%', animation: 'particle-drift 4s ease-in-out infinite 0.7s' }} />
+
                 </div>
               )}
             </div>
@@ -1072,11 +1056,11 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="relative flex items-center justify-between px-4 py-1 border-t border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 footer-wave-border footer-pattern">
+      <footer className="relative flex items-center justify-between px-4 py-1 border-t border-white/[0.06] bg-[#141414] shrink-0">
         <div className="flex items-center gap-4 text-[9px] font-mono text-zinc-600">
-          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 sonar-ring-dot" /><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
           <span className="footer-separator" />
-          <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-pulse-dot' : 'bg-rose-500'}`} />WS: {wsConnected ? 'Connected' : 'Disconnected'}</span>
+          <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-dot' : 'bg-rose-500'}`} />WS: {wsConnected ? 'Connected' : 'Disconnected'}</span>
           <span className="footer-separator" />
           <span className={jobCountFlash ? 'number-highlight' : ''}>Jobs: {allJobs.length}</span>
           <span className="footer-separator" />
@@ -1091,7 +1075,7 @@ export default function Home() {
           <span className="footer-separator" />
           <span className="flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" />{successRate}%</span>
           <span className="footer-separator" />
-          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.7</span>
+          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.9</span>
           <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-zinc-600 hover:text-zinc-400" onClick={exportAllData}>
             <FileJson className="w-2.5 h-2.5" />Export
           </Button>
@@ -1102,8 +1086,8 @@ export default function Home() {
 
       {/* Job Composer */}
       <Dialog open={showComposer} onOpenChange={setShowComposer}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-lg backdrop-blur-xl dialog-elastic-enter">
-          <DialogHeader className="dialog-header-glow">
+        <DialogContent className="bg-[#09090b]/95 border-white/[0.06] max-w-lg dialog-enter">
+          <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Plus className="w-4 h-4 text-violet-400" />New CAD Job
             </DialogTitle>
@@ -1147,7 +1131,7 @@ export default function Home() {
                 value={newJobText}
                 onChange={e => setNewJobText(e.target.value)}
                 placeholder="e.g. A 40mm×30mm×15mm electronics enclosure with 2mm walls"
-                className="min-h-[100px] bg-[#080810] border-zinc-800/60 text-sm placeholder:text-zinc-700 focus:border-violet-500/40"
+                className="min-h-[100px] bg-[#09090b] border-white/[0.06] text-sm placeholder:text-zinc-700 focus:border-violet-500/40"
                 maxLength={5000}
               />
               <div className="flex justify-between mt-1">
@@ -1195,7 +1179,7 @@ export default function Home() {
                 value={newJobTags}
                 onChange={e => setNewJobTags(e.target.value)}
                 placeholder="e.g. enclosure, prototype, urgent (comma-separated)"
-                className="h-7 text-[11px] bg-[#080810] border-zinc-800/60 placeholder:text-zinc-700 focus:border-violet-500/40"
+                className="h-7 text-[11px] bg-[#09090b] border-white/[0.06] placeholder:text-zinc-700 focus:border-violet-500/40"
               />
               {newJobTags.trim() && (
                 <div className="mt-1.5">
@@ -1217,7 +1201,7 @@ export default function Home() {
 
       {/* Cancel Confirmation */}
       <AlertDialog open={!!cancelTarget} onOpenChange={() => setCancelTarget(null)}>
-        <AlertDialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl dialog-elastic-enter">
+        <AlertDialogContent className="bg-[#09090b]/95 border-white/[0.06]  dialog-enter">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">Cancel Job?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-zinc-500">
@@ -1235,8 +1219,8 @@ export default function Home() {
 
       {/* Keyboard Shortcuts */}
       <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-md backdrop-blur-xl dialog-elastic-enter">
-          <DialogHeader className="dialog-header-glow">
+        <DialogContent className="bg-[#09090b]/95 border-white/[0.06] max-w-md  dialog-enter">
+          <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Keyboard className="w-4 h-4 text-violet-400" />Keyboard Shortcuts
             </DialogTitle>
@@ -1340,8 +1324,8 @@ export default function Home() {
 
       {/* Stats Dashboard */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-2xl backdrop-blur-xl dialog-elastic-enter">
-          <DialogHeader className="dialog-header-glow">
+        <DialogContent className="bg-[#09090b]/95 border-white/[0.06] max-w-2xl  dialog-enter">
+          <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-violet-400" />Stats Dashboard
             </DialogTitle>
@@ -1352,8 +1336,8 @@ export default function Home() {
 
       {/* Job Compare */}
       <Dialog open={showCompare} onOpenChange={setShowCompare}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-4xl max-h-[80vh] backdrop-blur-xl dialog-elastic-enter">
-          <DialogHeader className="dialog-header-glow">
+        <DialogContent className="bg-[#09090b]/95 border-white/[0.06] max-w-4xl max-h-[80vh]  dialog-enter">
+          <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <GitCompare className="w-4 h-4 text-violet-400" />Compare Jobs
             </DialogTitle>
@@ -1364,8 +1348,8 @@ export default function Home() {
 
       {/* Theme & Settings */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-sm backdrop-blur-xl dialog-elastic-enter">
-          <DialogHeader className="dialog-header-glow">
+        <DialogContent className="bg-[#09090b]/95 border-white/[0.06] max-w-sm  dialog-enter">
+          <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Palette className="w-4 h-4 text-violet-400" />Theme & Settings
             </DialogTitle>

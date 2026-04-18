@@ -85,7 +85,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.5 }}
-                className="w-1.5 h-1.5 rounded-full bg-emerald-400 autosave-dot"
+                className="w-1.5 h-1.5 rounded-full bg-emerald-400"
                 title="Auto-saved"
               />
             )}
@@ -115,7 +115,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="text-[11px] text-zinc-400 leading-relaxed whitespace-pre-wrap bg-zinc-900/40 rounded-lg p-3 border border-zinc-800/40 min-h-[200px] paper-texture"
+                className="text-[11px] text-zinc-400 leading-relaxed whitespace-pre-wrap bg-[#141414] rounded-lg p-3 border border-white/[0.06] min-h-[200px]"
                 dangerouslySetInnerHTML={{ __html: notes ? renderPreview(notes) : '<span class="text-zinc-700 italic">No notes yet...</span>' }}
               />
             ) : (
@@ -130,7 +130,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                   value={notes}
                   onChange={(e) => handleChange(e.target.value.slice(0, MAX_CHARS))}
                   placeholder="Add notes about this job...&#10;&#10;Supports **bold**, *italic*, `code`, and # headers."
-                  className="min-h-[200px] bg-[#0c0a14] border-zinc-800/60 text-xs text-zinc-300 placeholder:text-zinc-700 resize-y focus:border-amber-500/40 paper-texture"
+                  className="min-h-[200px] bg-[#09090b] border-zinc-800/60 text-xs text-zinc-300 placeholder:text-zinc-700 resize-y focus:border-amber-500/40"
                 />
               </motion.div>
             )}
@@ -142,7 +142,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                 <span className="text-[8px] text-zinc-700">Supports **bold**, *italic*, `code`</span>
               </div>
               <div
-                className="text-[11px] text-zinc-400 leading-relaxed whitespace-pre-wrap bg-zinc-900/40 rounded-lg p-3 border border-zinc-800/40 paper-texture max-h-40 overflow-y-auto"
+                className="text-[11px] text-zinc-400 leading-relaxed whitespace-pre-wrap bg-[#141414] rounded-lg p-3 border border-white/[0.06] max-h-40 overflow-y-auto"
                 dangerouslySetInnerHTML={{ __html: renderPreview(notes) }}
               />
             </div>

@@ -21,8 +21,6 @@ import {
   staggerContainer,
   staggerChild,
   staggerTransition,
-  pulseGlow,
-  pulseGlowTransition,
   successPop,
   successPopTransition,
 } from './motion-presets'
@@ -119,7 +117,7 @@ function ProgressRing({
   const offset = circumference - (value / 100) * circumference
 
   return (
-    <div className="relative flex items-center justify-center ring-pulse" style={{ width: size, height: size }}>
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         {/* Background ring with rotating dash pattern */}
         <circle
@@ -130,7 +128,7 @@ function ProgressRing({
           stroke="rgba(63, 63, 70, 0.3)"
           strokeWidth={strokeWidth}
           strokeDasharray="4 6"
-          className="ring-rotating-dash"
+          className=""
         />
         {/* Progress ring */}
         <motion.circle
@@ -220,7 +218,7 @@ function Sparkline({
     ` L ${points[0].x} ${height - padding} Z`
 
   return (
-    <svg width={width} height={height} className="overflow-visible sparkline-breathe">
+    <svg width={width} height={height} className="overflow-visible">
       <defs>
         <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.3} />
@@ -359,24 +357,16 @@ function StatCard({
   icon: Icon,
   label,
   children,
-  glow,
 }: {
   icon: React.ElementType
   label: string
   children: React.ReactNode
-  glow?: string
 }) {
   return (
     <motion.div
       variants={staggerChild}
-      className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 overflow-hidden glass-hover-sweep stats-grid-pattern gradient-border-hover"
+      className="relative rounded-xl border border-white/[0.06] bg-[#141414] p-3 overflow-hidden linear-surface-hover"
     >
-      {glow && (
-        <div
-          className="absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-10 blur-2xl"
-          style={{ backgroundColor: glow }}
-        />
-      )}
       <div className="flex items-center gap-1.5 mb-2">
         <Icon className="w-3 h-3 text-zinc-600" />
         <span className="text-[9px] font-mono text-zinc-500 tracking-widest uppercase">
@@ -524,7 +514,7 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
     <div className="max-h-80 overflow-y-auto pr-1">
       {groupedEvents.map((group) => (
         <div key={group.label} className="mb-3 last:mb-0">
-          <span className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase block mb-1.5 sticky top-0 bg-zinc-900/80 backdrop-blur-sm py-0.5 z-10">
+          <span className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase block mb-1.5 sticky top-0 bg-[#141414] py-0.5 z-10">
             {group.label}
           </span>
           <motion.div
@@ -541,7 +531,7 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
                   key={event.id}
                   variants={staggerChild}
                   custom={eventIndex}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-800/30 transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] linear-transition"
                 >
                   <div className={`shrink-0 ${event.iconColor}`}>
                     <IconComp className="w-3 h-3" />
@@ -690,7 +680,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
 
       {/* Top row: Key metrics */}
       <motion.div variants={staggerContainer} className="grid grid-cols-4 gap-2 mb-3">
-        <StatCard icon={Layers} label="Total Jobs" glow="#8b5cf6">
+        <StatCard icon={Layers} label="Total Jobs">
           <div className="text-2xl font-bold text-zinc-200">
             <AnimatedCounter value={stats.totalJobs} />
           </div>
@@ -699,7 +689,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
           </div>
         </StatCard>
 
-        <StatCard icon={Clock} label="Avg Time" glow="#22d3ee">
+        <StatCard icon={Clock} label="Avg Time">
           <div className="text-lg font-semibold text-cyan-400 tabular-nums">
             {formatDuration(stats.avgProcessingTimeMs)}
           </div>
@@ -708,7 +698,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
           </div>
         </StatCard>
 
-        <StatCard icon={CheckCircle2} label="Success" glow="#34d399">
+        <StatCard icon={CheckCircle2} label="Success">
           <div className="flex justify-center py-1">
             <ProgressRing
               value={stats.successRate}
@@ -719,7 +709,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
           </div>
         </StatCard>
 
-        <StatCard icon={Zap} label="Top Family" glow="#8b5cf6">
+        <StatCard icon={Zap} label="Top Family">
           <div className="text-sm font-semibold text-violet-400 truncate">
             {stats.mostCommonPartFamily.replace(/_/g, ' ')}
           </div>
@@ -730,7 +720,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       {/* State distribution */}
       <motion.div
         variants={staggerChild}
-        className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 mb-3"
+        className="rounded-xl linear-surface linear-border p-3 mb-3"
       >
         <div className="flex items-center gap-1.5 mb-3">
           <TrendingUp className="w-3 h-3 text-zinc-600" />
@@ -744,7 +734,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       {/* Sparkline: Recent activity */}
       <motion.div
         variants={staggerChild}
-        className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3"
+        className="rounded-xl linear-surface linear-border p-3"
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
@@ -763,7 +753,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       {/* Recent Activity Timeline */}
       <motion.div
         variants={staggerChild}
-        className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 mt-3"
+        className="rounded-xl linear-surface linear-border p-3 mt-3"
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">

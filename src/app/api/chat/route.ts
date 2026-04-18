@@ -1,12 +1,23 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 
+type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+type ChatMessage = {
+  role: string;
+  content: string | ContentPart[];
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { messages, jobId } = body as {
+    const { messages, jobId, model, images } = body as {
       messages: Array<{ role: string; content: string }>;
       jobId?: string;
+      model?: string;
+      images?: string[];
     };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -57,19 +68,52 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       }
     }
 
+    // Build formatted messages - handle multimodal content for vision models
+    const formattedMessages: ChatMessage[] = [
+      { role: "system", content: systemPrompt },
+    ];
+
+    for (const msg of messages) {
+      if (
+        model === "glm-4v" &&
+        images &&
+        images.length > 0 &&
+        msg.role === "user"
+      ) {
+        // For multimodal models with images, format user message as content parts
+        const contentParts: ContentPart[] = [
+          { type: "text", text: msg.content },
+          ...images.map(
+            (img) =>
+              ({
+                type: "image_url",
+                image_url: { url: img.startsWith("data:") ? img : `data:image/png;base64,${img}` },
+              }) as ContentPart
+          ),
+        ];
+        formattedMessages.push({ role: msg.role, content: contentParts });
+      } else {
+        formattedMessages.push({ role: msg.role, content: msg.content });
+      }
+    }
+
     // Try LLM via z-ai-web-dev-sdk with streaming
     try {
       const ZAIModule = await import("z-ai-web-dev-sdk");
       const ZAI = ZAIModule.default;
       const zai = await ZAI.create();
 
-      const result = await zai.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
+      // Build the create options - pass model if specified and supported
+      const createOptions: Record<string, unknown> = {
+        messages: formattedMessages,
         stream: true,
-      });
+      };
+
+      if (model && model !== "default") {
+        createOptions.model = model;
+      }
+
+      const result = await zai.chat.completions.create(createOptions);
 
       // If the result is a streaming response (has iterator/async iterator)
       if (result && typeof result === "object" && Symbol.asyncIterator in result) {

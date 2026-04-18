@@ -31,7 +31,7 @@ export function TimelinePanel({ job }: { job: Job }) {
               key={i}
               variants={{ ...slideInLeft }}
               transition={{ ...slideInLeftTransition, delay: i * 0.03 }}
-              className="flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/40 transition-colors group"
+              className="flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.04] linear-transition group"
             >
               <span className="text-[8px] font-mono text-zinc-700 mt-0.5 whitespace-nowrap">{formatTime(log.timestamp)}</span>
               <span className={`text-[8px] font-mono px-1 py-0.5 rounded shrink-0 ${

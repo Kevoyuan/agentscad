@@ -110,7 +110,7 @@ export function ViewerControls({
       exit="exit"
       transition={fadeInUpTransition}
     >
-      <div className="flex items-center gap-0.5 rounded-xl border border-zinc-700/40 bg-black/40 backdrop-blur-xl px-1.5 py-1 glass-panel">
+      <div className="flex items-center gap-0.5 rounded-xl linear-surface linear-border px-1.5 py-1">
         {controls.map((ctrl) => {
           const Icon = ctrl.icon
           return (
@@ -119,11 +119,11 @@ export function ViewerControls({
               onClick={ctrl.onClick}
               title={`${ctrl.label}${ctrl.active ? ': ON' : ': OFF'}`}
               className={`
-                relative flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 btn-ripple
+                relative flex items-center justify-center w-7 h-7 rounded-lg linear-transition
                 ${
                   ctrl.active
-                    ? 'bg-violet-500/20 text-violet-400 control-active-glow'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/30'
+                    ? 'bg-violet-500/20 text-violet-400'
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
                 }
               `}
             >

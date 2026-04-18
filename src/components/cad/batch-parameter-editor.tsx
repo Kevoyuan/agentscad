@@ -114,7 +114,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
       exit={{ height: 0, opacity: 0 }}
       className="overflow-hidden"
     >
-      <div className="border-t border-zinc-800/60 bg-[#0a0818]/80">
+      <div className="border-t border-zinc-800/60 bg-[#141414]">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/40">
           <div className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
               size="sm"
               className={`h-5 text-[8px] gap-1 ${
                 hasEdits
-                  ? 'bg-violet-600 hover:bg-violet-500 btn-ripple'
+                  ? 'bg-violet-600 hover:bg-violet-500'
                   : 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed'
               }`}
               onClick={handleApply}

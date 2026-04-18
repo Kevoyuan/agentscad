@@ -309,7 +309,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
         </Select>
 
         <div className="flex items-center justify-center">
-          <span className="text-[9px] font-mono font-bold text-violet-400 bg-violet-500/15 rounded-full w-7 h-7 flex items-center justify-center vs-badge-pulse border border-violet-500/20">VS</span>
+          <span className="text-[9px] font-mono font-bold text-violet-400 bg-violet-500/15 rounded-full w-7 h-7 flex items-center justify-center border border-violet-500/20">VS</span>
         </div>
 
         <Select value={rightId} onValueChange={setRightId}>
@@ -371,7 +371,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25 }}
-            className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden glass-panel"
+            className="rounded-xl border border-white/[0.06] bg-[#141414] overflow-hidden"
           >
             {/* Column headers */}
             <div className="grid grid-cols-[1fr_100px_20px_100px] items-center gap-1 px-2 py-1.5 bg-zinc-800/30 border-b border-zinc-800/60">

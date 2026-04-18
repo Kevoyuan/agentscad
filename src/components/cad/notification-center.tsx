@@ -68,7 +68,7 @@ function NotificationItem({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`notification-item flex items-start gap-2.5 px-3 py-2.5 cursor-pointer transition-colors hover:bg-white/[0.02] ${
+      className={`flex items-start gap-2.5 px-3 py-2.5 cursor-pointer linear-transition hover:bg-white/[0.02] ${
         !notification.read ? 'border-l-2 border-l-violet-500/60' : 'border-l-2 border-l-transparent'
       }`}
       onClick={() => {
@@ -154,7 +154,7 @@ export function NotificationCenter({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-8 w-80 bg-[#0c0a14]/95 backdrop-blur-xl border border-zinc-800/60 rounded-lg shadow-2xl shadow-black/40 z-50 depth-3"
+            className="absolute right-0 top-8 w-80 linear-surface linear-border rounded-lg linear-shadow-md z-50"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60">
@@ -203,7 +203,7 @@ export function NotificationCenter({
             <ScrollArea className="max-h-80">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-800/20 flex items-center justify-center empty-float">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-800/20 flex items-center justify-center gentle-float">
                     <Bell className="w-5 h-5 text-zinc-700" />
                   </div>
                   <p className="text-[11px] text-zinc-600">No notifications</p>

@@ -143,7 +143,7 @@ export function ThemePanel() {
               onClick={() => updateSettings({ accentHue: accent.hue })}
             >
               <div className={`w-5 h-5 rounded-full ${accent.color} ${
-                settings.accentHue === accent.hue ? 'ring-2 ring-offset-1 ring-offset-[#0c0a14] ' + accent.ring : ''
+                settings.accentHue === accent.hue ? 'ring-2 ring-offset-1 ring-offset-[#09090b] ' + accent.ring : ''
               }`} />
               <span className="text-[8px] font-mono text-zinc-600">{accent.name}</span>
               {settings.accentHue === accent.hue && (

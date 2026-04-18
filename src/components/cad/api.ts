@@ -69,14 +69,16 @@ export function sendChatMessageStream(
   jobId: string | undefined,
   onToken: (token: string) => void,
   onDone: () => void,
-  onError: (err: string) => void
+  onError: (err: string) => void,
+  model?: string,
+  images?: string[]
 ): () => void {
   const controller = new AbortController()
 
   fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, jobId }),
+    body: JSON.stringify({ messages, jobId, model, images }),
     signal: controller.signal,
   })
     .then(async (res) => {
@@ -125,11 +127,11 @@ export function sendChatMessageStream(
 }
 
 /** Legacy non-streaming chat (kept for backwards compatibility) */
-export async function sendChatMessage(messages: Array<{ role: string; content: string }>, jobId?: string): Promise<string> {
+export async function sendChatMessage(messages: Array<{ role: string; content: string }>, jobId?: string, model?: string): Promise<string> {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, jobId }),
+    body: JSON.stringify({ messages, jobId, model }),
   })
   if (!res.ok) throw new Error('Chat request failed')
   // Handle SSE response - collect all tokens
@@ -253,5 +255,20 @@ export async function batchUpdateParameters(jobIds: string[], parameterValues: R
     body: JSON.stringify({ jobIds, parameterValues }),
   })
   if (!res.ok) throw new Error('Batch parameter update failed')
+  return res.json()
+}
+
+// ─── Model Selection ──────────────────────────────────────────────────────────
+
+export interface ModelInfo {
+  id: string
+  name: string
+  description: string
+  multimodal: boolean
+}
+
+export async function fetchModels(): Promise<{ models: ModelInfo[] }> {
+  const res = await fetch('/api/models')
+  if (!res.ok) throw new Error('Failed to fetch models')
   return res.json()
 }

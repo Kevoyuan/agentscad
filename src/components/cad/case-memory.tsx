@@ -138,7 +138,7 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
               <motion.div
                 key={job.id}
                 variants={staggerChild}
-                className="group/suggestion relative rounded-lg border border-zinc-800/60 bg-zinc-900/40 p-2.5 cursor-pointer hover:border-violet-500/30 hover:bg-violet-600/5 transition-all duration-200"
+                className="group/suggestion relative rounded-lg linear-surface linear-border p-2.5 cursor-pointer hover:border-violet-500/30 hover:bg-violet-600/5 linear-transition"
                 onClick={() => onSuggestionClick?.(job)}
               >
                 <div className="flex items-start gap-2">

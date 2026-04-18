@@ -83,7 +83,7 @@ export function JobTemplateCards({
               key={t.id}
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.98 }}
-              className={`flex items-start gap-2 p-2.5 rounded-lg border text-left transition-colors ${t.color} hover:brightness-125`}
+              className={`flex items-start gap-2 p-2.5 rounded-lg border text-left linear-transition ${t.color} hover:brightness-125`}
               onClick={() => onSelect(t.template)}
             >
               <Icon className="w-4 h-4 shrink-0 mt-0.5" />

@@ -144,7 +144,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Search for parent job..."
-                      className="h-6 text-[11px] bg-[#080810] border-zinc-800/60 placeholder:text-zinc-700"
+                      className="h-6 text-[11px] bg-[#09090b] border-zinc-800/60 placeholder:text-zinc-700"
                       autoFocus
                     />
                   </div>
@@ -153,7 +153,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                       {availableParents.map(candidate => (
                         <motion.button
                           key={candidate.id}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-zinc-800/40 transition-colors group"
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-white/[0.04] linear-transition group"
                           onClick={() => handleLink(candidate.id)}
                           disabled={isSaving}
                           whileHover={{ x: 2 }}
@@ -195,7 +195,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                   <div className="absolute left-0 top-0 bottom-0 w-px bg-violet-500/30" />
                   <div className="absolute left-0 top-1/2 w-3 h-px bg-violet-500/30" />
                   <motion.div
-                    className="ml-4 flex items-center gap-2 px-2 py-1.5 rounded-md border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 transition-colors cursor-pointer group"
+                    className="ml-4 flex items-center gap-2 px-2 py-1.5 rounded-md border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 linear-transition cursor-pointer group"
                     onClick={() => onNavigateToJob?.(parentJob.id)}
                     whileHover={{ x: 2 }}
                     transition={{ duration: 0.15 }}
@@ -237,7 +237,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
             {/* Current job (center) */}
             <div className="relative">
               <div className="flex items-center gap-2 px-2 py-2 rounded-md border border-zinc-700/30 bg-zinc-800/20">
-                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-md bg-violet-500/80 flex items-center justify-center shrink-0">
                   <FileCode className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -272,7 +272,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                     <div className="absolute left-0 top-1/2 w-3 h-px bg-violet-500/30" />
                     <div className="absolute left-0 top-0 bottom-0 w-px bg-violet-500/30" style={{ height: idx === 0 ? '50%' : '100%', top: idx === 0 ? '50%' : '0' }} />
                     <motion.div
-                      className="ml-4 flex items-center gap-2 px-2 py-1.5 rounded-md border border-cyan-500/15 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors cursor-pointer group"
+                      className="ml-4 flex items-center gap-2 px-2 py-1.5 rounded-md border border-cyan-500/15 bg-cyan-500/5 hover:bg-cyan-500/10 linear-transition cursor-pointer group"
                       onClick={() => onNavigateToJob?.(child.id)}
                       whileHover={{ x: 2 }}
                       transition={{ duration: 0.15 }}

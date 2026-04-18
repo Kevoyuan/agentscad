@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { PIPELINE_STEPS, ExecutionLog, parseJSON, getPipelineProgress } from './types'
-import { pulseGlow, pulseGlowTransition } from './motion-presets'
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
@@ -87,16 +86,6 @@ export function PipelineVisualization({ state, job }: { state: string; job?: { e
                   >
                     <div className="relative">
                       <Icon className={`w-3.5 h-3.5 ${isCurrent && !isFailed ? 'animate-pulse' : ''}`} />
-                      {/* Pulse glow on current step */}
-                      {isCurrent && !isFailed && (
-                        <motion.div
-                          className="absolute inset-0 rounded-full"
-                          variants={pulseGlow}
-                          initial="initial"
-                          animate="animate"
-                          transition={pulseGlowTransition}
-                        />
-                      )}
                     </div>
                     <span className="text-[8px] font-mono tracking-wider">{step.label}</span>
                     {/* Time spent indicator below completed steps */}
@@ -122,19 +111,14 @@ export function PipelineVisualization({ state, job }: { state: string; job?: { e
                     <motion.div
                       className="absolute top-1/2 -translate-y-1/2 h-0.5 rounded-full"
                       style={{
-                        background: 'linear-gradient(90deg, #84cc16, #a3e635)',
+                        backgroundColor: '#84cc16',
                       }}
                       initial={{ width: 0 }}
                       animate={{ width: 16 }}
                       transition={{ duration: 0.4, delay: idx * 0.08 }}
                     />
                   )}
-                  {/* Partially filled line for current transition */}
-                  {idx === currentIdx - 1 || (idx === currentIdx && currentIdx > 0) ? (
-                    <ChevronRight className={`w-2.5 h-2.5 relative z-10 transition-colors duration-300 ${idx < currentIdx ? 'text-lime-500/60' : 'text-zinc-700'}`} />
-                  ) : (
-                    <ChevronRight className={`w-2.5 h-2.5 relative z-10 transition-colors duration-300 ${idx < currentIdx ? 'text-lime-500/60' : 'text-zinc-700'}`} />
-                  )}
+                  <ChevronRight className={`w-2.5 h-2.5 relative z-10 linear-transition ${idx < currentIdx ? 'text-lime-500/60' : 'text-zinc-700'}`} />
                 </div>
               )}
             </div>

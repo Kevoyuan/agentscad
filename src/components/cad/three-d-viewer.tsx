@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion } from 'framer-motion'
 import { Box, Loader2, AlertCircle } from 'lucide-react'
 import { Job, parseJSON, safeNum } from './types'
 import { ViewerControls, useViewerControls, type ViewerControlsState } from './viewer-controls'
@@ -10,10 +9,6 @@ export function ThreeDViewer({ job }: { job: Job }) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Mouse parallax for corner brackets
-  const [bracketOffset, setBracketOffset] = useState({ x: 0, y: 0 })
-  const containerRef = useRef<HTMLDivElement>(null)
 
   // Viewer controls
   const {
@@ -415,21 +410,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
     }
   }, [job.state, job.parameterValues, width, depth, height, wall, teeth, outerDiam, boreDiam, thickness, partFamily])
 
-  // Mouse parallax for corner brackets
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect()
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height / 2
-      const dx = (e.clientX - cx) / rect.width
-      const dy = (e.clientY - cy) / rect.height
-      setBracketOffset({ x: dx * 3, y: dy * 3 })
-    }
-    container.addEventListener('mousemove', handleMouseMove)
-    return () => container.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+
 
   if (job.state === 'NEW' || job.state === 'SCAD_GENERATED') {
     return (
@@ -453,17 +434,12 @@ export function ThreeDViewer({ job }: { job: Job }) {
   }
 
   return (
-    <div ref={containerRef} className="relative w-full h-full viewer-vignette viewer-scanlines film-grain-overlay viewer-breathing-border">
-      {/* Corner brackets with mouse parallax */}
-      <div className="viewer-corner-bracket tl" style={{ top: 8, left: 8, transform: `translate(${bracketOffset.x}px, ${bracketOffset.y}px)` }} />
-      <div className="viewer-corner-bracket tr" style={{ top: 8, right: 8, transform: `translate(${-bracketOffset.x}px, ${bracketOffset.y}px)` }} />
-      <div className="viewer-corner-bracket bl" style={{ bottom: 8, left: 8, transform: `translate(${bracketOffset.x}px, ${-bracketOffset.y}px)` }} />
-      <div className="viewer-corner-bracket br" style={{ bottom: 8, right: 8, transform: `translate(${-bracketOffset.x}px, ${-bracketOffset.y}px)` }} />
+    <div className="relative w-full h-full linear-border rounded-lg overflow-hidden">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
           {/* Loading skeleton placeholder */}
           <div className="flex flex-col items-center gap-3 w-3/4 max-w-xs">
-            <div className="skeleton-pulse w-full h-40 rounded-lg" />
+            <div className="skeleton-loading w-full h-40 rounded-lg" />
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
               <span className="text-[10px] text-zinc-500">Loading 3D preview...</span>

@@ -50,9 +50,9 @@ export function ValidationPanel({ job }: { job: Job }) {
               key={i}
               variants={staggerChild}
               transition={staggerTransition}
-              className={`flex items-start gap-2 p-2.5 rounded-lg transition-colors ${
+              className={`flex items-start gap-2 p-2.5 rounded-lg linear-transition ${
                 r.passed
-                  ? 'bg-zinc-900/40 hover:bg-zinc-900/60'
+                  ? 'bg-[#141414] hover:bg-white/[0.04]'
                   : 'bg-rose-500/5 border border-rose-500/10 hover:bg-rose-500/10'
               }`}
             >

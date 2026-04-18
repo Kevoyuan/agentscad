@@ -81,7 +81,7 @@ function ScadDiff({ oldValue, newValue }: { oldValue: string | null; newValue: s
   }
 
   return (
-    <div className="mt-1 font-mono text-[9px] max-h-32 overflow-y-auto rounded bg-[#080810] border border-zinc-800/40">
+    <div className="mt-1 font-mono text-[9px] max-h-32 overflow-y-auto rounded bg-[#09090b] border border-white/[0.06]">
       {diffs.map((d, idx) => (
         <div
           key={idx}
@@ -207,7 +207,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
             return (
               <button
                 key={f}
-                className={`shrink-0 text-[8px] font-mono px-1.5 py-0.5 rounded transition-colors ${
+                className={`shrink-0 text-[8px] font-mono px-1.5 py-0.5 rounded linear-transition ${
                   isActive ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30' : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
                 }`}
                 onClick={() => setFilterField(f === 'all' ? null : f)}
@@ -246,7 +246,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
 
                   {/* Content */}
                   <div
-                    className="ml-5 rounded-md border border-zinc-800/40 bg-zinc-900/30 overflow-hidden cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                    className="ml-5 rounded-md linear-border bg-[#141414] overflow-hidden cursor-pointer hover:bg-white/[0.04] linear-transition"
                     onClick={() => setExpandedId(isExpanded ? null : version.id)}
                   >
                     <div className="flex items-center justify-between px-3 py-1.5">

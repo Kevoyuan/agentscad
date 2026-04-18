@@ -8,6 +8,88 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 
 ---
 
+### Task ID: 1
+**Agent**: Frontend Styling Expert
+**Task**: Linear-style CSS redesign - rewrite globals.css from cyberpunk/engineering theme to clean minimal professional design
+
+#### Work Log:
+
+1. ✅ **Complete globals.css Rewrite** (1339 lines → 363 lines):
+   - Preserved tailwind imports, theme variables, :root/.dark CSS variables, and @layer base as-is
+   - Replaced purple-tinted scrollbar (#2a2640/#3d3660) with neutral gray (#27272a/#52525b)
+   - Replaced gradient slider fill with solid accent (#7c3aed)
+   - Replaced gradient slider thumb with white bg + accent border, removed glow shadows
+   - Replaced gradient progress bar with solid accent color
+   - Replaced purple-tinted focus glow with subtle accent ring (30% opacity)
+   - Simplified tab indicator to clean border transition (0.15s)
+   - Simplified resizable handle to accent color on active
+
+2. ✅ **Removed All Cyberpunk Effects** (~60+ classes/keyframes removed):
+   - noise-overlay, CRT scanline, glassmorphism (glass-panel, glass-hover-sweep)
+   - header-gradient-border animation, logo-pulse, btn-glow
+   - footer-gradient-border, footer-pattern, online-pulse-dot
+   - card-shimmer, selected-card-glow, priority-high-glow
+   - tab-active-glow gradient → replaced with solid accent underline
+   - viewer-vignette, viewer-scanlines, viewer-corner-bracket
+   - All 7 badge-gradient-* classes
+   - badge-breathe, badge-sparkle
+   - dialog-header-glow, gradient-divider
+   - skeleton-loading gradient → simplified to opacity pulse
+   - particle-dot, particle-drift
+   - Z-depth system (depth-0 through depth-3)
+   - Button ripple effect, enhanced hover states (tab-slide-underline, btn-hover-lift, badge-hover-shift)
+   - Animated gradient border for 3D viewer
+   - Stats grid pattern, ring pulse, sparkline breathe
+   - VS badge pulse, control-active-glow
+   - Paper texture, auto-save pulse, mouse glow
+   - Film grain overlay, viewer border breathing, ring rotating dash
+   - Footer wave border, skeleton pulse, gradient border hover
+   - Processing pulse ring, priority badge bounce, progress shimmer
+   - Sonar ring, elastic bounce dialog, dialog overlay radial
+   - Close button rotate, button press
+   - AI enhance glow, card hover gradient, breadcrumb fade-in
+   - count-up, chat slide animations, tab click feedback
+   - gradient-text-muted, depth-overlay, icon-toggle-rotate
+   - inspector-breadcrumb, autosave-dot, crt-scanline, focus-dim
+
+3. ✅ **Kept & Simplified Animations**:
+   - status-pulse: processing indicator (2s ease-in-out)
+   - gentle-float: empty states (reduced movement from -6px to -4px)
+   - content-fade-in: transitions (reduced from 0.25s to 0.2s)
+   - badge-shake: error state (simplified to 2-step)
+   - typing-wave-dot: neutral gray (#71717a instead of violet)
+   - stop-btn-pulse: subtle (3px ring instead of 4px)
+   - notification-slide: reduced movement (12px instead of 16px)
+   - tag-pop: simplified (no overshoot, just ease-out)
+   - dialog-enter: simplified (translateY only, no scale, 0.15s)
+
+4. ✅ **Kept & Simplified Components**:
+   - Job card left border: reduced from 3px to 2px, removed glow expansion on hover
+   - Keyboard key: removed gradient bg and inset shadow, clean flat style
+   - Code copy button: neutral hover instead of violet
+   - Tab active underline: solid accent (#7c3aed) instead of gradient
+   - Notification hover: neutral (rgba(255,255,255,0.04)) instead of violet
+   - Online dot: static green dot instead of pulsing animation
+   - Footer separator: neutral border color
+   - Skeleton: simple opacity pulse instead of gradient shimmer
+
+5. ✅ **Added Linear Design Utilities**:
+   - `.linear-surface`: #141414 bg with subtle border
+   - `.linear-surface-hover`: rgba(255,255,255,0.04) bg on hover
+   - `.linear-border`: consistent 1px border rgba(255,255,255,0.06)
+   - `.linear-focus-ring`: subtle accent ring at 30% opacity
+   - `.linear-selected`: accent border-left + subtle bg
+   - `.linear-transition`: standard 150ms ease transition
+   - `.linear-shadow-sm`: subtle card shadow (0 1px 2px)
+   - `.linear-shadow-md`: medium dropdown shadow (0 4px 12px)
+
+#### Files Modified:
+- `src/app/globals.css` - Complete rewrite from 1339 → 363 lines
+
+#### Lint Status: ✅ PASS (0 errors)
+
+---
+
 ## Session 8: Version History + Context Menu + Notifications + Tags + Refactor
 
 ### Task ID: 8-a
@@ -656,6 +738,45 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 
 - Full backend and frontend built from scratch
 - All core features implemented
+
+---
+
+### Task ID: 4
+**Agent**: Backend Dev Agent
+**Task**: Add GLM (Zhipu AI) model support to AgentSCAD backend
+
+#### Work Log:
+
+1. ✅ **Reviewed existing chat route** (`src/app/api/chat/route.ts`):
+   - Confirmed model selection and multimodal image support already implemented
+   - Already accepts `model` field (default/glm-4/glm-4v) in request body
+   - Already accepts `images` field (array of base64-encoded images) for multimodal
+   - Already formats user messages as content parts (text + image_url) for glm-4v
+   - Already passes model parameter to SDK's `create` call
+   - Already falls back gracefully (omits model param for "default")
+   - SSE streaming behavior preserved
+
+2. ✅ **Created `/api/models/route.ts`** - GET endpoint returning available models:
+   - `default`: Default model via SDK, multimodal: false
+   - `glm-4`: 智谱GLM-4 高性能文本模型, multimodal: false
+   - `glm-4v`: 智谱GLM-4V 原生多模态模型（支持图像理解）, multimodal: true
+   - Returns `{ models: [...] }` JSON response
+
+3. ✅ **Updated `src/components/cad/api.ts`**:
+   - Added `model?: string` and `images?: string[]` optional params to `sendChatMessageStream()`
+   - Passes `model` and `images` in request body JSON
+   - Added `model?: string` optional param to `sendChatMessage()`
+   - Passes `model` in request body JSON
+   - Added `ModelInfo` interface: `{ id, name, description, multimodal }`
+   - Added `fetchModels()` async function calling `GET /api/models`
+
+#### New Files Created:
+- `src/app/api/models/route.ts` - Available models GET endpoint
+
+#### Files Modified:
+- `src/components/cad/api.ts` - Added model/images params to chat functions, added fetchModels()
+
+#### Lint Status: ✅ PASS (0 errors)
 
 ---
 

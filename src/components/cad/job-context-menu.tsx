@@ -60,7 +60,7 @@ export function JobContextMenu({
       <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-52 bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl">
+      <ContextMenuContent className="w-52 linear-surface linear-border linear-shadow-md">
         {/* Process / Reprocess */}
         {canProcess && (
           <ContextMenuItem
@@ -103,7 +103,7 @@ export function JobContextMenu({
             Set Priority
             <span className="ml-auto text-[9px] text-zinc-600">P{job.priority}</span>
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-36 bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl">
+          <ContextMenuSubContent className="w-36 linear-surface linear-border linear-shadow-md">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(p => (
               <ContextMenuItem
                 key={p}

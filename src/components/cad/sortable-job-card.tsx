@@ -89,16 +89,16 @@ export function SortableJobCard({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       whileHover={{ scale: 1.01 }}
       transition={{ scale: { duration: 0.2, ease: 'easeOut' } }}
-      className={`group/card relative rounded-lg p-2.5 cursor-pointer transition-all duration-200 overflow-hidden job-card-left-border job-card-hover-gradient ${
+      className={`group/card relative rounded-lg p-2.5 cursor-pointer linear-transition overflow-hidden job-card-left-border linear-shadow-sm ${
         isDragging || isSortableDragging
-          ? 'shadow-xl shadow-violet-500/10 ring-2 ring-violet-500/20 scale-[1.02] z-50'
+          ? 'shadow-xl ring-2 ring-violet-500/20 scale-[1.02] z-50'
           : ''
       } ${
-        isProcessing ? 'processing-pulse-ring' : ''
+        isProcessing ? 'status-pulse' : ''
       } ${
         isSelected
-          ? 'bg-violet-600/10 border border-violet-500/30 ring-1 ring-violet-500/20 selected-card-glow card-shimmer'
-          : 'bg-zinc-900/30 border border-zinc-800/40 hover:bg-[radial-gradient(ellipse_at_top_left,rgba(139,92,246,0.06),transparent_70%)] hover:border-zinc-700/50'
+          ? 'linear-selected bg-violet-600/10 border border-violet-500/30'
+          : 'linear-surface border border-white/[0.06] hover:bg-white/[0.04]'
       }`}
       onClick={() => onSelect(job)}
     >
@@ -131,7 +131,7 @@ export function SortableJobCard({
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
             <span
               key={priorityKey}
-              className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} ${job.priority >= 8 ? 'priority-high-glow' : ''} priority-badge-bounce`}
+              className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} linear-transition`}
             >
               P{job.priority}
             </span>
@@ -180,7 +180,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
   return (
     <div
       style={{ '--border-color': leftBorderColor } as CSSProperties}
-      className="rounded-lg p-2.5 bg-zinc-900/80 border border-violet-500/30 shadow-2xl shadow-violet-500/20 ring-2 ring-violet-500/20 scale-[1.03] job-card-left-border backdrop-blur-md"
+      className="rounded-lg p-2.5 linear-surface border border-violet-500/30 shadow-2xl ring-2 ring-violet-500/20 scale-[1.03] job-card-left-border"
     >
       <div className="pl-4 pr-5">
         <div className="flex items-start justify-between gap-1.5">
