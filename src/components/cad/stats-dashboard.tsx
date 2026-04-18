@@ -9,6 +9,11 @@ import {
   Layers,
   TrendingUp,
   Zap,
+  AlertTriangle,
+  XCircle,
+  Plus,
+  Ban,
+  ArrowRight,
 } from 'lucide-react'
 import {
   fadeInUp,
@@ -21,7 +26,7 @@ import {
   successPop,
   successPopTransition,
 } from './motion-presets'
-import { Job, STATE_COLORS, parseJSON } from './types'
+import { Job, STATE_COLORS, parseJSON, timeAgo } from './types'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -114,7 +119,7 @@ function ProgressRing({
   const offset = circumference - (value / 100) * circumference
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className="relative flex items-center justify-center ring-pulse" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         {/* Background ring */}
         <circle
@@ -213,7 +218,7 @@ function Sparkline({
     ` L ${points[0].x} ${height - padding} Z`
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg width={width} height={height} className="overflow-visible sparkline-breathe">
       <defs>
         <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.3} />
@@ -362,7 +367,7 @@ function StatCard({
   return (
     <motion.div
       variants={staggerChild}
-      className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 overflow-hidden"
+      className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 overflow-hidden glass-hover-sweep stats-grid-pattern"
     >
       {glow && (
         <div
@@ -378,6 +383,190 @@ function StatCard({
       </div>
       {children}
     </motion.div>
+  )
+}
+
+// ─── Activity Timeline Event ─────────────────────────────────────────────────
+
+interface TimelineEvent {
+  id: string
+  jobId: string
+  jobName: string
+  state: string
+  action: string
+  timestamp: string
+  icon: React.ElementType
+  iconColor: string
+}
+
+function getActionInfo(state: string): { action: string; icon: React.ElementType; iconColor: string } {
+  switch (state) {
+    case 'NEW':
+      return { action: 'Created', icon: Plus, iconColor: 'text-slate-400' }
+    case 'SCAD_GENERATED':
+      return { action: 'SCAD Generated', icon: Zap, iconColor: 'text-amber-400' }
+    case 'RENDERED':
+      return { action: 'Rendered', icon: Layers, iconColor: 'text-cyan-400' }
+    case 'VALIDATED':
+      return { action: 'Validated', icon: CheckCircle2, iconColor: 'text-emerald-400' }
+    case 'DELIVERED':
+      return { action: 'Delivered', icon: CheckCircle2, iconColor: 'text-lime-400' }
+    case 'VALIDATION_FAILED':
+    case 'GEOMETRY_FAILED':
+    case 'RENDER_FAILED':
+      return { action: 'Failed', icon: XCircle, iconColor: 'text-rose-400' }
+    case 'CANCELLED':
+      return { action: 'Cancelled', icon: Ban, iconColor: 'text-zinc-400' }
+    default:
+      return { action: state.replace(/_/g, ' '), icon: Activity, iconColor: 'text-zinc-500' }
+  }
+}
+
+function ActivityTimeline({ jobs }: { jobs: Job[] }) {
+  // Generate timeline events from all jobs
+  const events = useMemo<TimelineEvent[]>(() => {
+    const allEvents: TimelineEvent[] = []
+
+    for (const job of jobs) {
+      // Add "Created" event
+      allEvents.push({
+        id: `${job.id}-created`,
+        jobId: job.id,
+        jobName: job.inputRequest,
+        state: job.state,
+        action: 'Created',
+        icon: Plus,
+        iconColor: 'text-slate-400',
+        timestamp: job.createdAt,
+      })
+
+      // Add current state event if different from NEW
+      if (job.state !== 'NEW') {
+        const info = getActionInfo(job.state)
+        allEvents.push({
+          id: `${job.id}-${job.state}`,
+          jobId: job.id,
+          jobName: job.inputRequest,
+          state: job.state,
+          action: info.action,
+          icon: info.icon,
+          iconColor: info.iconColor,
+          timestamp: job.completedAt || job.updatedAt,
+        })
+      }
+
+      // Parse execution logs for additional events
+      const logs = parseJSON<Array<{ timestamp: string; event: string; message: string }>>(
+        job.executionLogs,
+        []
+      )
+      for (const log of logs) {
+        if (log.event === 'JOB_CREATED') continue // Already added above
+        const info = getActionInfo(log.event.replace('JOB_', '').replace('_START', '').replace('_END', ''))
+        allEvents.push({
+          id: `${job.id}-log-${log.timestamp}`,
+          jobId: job.id,
+          jobName: job.inputRequest,
+          state: job.state,
+          action: info.action,
+          icon: info.icon,
+          iconColor: info.iconColor,
+          timestamp: log.timestamp,
+        })
+      }
+    }
+
+    // Sort by timestamp descending, take top 10
+    return allEvents
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10)
+  }, [jobs])
+
+  // Group events by time period
+  const groupedEvents = useMemo(() => {
+    const now = new Date()
+    const today = new Date(now)
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    const groups: { label: string; events: TimelineEvent[] }[] = [
+      { label: 'Today', events: [] },
+      { label: 'Yesterday', events: [] },
+      { label: 'Earlier', events: [] },
+    ]
+
+    for (const event of events) {
+      const eventDate = new Date(event.timestamp)
+      if (eventDate >= today) {
+        groups[0].events.push(event)
+      } else if (eventDate >= yesterday) {
+        groups[1].events.push(event)
+      } else {
+        groups[2].events.push(event)
+      }
+    }
+
+    return groups.filter(g => g.events.length > 0)
+  }, [events])
+
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-[10px] text-zinc-700">No recent activity</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-h-80 overflow-y-auto pr-1">
+      {groupedEvents.map((group) => (
+        <div key={group.label} className="mb-3 last:mb-0">
+          <span className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase block mb-1.5 sticky top-0 bg-zinc-900/80 backdrop-blur-sm py-0.5 z-10">
+            {group.label}
+          </span>
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            transition={staggerTransition}
+            className="space-y-1"
+          >
+            {group.events.map((event) => {
+              const IconComp = event.icon
+              return (
+                <motion.div
+                  key={event.id}
+                  variants={staggerChild}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-800/30 transition-colors"
+                >
+                  <div className={`shrink-0 ${event.iconColor}`}>
+                    <IconComp className="w-3 h-3" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[10px] text-zinc-300 truncate flex-1">
+                        {event.jobName.slice(0, 50)}
+                      </p>
+                      <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${
+                        STATE_COLORS[event.state]?.bg || 'bg-zinc-500/20'
+                      } ${
+                        STATE_COLORS[event.state]?.text || 'text-zinc-400'
+                      }`}>
+                        {event.action}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[8px] text-zinc-600 font-mono shrink-0">
+                    {timeAgo(event.timestamp)}
+                  </span>
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -566,6 +755,25 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
           </span>
         </div>
         <Sparkline data={stats.recentActivity} width={400} height={50} />
+      </motion.div>
+
+      {/* Recent Activity Timeline */}
+      <motion.div
+        variants={staggerChild}
+        className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 mt-3"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3 h-3 text-zinc-600" />
+            <span className="text-[9px] font-mono text-zinc-500 tracking-widest uppercase">
+              Recent Activity
+            </span>
+          </div>
+          <span className="text-[9px] font-mono text-zinc-600">
+            Last 10 events
+          </span>
+        </div>
+        <ActivityTimeline jobs={jobs} />
       </motion.div>
     </motion.div>
   )

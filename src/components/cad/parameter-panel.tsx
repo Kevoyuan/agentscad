@@ -168,7 +168,7 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
               key={group}
               variants={staggerChild}
               transition={staggerTransition}
-              className={`rounded-lg border border-zinc-800/40 bg-zinc-900/20 p-3 ${groupIdx > 0 ? 'border-t-violet-500/10' : ''}`}
+              className={`rounded-lg border border-zinc-800/40 bg-zinc-900/20 p-3 depth-overlay ${groupIdx > 0 ? 'border-t-violet-500/10' : ''}`}
             >
               <div className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-3 px-1 flex items-center gap-1.5">
                 <div className="w-1 h-1 rounded-full bg-violet-500/50" />

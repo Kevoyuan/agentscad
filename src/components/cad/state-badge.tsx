@@ -59,7 +59,7 @@ export function StateBadge({ state, size = 'sm', timestamp }: { state: string; s
       <TooltipTrigger asChild>
         <motion.span
           key={state}
-          className={`inline-flex items-center gap-1.5 rounded-md font-mono relative overflow-hidden ${size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} ${gradientClass} ${info.text} ${info.border} border ${isFailed ? 'badge-shake' : ''} ${isActive ? 'badge-breathe' : ''} ${isDelivered ? 'badge-sparkle' : ''}`}
+          className={`inline-flex items-center gap-1.5 rounded-md font-mono relative overflow-hidden badge-hover-shift ${size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} ${gradientClass} ${info.text} ${info.border} border ${isFailed ? 'badge-shake' : ''} ${isActive ? 'badge-breathe' : ''} ${isDelivered ? 'badge-sparkle' : ''}`}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}

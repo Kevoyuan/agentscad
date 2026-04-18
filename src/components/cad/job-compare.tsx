@@ -260,6 +260,14 @@ export function JobCompare({ jobs }: JobCompareProps) {
     { key: 'scad', label: 'SCAD' },
   ]
 
+  // State color map for compare borders
+  const borderColorMap: Record<string, string> = {
+    NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
+    VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
+    REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
+    RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
+  }
+
   return (
     <motion.div
       className="w-full"
@@ -282,7 +290,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
       {/* Job selectors */}
       <div className="grid grid-cols-[1fr_20px_1fr] gap-2 mb-4 items-center">
         <Select value={leftId} onValueChange={setLeftId}>
-          <SelectTrigger className="h-8 bg-zinc-900/60 border-zinc-800/60 text-zinc-300 text-xs">
+          <SelectTrigger className="h-8 bg-zinc-900/60 border-zinc-800/60 text-zinc-300 text-xs compare-border-left" style={{ borderLeftColor: leftJob ? (borderColorMap[leftJob.state] || '#71717a') : 'transparent' }}>
             <SelectValue placeholder="Select job A..." />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800">
@@ -301,11 +309,11 @@ export function JobCompare({ jobs }: JobCompareProps) {
         </Select>
 
         <div className="flex items-center justify-center">
-          <span className="text-zinc-700">vs</span>
+          <span className="text-[9px] font-mono font-bold text-violet-400 bg-violet-500/15 rounded-full w-7 h-7 flex items-center justify-center vs-badge-pulse border border-violet-500/20">VS</span>
         </div>
 
         <Select value={rightId} onValueChange={setRightId}>
-          <SelectTrigger className="h-8 bg-zinc-900/60 border-zinc-800/60 text-zinc-300 text-xs">
+          <SelectTrigger className="h-8 bg-zinc-900/60 border-zinc-800/60 text-zinc-300 text-xs compare-border-left" style={{ borderLeftColor: rightJob ? (borderColorMap[rightJob.state] || '#71717a') : 'transparent' }}>
             <SelectValue placeholder="Select job B..." />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800">
@@ -363,7 +371,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25 }}
-            className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden"
+            className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden glass-panel"
           >
             {/* Column headers */}
             <div className="grid grid-cols-[1fr_100px_20px_100px] items-center gap-1 px-2 py-1.5 bg-zinc-800/30 border-b border-zinc-800/60">

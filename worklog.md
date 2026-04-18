@@ -4,7 +4,128 @@
 
 The project is a **fully functional CAD Agent Dashboard** built with Next.js 16, implementing an engineering control room aesthetic for creating, processing, and managing CAD jobs through a multi-agent pipeline.
 
-**Status**: Stable, all features working, streaming AI chat, SCAD download, job templates, enhanced footer. Version 0.5.
+**Status**: Stable, all features working. Version 0.6. Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls.
+
+---
+
+## Session 6: Case Memory + Drag-Drop + Activity Timeline + Glassmorphism + Depth System
+
+### Task ID: 6-a
+**Agent**: Fullstack Dev Agent
+**Task**: Implement Case Memory, Drag-and-Drop Priority Reordering, and Activity Timeline
+
+#### Work Log:
+
+1. ✅ **Case Memory - Suggest Similar Past Jobs**:
+   - Created API route `src/app/api/jobs/similar/route.ts` - GET endpoint with keyword search on DELIVERED jobs
+   - Created component `src/components/cad/case-memory.tsx` - Debounced 300ms search, animated suggestion cards
+   - Integrated into New Job dialog in `src/app/page.tsx` - Shows below textarea when typing
+   - Shows PartFamilyIcon, truncated request, DELIVERED badge, and "Use" button
+   - Uses AbortController for search cancellation
+
+2. ✅ **Drag-and-Drop Priority Reordering**:
+   - Created API route `src/app/api/jobs/[id]/priority/route.ts` - PATCH endpoint for priority updates (1-10)
+   - Added `updatePriority(id, priority)` to `src/components/cad/api.ts`
+   - Created `SortableJobCard` component using @dnd-kit/sortable's `useSortable` hook
+   - Added GripVertical drag handle icon on each card
+   - DragOverlayCard with glow effect and scale during drag
+   - DndContext + SortableContext with `verticalListSortingStrategy`, PointerSensor (5px activation)
+   - `handleDragEnd` recalculates priorities from position with optimistic updates
+
+3. ✅ **Activity Timeline in Stats Dashboard**:
+   - Created `ActivityTimeline` component inside `src/components/cad/stats-dashboard.tsx`
+   - Groups events by Today/Yesterday/Earlier with sticky headers
+   - Each event: color-coded icon, truncated job name, state badge, time ago
+   - Uses staggerContainer + staggerChild animations
+   - Scrollable with max-h-80, showing last 10 events
+
+#### New Files Created:
+- `src/app/api/jobs/similar/route.ts` - Case Memory search endpoint
+- `src/app/api/jobs/[id]/priority/route.ts` - Priority update endpoint
+- `src/components/cad/case-memory.tsx` - Case Memory suggestion panel
+
+#### Files Modified:
+- `src/app/page.tsx` - Drag-drop DndContext, Case Memory integration, SortableJobCard
+- `src/components/cad/api.ts` - Added updatePriority()
+- `src/components/cad/stats-dashboard.tsx` - Added ActivityTimeline component
+
+#### Lint Status: ✅ PASS (0 errors)
+
+---
+
+### Task ID: 6-b
+**Agent**: Frontend Styling Expert
+**Task**: Advanced styling - glassmorphism, depth effects, micro-interactions, enhanced visual fidelity
+
+#### Work Log:
+
+1. ✅ **Glassmorphism Effect**: Added `.glass-panel` + `.glass-hover-sweep` CSS classes with frosted glass and reflection sweep
+
+2. ✅ **Z-Depth System**: Added `.depth-0` through `.depth-3` with escalating shadows/borders for visual layering
+
+3. ✅ **Button Ripple Effect**: Added `.btn-ripple` CSS-only radial gradient animation on click
+
+4. ✅ **Enhanced Hover States**:
+   - Job cards: Left border glow expansion on hover
+   - Tabs: `.tab-slide-underline` with sliding underline animation
+   - Buttons: `.btn-hover-lift` with upward translate + shadow increase
+   - Badges: `.badge-hover-shift` with background color shift
+
+5. ✅ **Animated Gradient Border**: `.viewer-gradient-border` on 3D viewer cycles violet→cyan→emerald over 8s
+
+6. ✅ **Enhanced Stats Dashboard**:
+   - Stats grid pattern background on cards
+   - Pulse animation on success rate ring
+   - Breathing glow on sparkline
+
+7. ✅ **Enhanced Job Compare**:
+   - Glass-morphism on comparison cards
+   - Pulsing "VS" badge with glow
+   - Color-coded left borders on job selectors
+
+8. ✅ **Enhanced Viewer Controls**:
+   - Glassmorphism on control bar
+   - btn-ripple on controls
+   - `.control-active-glow` for active states
+   - Title with ON/OFF state display
+
+9. ✅ **Enhanced Notes Panel** (full rewrite):
+   - Paper-texture background pattern
+   - Character count with color gradient (emerald→amber→rose)
+   - Auto-save indicator dot (pulsing)
+   - Markdown preview toggle with smooth transition
+   - Simple markdown rendering support
+
+10. ✅ **Global Ambient Effects**:
+    - Mouse-following glow via CSS custom properties (--mouse-x, --mouse-y)
+    - CRT scan line moving vertically every 30s
+    - Focus-dim effect on side panels when 3D viewer is active
+
+#### Files Modified:
+- `src/app/globals.css` - 20+ new CSS classes and keyframes
+- `src/app/page.tsx` - Depth classes, mouse tracking, CRT scanline, focus-dim
+- `src/components/cad/stats-dashboard.tsx` - Grid pattern, ring pulse, sparkline breathe
+- `src/components/cad/job-compare.tsx` - Glass panel, VS badge, color borders
+- `src/components/cad/viewer-controls.tsx` - Glass panel, ripple, active glow, state titles
+- `src/components/cad/notes-panel.tsx` - Full rewrite with paper texture, char count, markdown
+- `src/components/cad/state-badge.tsx` - Badge hover shift
+- `src/components/cad/parameter-panel.tsx` - Depth overlay
+
+#### Lint Status: ✅ PASS (0 errors)
+
+#### Stage Summary:
+- **Case Memory**: Smart job suggestions based on keyword matching with DELIVERED jobs
+- **Drag-and-Drop**: Full @dnd-kit integration for priority reordering with optimistic updates
+- **Activity Timeline**: Recent events grouped by time period in Stats Dashboard
+- **Glassmorphism**: Frosted glass effect on panels and controls
+- **Z-Depth System**: 4-level visual depth with ambient violet glow shadows
+- **Button Ripple**: CSS-only click feedback animation
+- **Enhanced Hovers**: Border glow, tab slide underline, button lift, badge shift
+- **Animated Gradient Border**: 3D viewer cycles colors over 8 seconds
+- **Enhanced Notes**: Paper texture, character count, auto-save dot, markdown toggle
+- **Mouse Glow**: Ambient radial gradient follows cursor position
+- **CRT Scan Line**: Subtle vertical scan line every 30 seconds
+- **Version now v0.6**
 
 ---
 
@@ -328,20 +449,21 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 
 1. **STL/PNG download buttons**: Connected to API but mock backend returns placeholder data
 2. **Parameter re-processing**: DELIVERED jobs can be reprocessed but it restarts the entire pipeline
-3. **Drag-to-reorder priority**: Not yet implemented (dnd-kit installed but not wired)
-4. **WebSocket service keeps dying**: The WS mini-service on port 3003 exits after ~15s in sandbox. Polling fallback works fine.
-5. **Motion Presets unused in some components**: Could be further applied to stats-dashboard, job-compare, etc.
+3. **WebSocket service keeps dying**: The WS mini-service on port 3003 exits after ~15s in sandbox. Polling fallback works fine.
+4. **Drag-and-drop may conflict with click-to-select**: Need to test drag threshold carefully
+5. **Case Memory search is keyword-based**: Could be improved with semantic search or embedding similarity
 
 ## Suggested Next Steps (Priority Order)
 
 1. **Implement incremental re-processing**: Allow editing params on DELIVERED jobs and re-running only affected stages
 2. **Add real OpenSCAD rendering**: Connect to an OpenSCAD binary for actual STL/PNG output
-3. **Add case memory**: Store successful patterns and suggest similar past jobs
-4. **Add image upload**: Support visual references for design generation
-5. **Add drag-to-reorder priority**: Allow reordering jobs by drag-and-drop using @dnd-kit
-6. **Apply motion presets to remaining components**: stats-dashboard, job-compare, notes-panel
-7. **Fix WebSocket service persistence**: Debug why the WS service exits in sandbox environment
-8. **Add real-time collaboration**: Share job state across multiple browser tabs/users
+3. **Add image upload**: Support visual references for design generation
+4. **Improve Case Memory with semantic search**: Use LLM embeddings for better similarity matching
+5. **Add keyboard shortcuts for drag-drop**: Allow Shift+Up/Down to reorder priority
+6. **Add real-time collaboration**: Share job state across multiple browser tabs/users
+7. **Add job dependency/relationship tracking**: Allow jobs to reference or build upon other jobs
+8. **Add SCAD code editor with live parameter binding**: Edit SCAD code directly and see parameter changes reflected
+9. **Add theme customization**: Allow users to choose accent colors beyond violet
 
 ---
 Task ID: 5-b
@@ -372,4 +494,43 @@ Stage Summary:
 - **3D viewer cinematic effects**: vignette, scanlines, corner brackets, watermark
 - **Footer now shows WebSocket connection status** with animated indicator dot
 - **All changes maintain dark engineering aesthetic** with violet/fuchsia/cyan/emerald/amber accent colors
+- **Lint passes with 0 errors**
+
+---
+Task ID: 6-b
+Agent: Frontend Styling Expert
+Task: Advanced styling - glassmorphism, depth effects, micro-interactions
+
+Work Log:
+- Added comprehensive glassmorphism system in globals.css: `.glass-panel` with backdrop-blur-xl, glass highlight top border, `.glass-hover-sweep` reflection animation on hover, `.depth-overlay` for white/[0.03] overlays
+- Created z-depth system with 4 levels (depth-0 through depth-3): each level has different shadow intensity (0 → 24px) and border brightness (2% → 8% white) with violet/rgba ambient glow
+- Implemented CSS-only button ripple effect (`.btn-ripple`): radial-gradient ::after pseudo-element that scales on :active, 600ms ease-out, violet-tinted ripple
+- Enhanced hover states: job card left border expands from 3px→4px and brightens on hover, tab underline slides left→right (`.tab-slide-underline`), buttons lift -0.5px with shadow increase (`.btn-hover-lift`), badges shift brightness (`.badge-hover-shift`)
+- Added animated gradient border for 3D viewer container: cycles violet→cyan→emerald over 8 seconds at 0.3 opacity (`.viewer-gradient-border`)
+- Enhanced stats-dashboard: added grid background pattern (`.stats-grid-pattern`), pulse animation on success rate ring (`.ring-pulse`), breathing glow on sparkline (`.sparkline-breathe`), glass-hover-sweep on stat cards
+- Enhanced job-compare: added glassmorphism on comparison card, pulsing "VS" badge between selectors with glow animation, color-coded left borders on job selectors based on state
+- Enhanced viewer-controls: added glass-panel to control bar, btn-ripple on controls, control-active-glow animation for active states, tooltip with ON/OFF state
+- Enhanced notes-panel: added paper-texture background, character count with color change (emerald→amber→rose as ratio increases), auto-save indicator dot with pulse animation, markdown preview toggle with smooth transition (Eye/EyeOff icons), simple markdown rendering (bold, italic, code, headers, lists)
+- Enhanced state-badge: added badge-hover-shift for subtle background color shift on hover
+- Added global ambient effects: mouse-following radial gradient (CSS custom property --mouse-x/--mouse-y updated by JS), CRT scan line moving vertically every 30s, focus-dim class for panel dimming
+- Applied depth classes to page.tsx: depth-3 to header, depth-2 to job cards, depth-1 to inspector tabs, depth-0 to 3D viewer panel
+- Added btn-ripple and btn-hover-lift to primary buttons in page.tsx
+- Added tab-slide-underline to inspector tab triggers
+- Added viewer-gradient-border to 3D viewer container
+- Added depth-overlay to parameter panel groups
+- Added mouse tracking useEffect in page.tsx for --mouse-x/--mouse-y custom properties
+- Added mouse-glow div for ambient background effect
+- Added crt-scanline class to main page container
+- Removed unused Badge import from notes-panel.tsx
+- Fixed unused `i` variable in viewer-controls.tsx controls.map
+- Lint passes with 0 errors (1 pre-existing warning in api/jobs/similar/route.ts)
+
+Stage Summary:
+- **20+ new CSS animations/classes** added: glass-panel, glass-hover-sweep, depth-overlay, depth-0/1/2/3, btn-ripple, tab-slide-underline, btn-hover-lift, badge-hover-shift, viewer-gradient-border, stats-grid-pattern, ring-pulse, sparkline-breathe, vs-badge-pulse, compare-border-left, control-active-glow, icon-toggle-rotate, paper-texture, autosave-dot, mouse-glow, crt-scanline, focus-dim
+- **8 component files enhanced** with glassmorphism, depth, and micro-interaction effects
+- **Notes panel fully rewritten** with markdown preview, character limit, auto-save indicator
+- **Job compare enhanced** with pulsing VS badge and state-colored borders
+- **3D viewer has animated gradient border** cycling violet→cyan→emerald
+- **Global ambient effects**: mouse-following glow, CRT scan line, focus dim
+- **All changes maintain dark engineering aesthetic** with no indigo/blue colors
 - **Lint passes with 0 errors**

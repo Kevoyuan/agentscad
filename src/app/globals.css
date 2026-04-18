@@ -616,3 +616,311 @@ input:focus, textarea:focus, select:focus {
   background: rgba(139, 92, 246, 0.4);
   pointer-events: none;
 }
+
+/* ─── Session 6: Glassmorphism, Depth, Micro-Interactions ────── */
+
+/* ── Glassmorphism Panel Effect ──────────────────────────────── */
+.glass-panel {
+  background: rgba(10, 8, 24, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.08);
+  position: relative;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glass reflection sweep on hover for panel cards */
+.glass-hover-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-hover-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.03) 55%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  z-index: 2;
+}
+
+.glass-hover-sweep:hover::after {
+  transform: translateX(100%);
+}
+
+/* Depth overlay for panels */
+.depth-overlay {
+  position: relative;
+}
+
+.depth-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Z-Depth System ──────────────────────────────────────────── */
+.depth-0 {
+  box-shadow: 0 0 0 0 transparent;
+  border-color: rgba(255, 255, 255, 0.02);
+}
+
+.depth-1 {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 8px rgba(139, 92, 246, 0.03);
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.depth-2 {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 16px rgba(139, 92, 246, 0.06);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.depth-3 {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(139, 92, 246, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Button Ripple Effect ────────────────────────────────────── */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(139, 92, 246, 0.25) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10);
+  opacity: 0;
+  transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+}
+
+.btn-ripple:active::after {
+  transform: scale(0);
+  opacity: 1;
+  transition: 0s;
+}
+
+/* ── Enhanced Hover States ───────────────────────────────────── */
+
+/* Job card: left border glow expansion on hover */
+.job-card-left-border:hover::before {
+  width: 4px !important;
+  filter: brightness(1.3);
+  transition: width 0.2s ease, filter 0.2s ease;
+}
+
+.job-card-left-border::before {
+  transition: width 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
+}
+
+/* Tab: underline slides from left to right on hover */
+.tab-slide-underline {
+  position: relative;
+}
+
+.tab-slide-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.4), rgba(139, 92, 246, 0.15));
+  transition: width 0.3s ease;
+}
+
+.tab-slide-underline:hover::after {
+  width: 100%;
+}
+
+/* Button: slight upward translate and shadow increase on hover */
+.btn-hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-hover-lift:hover {
+  transform: translateY(-0.5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 8px rgba(139, 92, 246, 0.08);
+}
+
+/* Badge: subtle background color shift on hover */
+.badge-hover-shift {
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.badge-hover-shift:hover {
+  filter: brightness(1.2);
+  background-color: rgba(139, 92, 246, 0.12);
+}
+
+/* ── Animated Gradient Border (3D viewer) ────────────────────── */
+@keyframes viewer-border-shift {
+  0% { border-color: rgba(139, 92, 246, 0.3); }
+  33% { border-color: rgba(34, 211, 238, 0.3); }
+  66% { border-color: rgba(52, 211, 153, 0.3); }
+  100% { border-color: rgba(139, 92, 246, 0.3); }
+}
+
+.viewer-gradient-border {
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  animation: viewer-border-shift 8s ease-in-out infinite;
+}
+
+/* ── Stats Dashboard Enhancements ────────────────────────────── */
+
+/* Grid background pattern for stats cards */
+.stats-grid-pattern {
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Pulse animation for success rate ring */
+@keyframes ring-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(52, 211, 153, 0)); }
+  50% { filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.3)); }
+}
+
+.ring-pulse {
+  animation: ring-pulse 3s ease-in-out infinite;
+}
+
+/* Breathing glow for sparkline */
+@keyframes sparkline-breathe {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(139, 92, 246, 0)); }
+  50% { filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.2)); }
+}
+
+.sparkline-breathe {
+  animation: sparkline-breathe 4s ease-in-out infinite;
+}
+
+/* ── Job Compare: VS Badge ───────────────────────────────────── */
+@keyframes vs-pulse {
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(139, 92, 246, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(139, 92, 246, 0.25); }
+}
+
+.vs-badge-pulse {
+  animation: vs-pulse 2.5s ease-in-out infinite;
+}
+
+/* Color-coded left border for compare cards */
+.compare-border-left {
+  position: relative;
+  border-left: 3px solid transparent;
+}
+
+/* ── Viewer Controls Enhancements ────────────────────────────── */
+
+/* Glow ring around active controls */
+@keyframes control-glow-ring {
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 8px 1px rgba(139, 92, 246, 0.25); }
+}
+
+.control-active-glow {
+  animation: control-glow-ring 2s ease-in-out infinite;
+}
+
+/* Icon rotation on toggle */
+@keyframes icon-rotate-toggle {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.icon-toggle-rotate {
+  animation: icon-rotate-toggle 0.4s ease-out;
+}
+
+/* ── Notes Panel Enhancements ────────────────────────────────── */
+
+/* Paper texture background */
+.paper-texture {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      rgba(139, 92, 246, 0.02) 23px,
+      rgba(139, 92, 246, 0.02) 24px
+    );
+}
+
+/* Auto-save indicator pulse */
+@keyframes autosave-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.autosave-dot {
+  animation: autosave-pulse 1s ease-in-out;
+}
+
+/* ── Global Ambient Effects ──────────────────────────────────── */
+
+/* Mouse-following radial gradient (uses CSS custom properties set by JS) */
+.mouse-glow {
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(139, 92, 246, 0.04),
+    transparent 40%
+  );
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+/* CRT scan line that moves vertically across the page */
+@keyframes crt-scanline {
+  0% { top: -2px; }
+  100% { top: 100%; }
+}
+
+.crt-scanline::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.04), transparent);
+  z-index: 9998;
+  pointer-events: none;
+  animation: crt-scanline 30s linear infinite;
+}
+
+/* Focus mode: dim side panels when 3D viewer is active */
+.focus-dim {
+  transition: opacity 0.4s ease;
+  opacity: 0.7;
+}
+
+.focus-dim:hover {
+  opacity: 1;
+}

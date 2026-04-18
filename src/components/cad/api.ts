@@ -176,6 +176,17 @@ export async function updateNotes(id: string, notes: string): Promise<Job> {
   return data.job
 }
 
+export async function updatePriority(id: string, priority: number): Promise<Job> {
+  const res = await fetch(`/api/jobs/${id}/priority`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ priority }),
+  })
+  if (!res.ok) throw new Error('Failed to update priority')
+  const data = await res.json()
+  return data.job
+}
+
 export async function batchOperation(action: 'delete' | 'cancel' | 'reprocess', jobIds: string[]): Promise<{ results: { success: string[]; failed: string[] } }> {
   const res = await fetch('/api/jobs/batch', {
     method: 'POST',

@@ -4,6 +4,15 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { io, Socket } from 'socket.io-client'
 import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, DragStartEvent, DragEndEvent,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  SortableContext, sortableKeyboardCoordinates,
+  verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable'
+import {
   Box, Play, Trash2, Settings, Clock, CheckCircle2,
   Loader2, Download, Shield, Cpu, Activity, Layers,
   RefreshCw, Search, Plus, ArrowUpDown, RotateCcw, X,
@@ -61,6 +70,8 @@ import { StatsDashboard } from '@/components/cad/stats-dashboard'
 import { JobCompare } from '@/components/cad/job-compare'
 import { PartFamilyIcon } from '@/components/cad/part-family-icon'
 import { JobTemplateCards } from '@/components/cad/job-templates'
+import { CaseMemory } from '@/components/cad/case-memory'
+import { SortableJobCard, DragOverlayCard } from '@/components/cad/sortable-job-card'
 
 // Type & API imports
 import {
@@ -69,7 +80,7 @@ import {
 } from '@/components/cad/types'
 import {
   fetchJobs, createJob, deleteJob, processJob,
-  cancelJob, batchOperation
+  cancelJob, batchOperation, updatePriority
 } from '@/components/cad/api'
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -93,8 +104,74 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('PARAMS')
   const [wsConnected, setWsConnected] = useState(false)
   const [uptimeSeconds, setUptimeSeconds] = useState(0)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const { toast } = useToast()
   const startTimeRef = useRef(Date.now())
+
+  // ── DnD Sensors ─────────────────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px movement required before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string)
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveDragId(null)
+
+    if (!over || active.id === over.id) return
+
+    // Get the current sorted job IDs
+    const sortedJobs = [...jobs].sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const oldIndex = sortedJobs.findIndex(j => j.id === active.id)
+    const newIndex = sortedJobs.findIndex(j => j.id === over.id)
+
+    if (oldIndex === -1 || newIndex === -1) return
+
+    // Reorder the array
+    const reordered = arrayMove(sortedJobs, oldIndex, newIndex)
+
+    // Calculate new priorities: top items get higher priority
+    // We'll assign priorities from the top: max existing priority down to 1
+    const maxPriority = Math.max(...allJobs.map(j => j.priority), 10)
+
+    // Optimistically update local state
+    const updatedJobs = reordered.map((job, idx) => ({
+      ...job,
+      priority: maxPriority - idx,
+    }))
+    setJobs(updatedJobs)
+
+    // Send priority updates for affected jobs
+    try {
+      // Only update jobs whose priority actually changed
+      const updates = updatedJobs.filter((uj) => {
+        const original = sortedJobs.find(j => j.id === uj.id)
+        return original && original.priority !== uj.priority
+      })
+
+      await Promise.all(
+        updates.map(uj => updatePriority(uj.id, uj.priority))
+      )
+    } catch (err) {
+      console.error('Failed to update priorities:', err)
+      toast({ title: 'Priority update failed', variant: 'destructive', duration: 2000 })
+      await loadJobs() // Reload to get correct state
+    }
+  }
+
+  const handleDragCancel = () => {
+    setActiveDragId(null)
+  }
 
   // ── Data Fetching ─────────────────────────────────────────────────────────
 
@@ -433,12 +510,24 @@ export default function Home() {
     return Math.round((succeeded / finished.length) * 100)
   }, [allJobs])
 
+  // ── Mouse tracking for ambient glow effect ─────────────────────────────
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`)
+      document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`)
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-[#080810] text-zinc-100 overflow-hidden noise-overlay">
+    <div className="h-screen flex flex-col bg-[#080810] text-zinc-100 overflow-hidden noise-overlay crt-scanline">
+      {/* Mouse-following ambient glow */}
+      <div className="mouse-glow" />
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 header-gradient-border">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 header-gradient-border depth-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center logo-pulse">
@@ -482,7 +571,7 @@ export default function Home() {
               <TooltipContent><p className="text-xs">Shortcuts (?)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 btn-glow" onClick={() => setShowComposer(true)}>
+          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 btn-glow btn-ripple btn-hover-lift" onClick={() => setShowComposer(true)}>
             <Plus className="w-3 h-3" />New Job
           </Button>
         </div>
@@ -558,102 +647,57 @@ export default function Home() {
                 )}
               </AnimatePresence>
 
-              {/* Jobs List */}
-              <ScrollArea className="flex-1">
-                <div className="p-2 space-y-1">
-                  {jobs.sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(job => {
-                    const info = getStateInfo(job.state)
-                    const isSelected = selectedJob?.id === job.id
-                    const isChecked = selectedIds.has(job.id)
-                    const isCancelable = CANCELABLE_STATES.includes(job.state)
-                    // Map state colors for left border
-                    const borderColorMap: Record<string, string> = {
-                      NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
-                      VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
-                      REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
-                      RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
-                    }
-                    const leftBorderColor = borderColorMap[job.state] || '#71717a'
-                    return (
-                      <motion.div
-                        key={job.id}
-                        layout
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        style={{ '--border-color': leftBorderColor } as React.CSSProperties}
-                        className={`group/card relative rounded-lg p-2.5 cursor-pointer transition-all duration-150 overflow-hidden job-card-left-border ${
-                          isSelected
-                            ? 'bg-violet-600/10 border border-violet-500/30 ring-1 ring-violet-500/20 selected-card-glow card-shimmer'
-                            : 'bg-zinc-900/30 border border-zinc-800/40 hover:bg-[radial-gradient(ellipse_at_top_left,rgba(139,92,246,0.06),transparent_70%)] hover:border-zinc-700/50'
-                        }`}
-                        onClick={() => { setSelectedJob(job); setActiveTab('PARAMS') }}
-                      >
-                        {/* Select checkbox */}
-                        <div className="absolute top-2 left-1 z-10" onClick={e => e.stopPropagation()}>
-                          <button
-                            className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-colors ${
-                              isChecked ? 'bg-violet-500 text-white' : 'bg-zinc-800/60 text-zinc-600 hover:bg-zinc-700/60'
-                            }`}
-                            onClick={() => toggleSelect(job.id)}
-                          >
-                            {isChecked ? <CheckSquare className="w-2.5 h-2.5" /> : <Square className="w-2.5 h-2.5" />}
-                          </button>
+              {/* Jobs List with Drag & Drop */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <ScrollArea className="flex-1">
+                  <SortableContext
+                    items={jobs.sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(j => j.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="p-2 space-y-1">
+                      {jobs.sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(job => (
+                        <SortableJobCard
+                          key={job.id}
+                          job={job}
+                          isSelected={selectedJob?.id === job.id}
+                          isChecked={selectedIds.has(job.id)}
+                          onSelect={(j) => { setSelectedJob(j); setActiveTab('PARAMS') }}
+                          onToggleSelect={toggleSelect}
+                          onProcess={handleProcess}
+                          onCancel={(j) => setCancelTarget(j)}
+                          onDuplicate={handleDuplicate}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                      {jobs.length === 0 && (
+                        <div className="relative flex flex-col items-center justify-center py-12 text-zinc-600 gap-3">
+                          <div className="w-14 h-14 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
+                            <Layers className="w-7 h-7 opacity-20" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm gradient-text-muted">No jobs found</p>
+                            <p className="text-[10px] text-zinc-700 mt-1">Create a new job or adjust filters</p>
+                          </div>
+                          <div className="particle-dot" style={{ top: '20%', left: '30%', animation: 'particle-drift 3s ease-in-out infinite' }} />
+                          <div className="particle-dot" style={{ top: '40%', right: '25%', animation: 'particle-drift 4s ease-in-out infinite 1s' }} />
+                          <div className="particle-dot" style={{ bottom: '30%', left: '40%', animation: 'particle-drift 3.5s ease-in-out infinite 0.5s' }} />
                         </div>
-
-                        <div className="pl-4">
-                          <div className="flex items-start justify-between gap-1.5">
-                            <p className="text-[11px] text-zinc-300 leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-                              <span className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} ${job.priority >= 8 ? 'priority-high-glow' : ''}`}>
-                                P{job.priority}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            <StateBadge state={job.state} />
-                            <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
-                          </div>
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1 group-hover/card:translate-y-0" onClick={e => e.stopPropagation()}>
-                            {job.state === 'NEW' && (
-                              <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-emerald-400 hover:text-emerald-300" onClick={() => handleProcess(job)}>
-                                <Play className="w-2.5 h-2.5" />Process
-                              </Button>
-                            )}
-                            {isCancelable && (
-                              <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-orange-400 hover:text-orange-300" onClick={() => setCancelTarget(job)}>
-                                <Ban className="w-2.5 h-2.5" />Cancel
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-zinc-300" onClick={() => handleDuplicate(job)}>
-                              <Repeat className="w-2.5 h-2.5" />Duplicate
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-rose-400 hover:text-rose-300" onClick={() => handleDelete(job.id)}>
-                              <Trash2 className="w-2.5 h-2.5" />Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                  {jobs.length === 0 && (
-                    <div className="relative flex flex-col items-center justify-center py-12 text-zinc-600 gap-3">
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
-                        <Layers className="w-7 h-7 opacity-20" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm gradient-text-muted">No jobs found</p>
-                        <p className="text-[10px] text-zinc-700 mt-1">Create a new job or adjust filters</p>
-                      </div>
-                      {/* Subtle particle dots */}
-                      <div className="particle-dot" style={{ top: '20%', left: '30%', animation: 'particle-drift 3s ease-in-out infinite' }} />
-                      <div className="particle-dot" style={{ top: '40%', right: '25%', animation: 'particle-drift 4s ease-in-out infinite 1s' }} />
-                      <div className="particle-dot" style={{ bottom: '30%', left: '40%', animation: 'particle-drift 3.5s ease-in-out infinite 0.5s' }} />
+                      )}
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
+                  </SortableContext>
+                </ScrollArea>
+                <DragOverlay>
+                  {activeDragId ? (
+                    <DragOverlayCard job={jobs.find(j => j.id === activeDragId)!} />
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
             </div>
           </ResizablePanel>
 
@@ -661,7 +705,7 @@ export default function Home() {
 
           {/* Center: 3D Viewer */}
           <ResizablePanel defaultSize={40} minSize={25}>
-            <div className="flex flex-col h-full bg-[#080810]">
+            <div className="flex flex-col h-full bg-[#080810] depth-0">
               {selectedJob ? (
                 <>
                   {/* Job Detail Header */}
@@ -679,7 +723,7 @@ export default function Home() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {selectedJob.state === 'NEW' && (
-                        <Button size="sm" className="h-6 text-[9px] gap-1 bg-emerald-600 hover:bg-emerald-500" onClick={() => handleProcess(selectedJob)} disabled={isProcessing}>
+                        <Button size="sm" className="h-6 text-[9px] gap-1 bg-emerald-600 hover:bg-emerald-500 btn-ripple btn-hover-lift" onClick={() => handleProcess(selectedJob)} disabled={isProcessing}>
                           {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                           {isProcessing ? 'Processing...' : 'Process'}
                         </Button>
@@ -719,7 +763,7 @@ export default function Home() {
                     </div>
                   )}
                   {/* 3D Viewer */}
-                  <div className="flex-1">
+                  <div className="flex-1 viewer-gradient-border">
                     <ThreeDViewer job={selectedJob} />
                   </div>
                 </>
@@ -769,7 +813,7 @@ export default function Home() {
                       <TabsTrigger
                         key={tab.key}
                         value={tab.key}
-                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-200"
+                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-200 tab-slide-underline depth-1"
                       >
                         {tab.label}
                       </TabsTrigger>
@@ -863,6 +907,17 @@ export default function Home() {
                 <span className="text-[9px] text-zinc-700">{newJobText.length}/5000</span>
                 <span className="text-[9px] text-zinc-700">⌘+Enter</span>
               </div>
+              {/* Case Memory - Similar Past Jobs */}
+              <CaseMemory
+                searchQuery={newJobText}
+                onSuggestionClick={(job) => {
+                  toast({
+                    title: 'Similar job found',
+                    description: job.inputRequest.slice(0, 60),
+                    duration: 3000,
+                  })
+                }}
+              />
             </div>
             <div>
               <label className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mb-2 block">Priority</label>

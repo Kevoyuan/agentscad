@@ -110,19 +110,19 @@ export function ViewerControls({
       exit="exit"
       transition={fadeInUpTransition}
     >
-      <div className="flex items-center gap-0.5 rounded-xl border border-zinc-700/40 bg-black/40 backdrop-blur-md px-1.5 py-1">
-        {controls.map((ctrl, i) => {
+      <div className="flex items-center gap-0.5 rounded-xl border border-zinc-700/40 bg-black/40 backdrop-blur-xl px-1.5 py-1 glass-panel">
+        {controls.map((ctrl) => {
           const Icon = ctrl.icon
           return (
             <button
               key={ctrl.label}
               onClick={ctrl.onClick}
-              title={ctrl.label}
+              title={`${ctrl.label}${ctrl.active ? ': ON' : ': OFF'}`}
               className={`
-                relative flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
+                relative flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 btn-ripple
                 ${
                   ctrl.active
-                    ? 'bg-violet-500/20 text-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.15)]'
+                    ? 'bg-violet-500/20 text-violet-400 control-active-glow'
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/30'
                 }
               `}
