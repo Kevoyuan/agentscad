@@ -917,10 +917,346 @@ input:focus, textarea:focus, select:focus {
 
 /* Focus mode: dim side panels when 3D viewer is active */
 .focus-dim {
-  transition: opacity 0.4s ease;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0.7;
 }
 
 .focus-dim:hover {
   opacity: 1;
+}
+
+/* ─── Session 7: Advanced Micro-Interactions & Polish ────────── */
+
+/* ── Count-Up Animation for Number Transitions ─────────────── */
+@keyframes count-up {
+  0% { opacity: 0.4; transform: translateY(6px); }
+  60% { opacity: 1; transform: translateY(-1px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.number-highlight {
+  animation: count-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Chat Message Slide Animations ─────────────────────────── */
+@keyframes slide-from-right {
+  0% { opacity: 0; transform: translateX(24px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-from-left {
+  0% { opacity: 0; transform: translateX(-24px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.chat-msg-user {
+  animation: slide-from-right 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.chat-msg-ai {
+  animation: slide-from-left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── Elastic Bounce for Dialog Entrance ────────────────────── */
+@keyframes elastic-bounce {
+  0% { opacity: 0; transform: scale(0.9) translateY(8px); }
+  60% { opacity: 1; transform: scale(1.02) translateY(-1px); }
+  80% { transform: scale(0.99) translateY(0.5px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dialog-elastic-enter {
+  animation: elastic-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Sonar Ring for Online Indicator ───────────────────────── */
+@keyframes sonar-ring {
+  0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+.sonar-ring-dot {
+  position: relative;
+}
+
+.sonar-ring-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  animation: sonar-ring 2.5s ease-out infinite;
+}
+
+/* ── Wave Border Animation for Footer ─────────────────────── */
+@keyframes wave-border {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.footer-wave-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), rgba(217, 70, 239, 0.3), rgba(139, 92, 246, 0.5), transparent);
+  background-size: 200% 100%;
+  animation: wave-border 4s linear infinite;
+}
+
+/* ── Skeleton Pulse Loading State ──────────────────────────── */
+@keyframes skeleton-pulse-anim {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.skeleton-pulse {
+  background: linear-gradient(90deg, rgba(39, 39, 42, 0.3) 25%, rgba(63, 63, 70, 0.3) 50%, rgba(39, 39, 42, 0.3) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite, skeleton-pulse-anim 2s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* ── Gradient Border Hover for Stat Cards ──────────────────── */
+.gradient-border-hover {
+  position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gradient-border-hover::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0), rgba(139, 92, 246, 0), rgba(139, 92, 246, 0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.gradient-border-hover:hover::before {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(217, 70, 239, 0.2), rgba(34, 211, 238, 0.3));
+}
+
+.gradient-border-hover:hover {
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.08);
+}
+
+/* ── Processing Pulse Ring for Job Cards ───────────────────── */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.3); }
+  70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+.processing-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* ── Priority Badge Bounce ─────────────────────────────────── */
+@keyframes priority-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.25); }
+  50% { transform: scale(0.92); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.priority-badge-bounce {
+  animation: priority-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Progress Bar Gradient Shimmer ─────────────────────────── */
+@keyframes progress-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.progress-shimmer [data-slot="progress-indicator"] {
+  background: linear-gradient(90deg, #6d5fc1, #a78bfa, #22d3ee, #a78bfa, #6d5fc1);
+  background-size: 200% 100%;
+  animation: progress-shimmer 1.5s linear infinite;
+}
+
+/* ── Tab Click Feedback ────────────────────────────────────── */
+.tab-click-feedback {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tab-click-feedback:active {
+  transform: scale(0.97);
+}
+
+/* ── Dialog Overlay Radial Fade ────────────────────────────── */
+@keyframes radial-fade-in {
+  0% { opacity: 0; backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+.dialog-overlay-radial {
+  animation: radial-fade-in 0.25s ease-out;
+}
+
+/* ── Close Button Rotate on Hover ──────────────────────────── */
+.close-btn-rotate {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.close-btn-rotate:hover {
+  transform: rotate(90deg);
+}
+
+/* ── Button Press Animation ────────────────────────────────── */
+.btn-press {
+  transition: transform 0.1s ease;
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ── Typing Indicator Wave ─────────────────────────────────── */
+@keyframes typing-wave {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+.typing-wave-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: rgba(139, 92, 246, 0.8);
+}
+
+.typing-wave-dot:nth-child(1) { animation: typing-wave 1.2s ease-in-out infinite 0s; }
+.typing-wave-dot:nth-child(2) { animation: typing-wave 1.2s ease-in-out infinite 0.15s; }
+.typing-wave-dot:nth-child(3) { animation: typing-wave 1.2s ease-in-out infinite 0.3s; }
+
+/* ── Stop Generating Pulse Red ─────────────────────────────── */
+@keyframes stop-btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(244, 63, 94, 0); }
+}
+
+.stop-btn-pulse {
+  animation: stop-btn-pulse 1.5s ease-out infinite;
+}
+
+/* ── Film Grain Overlay for 3D Viewer ─────────────────────── */
+@keyframes film-grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-1%, -1%); }
+  20% { transform: translate(1%, 0%); }
+  30% { transform: translate(-1%, 1%); }
+  40% { transform: translate(1%, -1%); }
+  50% { transform: translate(-1%, 0%); }
+  60% { transform: translate(1%, 1%); }
+  70% { transform: translate(0%, -1%); }
+  80% { transform: translate(-1%, 1%); }
+  90% { transform: translate(1%, 0%); }
+}
+
+.film-grain-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='6' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  animation: film-grain 0.5s steps(4) infinite;
+}
+
+/* ── Viewer Border Breathing ───────────────────────────────── */
+@keyframes viewer-border-breathe {
+  0%, 100% { border-color: rgba(139, 92, 246, 0.25); }
+  50% { border-color: rgba(139, 92, 246, 0.45); }
+}
+
+.viewer-breathing-border {
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  animation: viewer-border-breathe 4s ease-in-out infinite;
+}
+
+/* ── Rotating Dash for Success Rate Ring ───────────────────── */
+@keyframes ring-dash-rotate {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -40; }
+}
+
+.ring-rotating-dash {
+  animation: ring-dash-rotate 8s linear infinite;
+}
+
+/* ── Footer Vertical Separator ─────────────────────────────── */
+.footer-separator {
+  width: 1px;
+  height: 10px;
+  background: rgba(113, 113, 122, 0.3);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ── Job Card Hover Gradient Shift ─────────────────────────── */
+@keyframes card-hover-gradient {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.job-card-hover-gradient {
+  position: relative;
+  overflow: hidden;
+}
+
+.job-card-hover-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.06), transparent);
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.job-card-hover-gradient:hover::before {
+  opacity: 1;
+  animation: card-hover-gradient 1.2s ease-out;
+}
+
+/* ── Code Block Copy Button ────────────────────────────────── */
+.code-copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.15s ease;
+  z-index: 10;
+}
+
+.code-copy-btn:hover {
+  background-color: rgba(139, 92, 246, 0.2);
+}
+
+pre:hover .code-copy-btn {
+  opacity: 1;
+}
+
+/* ── Breadcrumb Fade-In ────────────────────────────────────── */
+@keyframes breadcrumb-fade {
+  0% { opacity: 0; transform: translateX(-4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.breadcrumb-fade-in {
+  animation: breadcrumb-fade 0.3s ease-out;
 }

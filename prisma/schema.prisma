@@ -31,7 +31,10 @@ model Job {
   retryCount      Int      @default(0)
   maxRetries      Int      @default(3)
   notes           String?
+  parentId        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   completedAt     DateTime?
+  parent          Job?     @relation("JobHierarchy", fields: [parentId], references: [id])
+  children        Job[]    @relation("JobHierarchy")
 }

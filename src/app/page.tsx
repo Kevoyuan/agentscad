@@ -18,7 +18,8 @@ import {
   RefreshCw, Search, Plus, ArrowUpDown, RotateCcw, X,
   Keyboard, Sparkles, Hash, AlertCircle, Repeat, Maximize2,
   Ban, CheckSquare, Square, XSquare, StickyNote, BarChart3,
-  GitCompare, Eye, Zap, FileJson, Wifi, WifiOff, Timer
+  GitCompare, Eye, Zap, FileJson, Wifi, WifiOff, Timer, Palette,
+  GitBranch
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +62,9 @@ import { PipelineVisualization } from '@/components/cad/pipeline-visualization'
 import { ParameterPanel, SchemaInfoPanel } from '@/components/cad/parameter-panel'
 import { ValidationPanel } from '@/components/cad/validation-panel'
 import { ScadViewer } from '@/components/cad/scad-viewer'
+import { ScadEditor } from '@/components/cad/scad-editor'
+import { JobDependencies } from '@/components/cad/job-dependencies'
+import { ThemePanel } from '@/components/cad/theme-panel'
 import { ThreeDViewer } from '@/components/cad/three-d-viewer'
 import { TimelinePanel } from '@/components/cad/timeline-panel'
 import { ResearchPanel } from '@/components/cad/research-panel'
@@ -99,12 +103,18 @@ export default function Home() {
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showCompare, setShowCompare] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<Job | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState('PARAMS')
+  const [prevTab, setPrevTab] = useState('PARAMS')
+  const [tabDirection, setTabDirection] = useState(1) // 1 = forward, -1 = back
+  const [prevJobId, setPrevJobId] = useState<string | null>(null)
+  const [jobCountFlash, setJobCountFlash] = useState(false)
   const [wsConnected, setWsConnected] = useState(false)
   const [uptimeSeconds, setUptimeSeconds] = useState(0)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [dependencyCount, setDependencyCount] = useState(0)
   const { toast } = useToast()
   const startTimeRef = useRef(Date.now())
 
@@ -272,6 +282,7 @@ export default function Home() {
         setShowShortcuts(false)
         setShowStats(false)
         setShowCompare(false)
+        setShowSettings(false)
       }
       if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
         const target = e.target as HTMLElement
@@ -450,6 +461,11 @@ export default function Home() {
     return counts
   }, [allJobs])
 
+  // Count total linked jobs (jobs with parentId set)
+  const linkedJobCount = useMemo(() => {
+    return allJobs.filter(j => j.parentId).length
+  }, [allJobs])
+
   // Uptime counter
   useEffect(() => {
     const interval = setInterval(() => {
@@ -479,7 +495,7 @@ export default function Home() {
   const exportAllData = () => {
     const data = {
       exportedAt: new Date().toISOString(),
-      version: '0.5',
+      version: '0.7',
       totalJobs: allJobs.length,
       jobs: allJobs,
     }
@@ -509,6 +525,17 @@ export default function Home() {
     const succeeded = finished.filter(j => j.state === 'DELIVERED').length
     return Math.round((succeeded / finished.length) * 100)
   }, [allJobs])
+
+  // ── Job count flash effect ────────────────────────────────────────────────
+  const prevJobCountRef = useRef(allJobs.length)
+  useEffect(() => {
+    if (allJobs.length !== prevJobCountRef.current) {
+      prevJobCountRef.current = allJobs.length
+      setJobCountFlash(true)
+      const timer = setTimeout(() => setJobCountFlash(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [allJobs.length])
 
   // ── Mouse tracking for ambient glow effect ─────────────────────────────
   useEffect(() => {
@@ -559,6 +586,16 @@ export default function Home() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Compare Jobs</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => setShowSettings(true)}>
+                  <Palette className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p className="text-xs">Theme & Settings</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
@@ -758,7 +795,7 @@ export default function Home() {
                   </div>
                   {/* Progress Bar */}
                   {isProcessing && (
-                    <div className="px-3 py-1">
+                    <div className="px-3 py-1 progress-shimmer">
                       <Progress value={getPipelineProgress(selectedJob.state)} className="h-1" />
                     </div>
                   )}
@@ -793,9 +830,16 @@ export default function Home() {
           <ResizablePanel defaultSize={38} minSize={25} maxSize={50}>
             <div className="flex flex-col h-full bg-[#0a0818]">
               {selectedJob ? (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-                  {/* Inspector Breadcrumb */}
-                  <div className="inspector-breadcrumb px-3 py-1 flex items-center gap-1.5 text-[9px] font-mono shrink-0">
+                <Tabs value={activeTab} onValueChange={(v) => {
+                  const tabOrder = ['PARAMS', 'RESEARCH', 'VALIDATE', 'SCAD', 'LOG', 'NOTES', 'DEPS', 'AI']
+                  const newIdx = tabOrder.indexOf(v)
+                  const oldIdx = tabOrder.indexOf(activeTab)
+                  setTabDirection(newIdx > oldIdx ? 1 : -1)
+                  setPrevTab(activeTab)
+                  setActiveTab(v)
+                }} className="flex flex-col h-full">
+                  {/* Inspector Breadcrumb with fade-in on job change */}
+                  <div key={selectedJob.id} className="inspector-breadcrumb px-3 py-1 flex items-center gap-1.5 text-[9px] font-mono shrink-0 breadcrumb-fade-in">
                     <span className="text-zinc-600">{selectedJob.id.slice(0, 8)}</span>
                     <span className="text-zinc-700">›</span>
                     <span className="text-violet-400">{activeTab}</span>
@@ -808,20 +852,21 @@ export default function Home() {
                       { key: 'SCAD', label: 'SCAD', icon: Activity },
                       { key: 'LOG', label: 'LOG', icon: Clock },
                       { key: 'NOTES', label: 'NOTES', icon: StickyNote },
+                      { key: 'DEPS', label: 'DEPS', icon: GitBranch },
                       { key: 'AI', label: 'AI', icon: Zap },
                     ].map(tab => (
                       <TabsTrigger
                         key={tab.key}
                         value={tab.key}
-                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-200 tab-slide-underline depth-1"
+                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-200 tab-slide-underline depth-1 tab-click-feedback"
                       >
                         {tab.label}
                       </TabsTrigger>
                     ))}
                   </TabsList>
                   <div className="flex-1 overflow-hidden">
-                    <AnimatePresence mode="wait">
-                      <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }} className="h-full">
+                    <AnimatePresence mode="wait" custom={tabDirection}>
+                      <motion.div key={activeTab} custom={tabDirection} initial={{ opacity: 0, x: tabDirection * 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: tabDirection * -20 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="h-full">
                         <TabsContent value="PARAMS" className="h-full m-0 data-[state=inactive]:hidden">
                           <ParameterPanel job={selectedJob} onUpdate={loadJobs} />
                         </TabsContent>
@@ -832,13 +877,16 @@ export default function Home() {
                           <ValidationPanel job={selectedJob} />
                         </TabsContent>
                         <TabsContent value="SCAD" className="h-full m-0 data-[state=inactive]:hidden">
-                          <ScadViewer code={selectedJob.scadSource} />
+                          <ScadEditor job={selectedJob} onUpdate={loadJobs} />
                         </TabsContent>
                         <TabsContent value="LOG" className="h-full m-0 data-[state=inactive]:hidden">
                           <TimelinePanel job={selectedJob} />
                         </TabsContent>
                         <TabsContent value="NOTES" className="h-full m-0 data-[state=inactive]:hidden">
                           <NotesPanel job={selectedJob} onUpdate={loadJobs} />
+                        </TabsContent>
+                        <TabsContent value="DEPS" className="h-full m-0 data-[state=inactive]:hidden">
+                          <JobDependencies job={selectedJob} allJobs={allJobs} onUpdate={loadJobs} onNavigateToJob={(jobId) => { const found = allJobs.find(j => j.id === jobId); if (found) { setSelectedJob(found); setActiveTab('PARAMS') } }} />
                         </TabsContent>
                         <TabsContent value="AI" className="h-full m-0 data-[state=inactive]:hidden">
                           <ChatPanel key={selectedJob.id} job={selectedJob} />
@@ -864,18 +912,26 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="flex items-center justify-between px-4 py-1 border-t border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 footer-gradient-border footer-pattern">
+      <footer className="relative flex items-center justify-between px-4 py-1 border-t border-zinc-800/60 bg-[#0a0818]/80 backdrop-blur-md shrink-0 footer-wave-border footer-pattern">
         <div className="flex items-center gap-4 text-[9px] font-mono text-zinc-600">
-          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 online-pulse-dot" /><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 sonar-ring-dot" /><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
+          <span className="footer-separator" />
           <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-pulse-dot' : 'bg-rose-500'}`} />WS: {wsConnected ? 'Connected' : 'Disconnected'}</span>
-          <span>Jobs: {allJobs.length}</span>
+          <span className="footer-separator" />
+          <span className={jobCountFlash ? 'number-highlight' : ''}>Jobs: {allJobs.length}</span>
+          <span className="footer-separator" />
           <span>Delivered: {stateCounts['DELIVERED'] || 0}</span>
+          <span className="footer-separator" />
           <span>Failed: {(stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0)}</span>
+          <span className="footer-separator" />
+          <span className="flex items-center gap-1"><GitBranch className="w-2.5 h-2.5" />Deps: {linkedJobCount}</span>
         </div>
         <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-700">
           <span className="flex items-center gap-1"><Timer className="w-2.5 h-2.5" />{formatUptime(uptime)}</span>
+          <span className="footer-separator" />
           <span className="flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" />{successRate}%</span>
-          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.5</span>
+          <span className="footer-separator" />
+          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.7</span>
           <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-zinc-600 hover:text-zinc-400" onClick={exportAllData}>
             <FileJson className="w-2.5 h-2.5" />Export
           </Button>
@@ -886,7 +942,7 @@ export default function Home() {
 
       {/* Job Composer */}
       <Dialog open={showComposer} onOpenChange={setShowComposer}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-lg backdrop-blur-xl dialog-enter">
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-lg backdrop-blur-xl dialog-elastic-enter">
           <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <Plus className="w-4 h-4 text-violet-400" />New CAD Job
@@ -940,7 +996,7 @@ export default function Home() {
               </div>
             </div>
             <Button
-              className="w-full bg-violet-600 hover:bg-violet-500"
+              className="w-full bg-violet-600 hover:bg-violet-500 btn-press"
               onClick={handleCreate}
               disabled={!newJobText.trim() || isCreating}
             >
@@ -953,7 +1009,7 @@ export default function Home() {
 
       {/* Cancel Confirmation */}
       <AlertDialog open={!!cancelTarget} onOpenChange={() => setCancelTarget(null)}>
-        <AlertDialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl dialog-enter">
+        <AlertDialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 backdrop-blur-xl dialog-elastic-enter">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">Cancel Job?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-zinc-500">
@@ -971,7 +1027,7 @@ export default function Home() {
 
       {/* Keyboard Shortcuts */}
       <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-xs backdrop-blur-xl dialog-enter">
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-xs backdrop-blur-xl dialog-elastic-enter">
           <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <Keyboard className="w-4 h-4 text-violet-400" />Shortcuts
@@ -996,7 +1052,7 @@ export default function Home() {
 
       {/* Stats Dashboard */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-2xl backdrop-blur-xl dialog-enter">
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-2xl backdrop-blur-xl dialog-elastic-enter">
           <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-violet-400" />Stats Dashboard
@@ -1008,13 +1064,26 @@ export default function Home() {
 
       {/* Job Compare */}
       <Dialog open={showCompare} onOpenChange={setShowCompare}>
-        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-4xl max-h-[80vh] backdrop-blur-xl dialog-enter">
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-4xl max-h-[80vh] backdrop-blur-xl dialog-elastic-enter">
           <DialogHeader className="dialog-header-glow">
             <DialogTitle className="text-sm flex items-center gap-2">
               <GitCompare className="w-4 h-4 text-violet-400" />Compare Jobs
             </DialogTitle>
           </DialogHeader>
           <JobCompare jobs={allJobs} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Theme & Settings */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="bg-[#0c0a14]/95 border-zinc-800/60 max-w-sm backdrop-blur-xl dialog-elastic-enter">
+          <DialogHeader className="dialog-header-glow">
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <Palette className="w-4 h-4 text-violet-400" />Theme & Settings
+            </DialogTitle>
+          </DialogHeader>
+          <div className="gradient-divider" />
+          <ThemePanel />
         </DialogContent>
       </Dialog>
     </div>

@@ -4,9 +4,97 @@
 
 The project is a **fully functional CAD Agent Dashboard** built with Next.js 16, implementing an engineering control room aesthetic for creating, processing, and managing CAD jobs through a multi-agent pipeline.
 
-**Status**: Stable, all features working. Version 0.6. Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls.
+**Status**: Stable, all features working. Version 0.7. Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls, Job Dependencies, SCAD Editor, Theme Customization.
 
 ---
+
+## Session 7: Job Dependencies + SCAD Editor + Theme Panel + Footer Enhancement
+
+### Task ID: 2-a
+**Agent**: Fullstack Dev Agent
+**Task**: Implement Job Dependency System, SCAD Code Editor, Theme Customization Panel, and Footer Enhancement
+
+#### Work Log:
+
+1. ✅ **Job Dependency System**:
+   - Updated `prisma/schema.prisma`: Added `parentId String?` with `parent Job? @relation("JobHierarchy", fields: [parentId], references: [id])` and `children Job[] @relation("JobHierarchy")`
+   - Ran `bun run db:push` to apply schema changes
+   - Updated `Job` interface in `src/components/cad/types.tsx` to include `parentId: string | null`
+   - Created API route `src/app/api/jobs/[id]/link/route.ts` - PATCH endpoint to set/unset parentId, with circular dependency prevention
+   - Added `linkJob(id, parentId)` and `unlinkJob(id)` to `src/components/cad/api.ts`
+   - Updated `src/app/api/jobs/route.ts` GET endpoint to include `parent` and `children` relations in the query
+   - Created `src/components/cad/job-dependencies.tsx` component:
+     - Shows parent job with clickable link and "Unlink" button
+     - Lists child jobs with clickable links
+     - "Link to parent" search dropdown with all available parent candidates (excludes self and descendants)
+     - Tree visualization with connecting lines showing hierarchy
+     - Uses motion.div for smooth animations
+     - Empty state with GitBranch icon and guidance text
+   - Added "DEPS" tab to inspector panel (between NOTES and AI)
+   - Added `linkedJobCount` computed value and "Deps:" count in footer with GitBranch icon
+
+2. ✅ **SCAD Code Editor with Live Editing**:
+   - Created `src/components/cad/scad-editor.tsx` component:
+     - Full-featured code editor with monospace font and line numbers
+     - Syntax highlighting using the existing `highlightScad()` function from scad-viewer.tsx (duplicated to avoid import issues)
+     - Toggle between view mode and edit mode
+     - "Edit" button to enter edit mode, "Save" button to persist changes, "Reset" to discard
+     - Diff indicator: changed lines shown with amber background color in the right gutter
+     - Line numbers show amber color for changed lines
+     - Character count and line count in footer
+     - Auto-indent on Enter key (matches current line indentation, extra indent after `{` or `(`)
+     - Tab key inserts 4 spaces
+     - ⌘S / Ctrl+S keyboard shortcut to save
+     - Escape to exit edit mode
+     - "EDITING" indicator with amber color when in edit mode
+     - "N changed" line counter in footer during editing
+   - Created API route `src/app/api/jobs/[id]/scad/route.ts` - PATCH endpoint to update scadSource field
+   - Added `updateScadSource(id, scadSource)` to `src/components/cad/api.ts`
+   - Replaced ScadViewer with ScadEditor in the SCAD tab content in page.tsx
+
+3. ✅ **Theme Customization Panel**:
+   - Created `src/components/cad/theme-panel.tsx` component:
+     - Accent color picker: 6 preset colors (Violet, Cyan, Emerald, Amber, Rose, Orange) with ring indicator and animated checkmark
+     - Font size selector: Small (11px), Medium (13px), Large (15px) with live preview
+     - UI Density selector: Compact, Normal, Comfortable with visual gap indicators
+     - Animations toggle: On/Off with spring-animated toggle switch
+     - Reset to defaults button
+     - All settings persisted in localStorage
+     - Applies CSS custom properties (--accent-hue, --accent-color, etc.) to document root
+     - Respects `prefers-reduced-motion` when animations are disabled
+   - Added `showSettings` state to page.tsx
+   - Added Palette/gear button in header (between Compare and Keyboard shortcuts)
+   - ThemePanel shown in a Dialog when settings is clicked
+   - Escape key closes the settings dialog
+
+4. ✅ **Version Update + Footer Enhancement**:
+   - Updated version from "v0.5" to "v0.7" in footer display
+   - Updated export version from '0.5' to '0.7'
+   - Added "Deps: N" count in footer showing total linked jobs (jobs with parentId set)
+   - GitBranch icon next to deps count
+
+#### New Files Created:
+- `src/app/api/jobs/[id]/link/route.ts` - Job link/unlink endpoint with circular dependency check
+- `src/app/api/jobs/[id]/scad/route.ts` - SCAD source update endpoint
+- `src/components/cad/job-dependencies.tsx` - Job dependency tree visualization component
+- `src/components/cad/scad-editor.tsx` - Full SCAD code editor with live editing
+- `src/components/cad/theme-panel.tsx` - Theme customization panel component
+
+#### Files Modified:
+- `prisma/schema.prisma` - Added parentId, parent/children relations
+- `src/components/cad/types.tsx` - Added parentId to Job interface
+- `src/components/cad/api.ts` - Added linkJob(), unlinkJob(), updateScadSource()
+- `src/app/api/jobs/route.ts` - Added parent/children includes to GET query
+- `src/app/page.tsx` - DEPS tab, ScadEditor, ThemePanel dialog, settings button, footer deps count, version update
+
+#### Lint Status: ✅ PASS (0 errors)
+
+#### Stage Summary:
+- **Job Dependency System**: Parent/child relationships with tree visualization, circular dependency prevention, clickable navigation
+- **SCAD Code Editor**: Full-featured editor with syntax highlighting, diff indicators, auto-indent, keyboard shortcuts
+- **Theme Customization**: 6 accent colors, font size, UI density, animations toggle, localStorage persistence
+- **Footer Enhancement**: v0.7, dependencies count with GitBranch icon
+- **Version bumped to v0.7**
 
 ## Session 6: Case Memory + Drag-Drop + Activity Timeline + Glassmorphism + Depth System
 
@@ -452,6 +540,7 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 3. **WebSocket service keeps dying**: The WS mini-service on port 3003 exits after ~15s in sandbox. Polling fallback works fine.
 4. **Drag-and-drop may conflict with click-to-select**: Need to test drag threshold carefully
 5. **Case Memory search is keyword-based**: Could be improved with semantic search or embedding similarity
+6. **SCAD Editor syntax highlighting duplicated**: The highlightScad function was duplicated from scad-viewer.tsx instead of shared - should be refactored to a shared utility
 
 ## Suggested Next Steps (Priority Order)
 
@@ -461,9 +550,13 @@ The project is a **fully functional CAD Agent Dashboard** built with Next.js 16,
 4. **Improve Case Memory with semantic search**: Use LLM embeddings for better similarity matching
 5. **Add keyboard shortcuts for drag-drop**: Allow Shift+Up/Down to reorder priority
 6. **Add real-time collaboration**: Share job state across multiple browser tabs/users
-7. **Add job dependency/relationship tracking**: Allow jobs to reference or build upon other jobs
-8. **Add SCAD code editor with live parameter binding**: Edit SCAD code directly and see parameter changes reflected
-9. **Add theme customization**: Allow users to choose accent colors beyond violet
+7. ~~**Add job dependency/relationship tracking**: DONE in v0.7~~
+8. ~~**Add SCAD code editor with live parameter binding**: DONE in v0.7~~
+9. ~~**Add theme customization**: DONE in v0.7~~
+10. **Add image upload for visual references**: Allow users to attach reference images to jobs
+11. **Add job versioning/history**: Track parameter and SCAD changes over time with diff view
+12. **Add batch parameter editing**: Edit parameters across multiple selected jobs at once
+13. **Add SCAD code templates library**: Community templates for common CAD operations
 
 ---
 Task ID: 5-b
@@ -532,5 +625,113 @@ Stage Summary:
 - **Job compare enhanced** with pulsing VS badge and state-colored borders
 - **3D viewer has animated gradient border** cycling violet→cyan→emerald
 - **Global ambient effects**: mouse-following glow, CRT scan line, focus dim
+- **All changes maintain dark engineering aesthetic** with no indigo/blue colors
+- **Lint passes with 0 errors**
+
+---
+
+Task ID: 2-b
+Agent: Frontend Styling Expert
+Task: Advanced micro-interactions, polish, and detail enhancements
+
+Work Log:
+
+1. ✅ **Enhanced Job Card Hover Effects** (`src/components/cad/sortable-job-card.tsx`):
+   - Added `job-card-hover-gradient` class with left-to-right violet tint gradient shift on hover
+   - Added `whileHover={{ scale: 1.01 }}` with smooth transition for subtle scale effect
+   - Added `processing-pulse-ring` CSS animation for cards in processing states (SCAD_GENERATED, RENDERED, VALIDATED, etc.)
+   - Added `priority-badge-bounce` animation triggered via key-based re-render when priority changes
+   - Changed Duplicate button hover to emerald (`hover:text-emerald-300 hover:bg-emerald-500/10`)
+   - Changed Delete button hover to rose (`hover:text-rose-300 hover:bg-rose-500/10`)
+
+2. ✅ **Enhanced Inspector Panel Transitions** (`src/app/page.tsx`):
+   - Tab switching now uses horizontal slide transition (left→right forward, right→left backward) based on tab order index
+   - Breadcrumb has `breadcrumb-fade-in` animation when job changes (keyed on `selectedJob.id`)
+   - Tabs have `tab-click-feedback` class with scale(0.97) on active press
+   - Progress bar has `progress-shimmer` class with animated gradient while processing
+
+3. ✅ **Enhanced 3D Viewer Polish** (`src/components/cad/three-d-viewer.tsx`):
+   - Added `viewer-breathing-border` class with opacity oscillation (0.25→0.45) over 4s
+   - Added skeleton loading placeholder (`skeleton-pulse` div) when viewer is initializing
+   - Corner brackets now track mouse position with subtle parallax effect (3px offset based on cursor position)
+   - Added `film-grain-overlay` with 2% opacity animated noise texture
+
+4. ✅ **Enhanced Dialog Animations** (`src/app/globals.css` + `src/app/page.tsx`):
+   - All dialogs now use `dialog-elastic-enter` with scale(0.9) → scale(1.02) → scale(1.0) bounce
+   - Added `dialog-overlay-radial` CSS class for radial fade-in overlay
+   - Added `close-btn-rotate` class with 90deg rotation on hover
+   - Added `btn-press` class with scale(0.97) on active click for Create/Save buttons
+
+5. ✅ **Enhanced Stats Dashboard Polish** (`src/components/cad/stats-dashboard.tsx`):
+   - Added `gradient-border-hover` to stat cards with animated gradient border on hover
+   - Numbers already use `AnimatedCounter` component with smooth count-up transitions
+   - Success rate ring background now has `ring-rotating-dash` rotating dash pattern
+   - Activity timeline items use staggered entry with 50ms delay between each item
+
+6. ✅ **Enhanced Chat Panel Polish** (`src/components/cad/chat-panel.tsx`):
+   - User messages use `chat-msg-user` class with slide-from-right animation
+   - AI messages use `chat-msg-ai` class with slide-from-left animation
+   - Typing indicator uses `typing-wave-dot` class with staggered wave bounce animation
+   - Stop generating button has `stop-btn-pulse` class with red pulsing glow
+   - Code blocks have copy button (`CodeCopyButton`) that shows checkmark on click
+   - Send button has `btn-press` click animation
+
+7. ✅ **Enhanced Footer Polish** (`src/app/page.tsx`):
+   - Footer uses `footer-wave-border` with animated left-to-right gradient wave
+   - Online indicator dot uses `sonar-ring-dot` with expanding ring animation
+   - Job count has `number-highlight` flash animation when count changes (tracked via useEffect)
+   - Added `footer-separator` vertical separators between footer items
+
+8. ✅ **Global Enhancements** (`src/app/globals.css`):
+   - Added `@keyframes count-up` with bounce easing for number transitions
+   - Added `@keyframes slide-from-right` and `slide-from-left` for chat messages
+   - Added `@keyframes elastic-bounce` for dialog entrance with overshoot
+   - Added `@keyframes sonar-ring` for online indicator expanding ring
+   - Added `@keyframes wave-border` for footer gradient animation
+   - Added `.skeleton-pulse` class combining shimmer and pulse for loading states
+   - Added `.number-highlight` class with count-up animation
+   - Added `.gradient-border-hover` class with animated gradient border for stat cards
+   - Updated `.focus-dim` transition to 0.6s cubic-bezier(0.4, 0, 0.2, 1)
+   - Added `@keyframes pulse-ring` for processing card ring animation
+   - Added `@keyframes priority-bounce` for badge bounce on priority change
+   - Added `@keyframes progress-shimmer` for progress bar gradient shimmer
+   - Added `.tab-click-feedback` with scale(0.97) on active press
+   - Added `@keyframes radial-fade-in` for dialog overlay
+   - Added `.close-btn-rotate` with 90deg hover rotation
+   - Added `.btn-press` with scale(0.97) click animation
+   - Added `@keyframes typing-wave` for chat indicator dots
+   - Added `.stop-btn-pulse` for red pulsing stop button
+   - Added `@keyframes film-grain` for 3D viewer grain overlay at 2%
+   - Added `@keyframes viewer-border-breathe` for 3D viewer border
+   - Added `@keyframes ring-dash-rotate` for success rate ring dash
+   - Added `.footer-separator` for footer vertical dividers
+   - Added `.job-card-hover-gradient` with left-to-right violet sweep
+   - Added `.code-copy-btn` with hover-reveal for code blocks
+   - Added `@keyframes breadcrumb-fade` for inspector breadcrumb
+
+9. ✅ **Fixed pre-existing lint error** in `theme-panel.tsx` (setState in effect → lazy initializer)
+
+#### Files Modified:
+- `src/app/globals.css` - 25+ new keyframes and utility classes
+- `src/app/page.tsx` - Tab slide transitions, breadcrumb fade, progress shimmer, footer wave/sonar/separators, dialog elastic bounce, job count flash
+- `src/components/cad/sortable-job-card.tsx` - Hover gradient, scale(1.01), pulse ring, priority bounce, action button colors
+- `src/components/cad/three-d-viewer.tsx` - Breathing border, skeleton loading, mouse parallax brackets, film grain
+- `src/components/cad/stats-dashboard.tsx` - Gradient border hover, rotating dash ring, staggered timeline (50ms)
+- `src/components/cad/chat-panel.tsx` - Slide animations, wave typing indicator, stop pulse, copy button
+- `src/components/cad/theme-panel.tsx` - Fixed lint error (setState in effect)
+
+#### Lint Status: ✅ PASS (0 errors, 0 warnings)
+
+#### Stage Summary:
+- **25+ new CSS keyframes/classes** added for micro-interactions across the dashboard
+- **6 major component files enhanced** with advanced animation and polish effects
+- **Job cards** now have hover gradient, scale transform, processing pulse ring, priority bounce, and color-coded action buttons
+- **Inspector panel** has horizontal slide tab transitions, breadcrumb fade, tab click feedback, progress shimmer
+- **3D viewer** has breathing border, skeleton placeholder, mouse-parallax corner brackets, film grain overlay
+- **Dialogs** use elastic bounce entrance, close button rotation, button press animation
+- **Stats dashboard** has gradient border hover, rotating dash ring, staggered timeline
+- **Chat panel** has directional slide animations, wave typing indicator, stop button pulse, code copy button
+- **Footer** has animated wave border, sonar ring indicator, job count flash, vertical separators
+- **Version bumped to v0.7**
 - **All changes maintain dark engineering aesthetic** with no indigo/blue colors
 - **Lint passes with 0 errors**

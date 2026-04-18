@@ -121,7 +121,7 @@ function ProgressRing({
   return (
     <div className="relative flex items-center justify-center ring-pulse" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        {/* Background ring */}
+        {/* Background ring with rotating dash pattern */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -129,6 +129,8 @@ function ProgressRing({
           fill="none"
           stroke="rgba(63, 63, 70, 0.3)"
           strokeWidth={strokeWidth}
+          strokeDasharray="4 6"
+          className="ring-rotating-dash"
         />
         {/* Progress ring */}
         <motion.circle
@@ -367,7 +369,7 @@ function StatCard({
   return (
     <motion.div
       variants={staggerChild}
-      className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 overflow-hidden glass-hover-sweep stats-grid-pattern"
+      className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 overflow-hidden glass-hover-sweep stats-grid-pattern gradient-border-hover"
     >
       {glow && (
         <div
@@ -529,15 +531,16 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            transition={staggerTransition}
+            transition={{ ...staggerTransition, staggerChildren: 0.05 }}
             className="space-y-1"
           >
-            {group.events.map((event) => {
+            {group.events.map((event, eventIndex) => {
               const IconComp = event.icon
               return (
                 <motion.div
                   key={event.id}
                   variants={staggerChild}
+                  custom={eventIndex}
                   className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-800/30 transition-colors"
                 >
                   <div className={`shrink-0 ${event.iconColor}`}>

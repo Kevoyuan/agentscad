@@ -49,6 +49,10 @@ export async function GET(request: NextRequest) {
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
         take: limit,
         skip: offset,
+        include: {
+          parent: { select: { id: true, inputRequest: true, state: true, partFamily: true } },
+          children: { select: { id: true, inputRequest: true, state: true, partFamily: true } },
+        },
       }),
       db.job.count({ where }),
     ]);

@@ -187,6 +187,39 @@ export async function updatePriority(id: string, priority: number): Promise<Job>
   return data.job
 }
 
+export async function linkJob(id: string, parentId: string): Promise<Job> {
+  const res = await fetch(`/api/jobs/${id}/link`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parentId }),
+  })
+  if (!res.ok) throw new Error('Failed to link job')
+  const data = await res.json()
+  return data.job
+}
+
+export async function unlinkJob(id: string): Promise<Job> {
+  const res = await fetch(`/api/jobs/${id}/link`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parentId: null }),
+  })
+  if (!res.ok) throw new Error('Failed to unlink job')
+  const data = await res.json()
+  return data.job
+}
+
+export async function updateScadSource(id: string, scadSource: string): Promise<Job> {
+  const res = await fetch(`/api/jobs/${id}/scad`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scadSource }),
+  })
+  if (!res.ok) throw new Error('Failed to update SCAD source')
+  const data = await res.json()
+  return data.job
+}
+
 export async function batchOperation(action: 'delete' | 'cancel' | 'reprocess', jobIds: string[]): Promise<{ results: { success: string[]; failed: string[] } }> {
   const res = await fetch('/api/jobs/batch', {
     method: 'POST',

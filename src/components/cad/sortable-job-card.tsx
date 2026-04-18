@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, HTMLAttributes, CSSProperties } from 'react'
+import { forwardRef, HTMLAttributes, CSSProperties, useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -27,6 +27,9 @@ interface SortableJobCardProps {
   onDuplicate: (job: Job) => void
   onDelete: (id: string) => void
 }
+
+// Processing states that should show the pulse ring animation
+const PROCESSING_STATES = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW']
 
 // ─── Sortable Job Card ──────────────────────────────────────────────────────
 
@@ -66,6 +69,15 @@ export function SortableJobCard({
   }
   const leftBorderColor = borderColorMap[job.state] || '#71717a'
   const isCancelable = CANCELABLE_STATES.includes(job.state)
+  const isProcessing = PROCESSING_STATES.includes(job.state)
+
+  // Priority badge bounce on change - use key based on priority to trigger re-animation
+  const [prevPriority, setPrevPriority] = useState(job.priority)
+  const [priorityKey, setPriorityKey] = useState(0)
+  if (job.priority !== prevPriority) {
+    setPrevPriority(job.priority)
+    setPriorityKey(k => k + 1)
+  }
 
   return (
     <motion.div
@@ -73,11 +85,15 @@ export function SortableJobCard({
       style={{ ...style, '--border-color': leftBorderColor } as CSSProperties}
       layout
       initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`group/card relative rounded-lg p-2.5 cursor-pointer transition-all duration-150 overflow-hidden job-card-left-border ${
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ scale: 1.01 }}
+      transition={{ scale: { duration: 0.2, ease: 'easeOut' } }}
+      className={`group/card relative rounded-lg p-2.5 cursor-pointer transition-all duration-200 overflow-hidden job-card-left-border job-card-hover-gradient ${
         isDragging || isSortableDragging
           ? 'shadow-xl shadow-violet-500/10 ring-2 ring-violet-500/20 scale-[1.02] z-50'
           : ''
+      } ${
+        isProcessing ? 'processing-pulse-ring' : ''
       } ${
         isSelected
           ? 'bg-violet-600/10 border border-violet-500/30 ring-1 ring-violet-500/20 selected-card-glow card-shimmer'
@@ -107,12 +123,15 @@ export function SortableJobCard({
         </button>
       </div>
 
-      <div className="pl-4">
+      <div className="pl-4 relative z-[1]">
         <div className="flex items-start justify-between gap-1.5 pr-5">
           <p className="text-[11px] text-zinc-300 leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-            <span className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} ${job.priority >= 8 ? 'priority-high-glow' : ''}`}>
+            <span
+              key={priorityKey}
+              className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} ${job.priority >= 8 ? 'priority-high-glow' : ''} priority-badge-bounce`}
+            >
               P{job.priority}
             </span>
           </div>
@@ -121,22 +140,22 @@ export function SortableJobCard({
           <StateBadge state={job.state} />
           <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
         </div>
-        {/* Action Buttons */}
+        {/* Action Buttons - Individual hover colors */}
         <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1 group-hover/card:translate-y-0" onClick={e => e.stopPropagation()}>
           {job.state === 'NEW' && (
-            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-emerald-400 hover:text-emerald-300" onClick={() => onProcess(job)}>
+            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
               <Play className="w-2.5 h-2.5" />Process
             </Button>
           )}
           {isCancelable && (
-            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-orange-400 hover:text-orange-300" onClick={() => onCancel(job)}>
+            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
               <Ban className="w-2.5 h-2.5" />Cancel
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-zinc-300" onClick={() => onDuplicate(job)}>
+          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onDuplicate(job)}>
             <Repeat className="w-2.5 h-2.5" />Duplicate
           </Button>
-          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-rose-400 hover:text-rose-300" onClick={() => onDelete(job.id)}>
+          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-rose-300 hover:bg-rose-500/10" onClick={() => onDelete(job.id)}>
             <Trash2 className="w-2.5 h-2.5" />Delete
           </Button>
         </div>

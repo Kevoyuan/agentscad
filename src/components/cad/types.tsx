@@ -65,6 +65,7 @@ export interface Job {
   validationResults: string | null
   executionLogs: string | null
   notes: string | null
+  parentId: string | null
   retryCount: number
   maxRetries: number
   createdAt: string
