@@ -4,8 +4,8 @@ import { forwardRef, HTMLAttributes, CSSProperties, useState, useEffect, useRef 
 import { motion } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
-import { Job, CANCELABLE_STATES, timeAgo, getPriorityColor, getStateInfo } from './types'
+import { GripVertical, Clock } from 'lucide-react'
+import { Job, CANCELABLE_STATES, timeAgo, getPriorityColor, getStateInfo, getPipelineProgress } from './types'
 import { StateBadge } from './state-badge'
 import { PartFamilyIcon } from './part-family-icon'
 import { TagBadges } from './tag-badges'
@@ -31,6 +31,35 @@ interface SortableJobCardProps {
 
 // Processing states that should show the pulse ring animation
 const PROCESSING_STATES = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW']
+
+// Map state colors for left border
+const BORDER_COLOR_MAP: Record<string, string> = {
+  NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
+  VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
+  REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
+  RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
+}
+
+// Map state colors for progress indicator fill
+const PROGRESS_COLOR_MAP: Record<string, string> = {
+  NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
+  VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
+  REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
+  RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
+}
+
+// ─── Elapsed Time Helper ──────────────────────────────────────────────────
+
+function formatElapsed(iso: string): string {
+  const now = Date.now()
+  const then = new Date(iso).getTime()
+  const diff = Math.floor((now - then) / 1000)
+  if (diff < 0) return '0s'
+  if (diff < 60) return `${diff}s`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ${diff % 60}s`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`
+  return `${Math.floor(diff / 86400)}d`
+}
 
 // ─── Sortable Job Card ──────────────────────────────────────────────────────
 
@@ -61,16 +90,11 @@ export function SortableJobCard({
     opacity: isSortableDragging ? 0.4 : 1,
   }
 
-  // Map state colors for left border
-  const borderColorMap: Record<string, string> = {
-    NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
-    VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
-    REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
-    RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
-  }
-  const leftBorderColor = borderColorMap[job.state] || '#71717a'
+  const leftBorderColor = BORDER_COLOR_MAP[job.state] || '#71717a'
   const isCancelable = CANCELABLE_STATES.includes(job.state)
   const isProcessing = PROCESSING_STATES.includes(job.state)
+  const progressPercent = getPipelineProgress(job.state)
+  const progressColor = PROGRESS_COLOR_MAP[job.state] || '#71717a'
 
   // Priority badge bounce on change - use key based on priority to trigger re-animation
   const [prevPriority, setPrevPriority] = useState(job.priority)
@@ -80,16 +104,43 @@ export function SortableJobCard({
     setPriorityKey(k => k + 1)
   }
 
+  // State change bounce micro-animation
+  const [stateBounce, setStateBounce] = useState(false)
+  const [prevJobState, setPrevJobState] = useState(job.state)
+  if (job.state !== prevJobState) {
+    setPrevJobState(job.state)
+    setStateBounce(true)
+    setTimeout(() => setStateBounce(false), 300)
+  }
+
+  // Live elapsed time updater
+  const [elapsed, setElapsed] = useState(formatElapsed(job.createdAt))
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(formatElapsed(job.createdAt))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [job.createdAt])
+
+  // Priority badge visual hierarchy: higher priority = bolder styling
+  const priorityVisual = job.priority >= 8
+    ? 'bg-rose-500/30 text-rose-300 border-rose-500/40 font-bold shadow-sm shadow-rose-500/10'
+    : job.priority >= 6
+    ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
+    : job.priority >= 4
+    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+    : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30 font-normal'
+
   return (
     <motion.div
       ref={setNodeRef}
       style={{ ...style, '--border-color': leftBorderColor } as CSSProperties}
       layout
       initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      animate={{ opacity: 1, y: 0, scale: stateBounce ? 1.015 : 1 }}
       whileHover={{ scale: 1.01 }}
       transition={{ scale: { duration: 0.2, ease: 'easeOut' } }}
-      className={`group/card relative rounded-lg p-2.5 cursor-pointer linear-transition overflow-hidden job-card-left-border linear-shadow-sm ${
+      className={`group/card relative rounded-lg p-2.5 cursor-pointer linear-transition overflow-hidden job-card-left-border job-card-hover ${
         isDragging || isSortableDragging
           ? 'shadow-xl ring-2 ring-violet-500/20 scale-[1.02] z-50'
           : ''
@@ -99,7 +150,7 @@ export function SortableJobCard({
         isSelected
           ? 'linear-selected bg-violet-600/10 border border-violet-500/30'
           : 'linear-surface border border-white/[0.06] hover:bg-white/[0.04]'
-      }`}
+      } ${stateBounce ? 'state-bounce' : ''}`}
       onClick={() => onSelect(job)}
     >
       {/* Drag Handle */}
@@ -131,7 +182,7 @@ export function SortableJobCard({
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
             <span
               key={priorityKey}
-              className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)} linear-transition`}
+              className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual} linear-transition`}
             >
               P{job.priority}
             </span>
@@ -141,6 +192,41 @@ export function SortableJobCard({
           <StateBadge state={job.state} />
           <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
         </div>
+
+        {/* Elapsed time since creation */}
+        <div className="flex items-center gap-1 mt-1">
+          <Clock className="w-2.5 h-2.5 text-zinc-700" />
+          <span className="text-[8px] text-zinc-600 font-mono">{elapsed} elapsed</span>
+        </div>
+
+        {/* Mini progress indicator for pipeline states */}
+        {isProcessing && (
+          <div className="pipeline-mini-progress mt-1.5">
+            <div
+              className="pipeline-mini-progress-fill"
+              style={{ width: `${progressPercent}%`, backgroundColor: progressColor }}
+            />
+          </div>
+        )}
+        {/* Completed progress bar */}
+        {job.state === 'DELIVERED' && (
+          <div className="pipeline-mini-progress mt-1.5">
+            <div
+              className="pipeline-mini-progress-fill"
+              style={{ width: '100%', backgroundColor: '#a3e635' }}
+            />
+          </div>
+        )}
+        {/* Failed progress bar */}
+        {(job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') && (
+          <div className="pipeline-mini-progress mt-1.5">
+            <div
+              className="pipeline-mini-progress-fill"
+              style={{ width: `${progressPercent}%`, backgroundColor: '#fb7185' }}
+            />
+          </div>
+        )}
+
         <TagBadges customerId={job.customerId} maxDisplay={3} />
         {/* Action Buttons - Individual hover colors */}
         <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1 group-hover/card:translate-y-0" onClick={e => e.stopPropagation()}>
@@ -169,13 +255,19 @@ export function SortableJobCard({
 // ─── Drag Overlay Card (rendered while dragging) ────────────────────────────
 
 export function DragOverlayCard({ job }: { job: Job }) {
-  const borderColorMap: Record<string, string> = {
-    NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
-    VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
-    REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
-    RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
-  }
-  const leftBorderColor = borderColorMap[job.state] || '#71717a'
+  const leftBorderColor = BORDER_COLOR_MAP[job.state] || '#71717a'
+  const progressPercent = getPipelineProgress(job.state)
+  const progressColor = PROGRESS_COLOR_MAP[job.state] || '#71717a'
+  const isProcessing = PROCESSING_STATES.includes(job.state)
+
+  // Priority visual for overlay
+  const priorityVisual = job.priority >= 8
+    ? 'bg-rose-500/30 text-rose-300 border-rose-500/40 font-bold'
+    : job.priority >= 6
+    ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
+    : job.priority >= 4
+    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+    : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
 
   return (
     <div
@@ -187,7 +279,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
           <p className="text-[11px] text-zinc-300 leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-            <span className={`text-[8px] font-mono px-1 py-0.5 rounded border ${getPriorityColor(job.priority)}`}>
+            <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual}`}>
               P{job.priority}
             </span>
           </div>

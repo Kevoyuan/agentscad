@@ -4,7 +4,86 @@
 
 The project is a **fully functional CAD Agent Dashboard** built with Next.js 16, implementing an engineering control room aesthetic for creating, processing, and managing CAD jobs through a multi-agent pipeline.
 
-**Status**: Stable, all features working. Version 0.8. Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls, Job Dependencies, SCAD Editor, Theme Customization, Version History, Context Menu, Notifications, Tag Badges, Batch Parameter Edit, Enhanced Keyboard Shortcuts, AI Request Enhancement.
+**Status**: Stable, all features working. Version 0.9. Command Palette (⌘K), Advanced Search & Filter Panel, Quick Actions Bar, Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls, Job Dependencies, SCAD Editor, Theme Customization, Version History, Context Menu, Notifications, Tag Badges, Batch Parameter Edit, Enhanced Keyboard Shortcuts, AI Request Enhancement, Enhanced Job Cards, Job Activity Feed, Enhanced Footer.
+
+---
+
+### Task ID: 6
+**Agent**: Fullstack Dev Agent
+**Task**: Enhanced styling details and new features
+
+Work Log:
+- Added 10+ new CSS utility classes and animations in globals.css (job-card-hover, tab-indicator, skeleton-pulse, slide-in-right/left, activity-item, activity-slide-in, state-bounce, gradient-separator, pipeline-mini-progress, footer-metric)
+- Enhanced SortableJobCard with gradient hover, state-change bounce animation, live elapsed time, mini progress bars, improved priority badge hierarchy
+- Enhanced Inspector Panel with gradient separator, tab indicator, direction-aware slide transitions, SVG empty state illustration with "Create a Job to Begin" button
+- Created JobActivityFeed component: real-time event feed with filtering (created/processed/delivered/failed), auto-scroll, max 50 events, slide-in animations, clear button
+- Created Footer component with memory usage (performance.memory), live timestamp, tooltips on all metrics, color-coded values
+- Integrated Activity Feed as popover from Activity icon in header (amber badge count)
+- All lint checks pass (0 errors)
+
+New Files Created:
+- `src/components/cad/job-activity-feed.tsx` - Real-time activity feed with filtering and animations
+- `src/components/cad/footer.tsx` - Enhanced footer with memory, clock, tooltips
+
+Files Modified:
+- `src/app/globals.css` - 10+ new CSS classes and keyframes
+- `src/components/cad/sortable-job-card.tsx` - Enhanced styling, elapsed time, progress bars, priority hierarchy
+- `src/app/page.tsx` - Inspector enhancements, activity feed integration, footer component, event wiring
+
+Lint Status: ✅ PASS (0 errors)
+
+---
+
+### Task ID: 7
+**Agent**: Fullstack Dev Agent
+**Task**: Command palette and advanced search features
+
+Work Log:
+- Created Command Palette component using cmdk package with ⌘K shortcut
+- Implemented search across jobs (by input request, ID, state) and actions (create job, toggle theme, show stats, compare, export)
+- Added recent commands persistence in localStorage
+- Added grouped results by category (Recent, Jobs, Actions)
+- Added keyboard navigable interface with smooth open/close animation
+- Added dark theme styling matching Linear design system
+- Created Advanced Search & Filter Panel replacing simple search input
+- Implemented filter by: state (multi-select), priority range, date range (today/week/month/custom), part family, builder name
+- Implemented sort by: priority, created date, updated date, state with asc/desc toggle
+- Added active filter count badge on filter toggle button
+- Added collapsible panel with smooth expand/collapse animation
+- Added "Clear all filters" button
+- Implemented URL search params persistence for filter state survival across refresh
+- Created Job Quick Actions Bar appearing when a job is selected
+- Implemented context-sensitive actions varying by job state:
+  - NEW: Process, Edit Priority, Delete
+  - PROCESSING states: Cancel
+  - DELIVERED: Reprocess, Download SCAD, View 3D, Share
+  - FAILED: Reprocess, View Log, Delete
+  - CANCELLED: Reprocess, Delete
+- Each button has icon, tooltip, and keyboard shortcut hint
+- Smooth slide-down/up animation with AnimatePresence
+- Replaced old search input and filter pills with new SearchFilterPanel
+- Replaced inline action buttons in job detail header with QuickActionsBar + StateBadge
+- Added ⌘K keyboard shortcut handler
+- Fixed lint error in sortable-job-card.tsx (setState in useEffect → derived state pattern)
+- Fixed missing Footer component import by inlining footer JSX
+- Removed non-existent imports (Footer, JobActivityFeed)
+
+Stage Summary:
+- **Command Palette (⌘K)**: Full cmdk-based search across jobs and actions with recent commands, grouped results, keyboard navigation
+- **Advanced Search & Filter Panel**: Multi-select state filter, priority range, date range, part family, builder filter, sort options, URL persistence
+- **Quick Actions Bar**: Context-sensitive actions per job state with icons, tooltips, keyboard shortcut hints, slide animations
+- All lint errors resolved (0 errors)
+
+#### New Files Created:
+- `src/components/cad/command-palette.tsx` - Command palette with ⌘K shortcut, job/action search, recent commands
+- `src/components/cad/search-filter-panel.tsx` - Advanced filter panel with multi-select, range, date, sort, URL persistence
+- `src/components/cad/quick-actions-bar.tsx` - Context-sensitive quick actions bar for selected jobs
+
+#### Files Modified:
+- `src/app/page.tsx` - Integrated all 3 components, replaced simple search with filter panel, added ⌘K shortcut, added QuickActionsBar, inlined footer, removed broken imports
+- `src/components/cad/sortable-job-card.tsx` - Fixed setState-in-useEffect lint error
+
+#### Lint Status: ✅ PASS (0 errors)
 
 ---
 

@@ -81,6 +81,12 @@ import { JobContextMenu } from '@/components/cad/job-context-menu'
 import { BatchParameterEditor } from '@/components/cad/batch-parameter-editor'
 import { NotificationCenter, Notification, NotificationType } from '@/components/cad/notification-center'
 import { TagBadges, parseTags, buildCustomerId } from '@/components/cad/tag-badges'
+import { CommandPalette, CommandAction } from '@/components/cad/command-palette'
+import { SearchFilterPanel, FilterState, DEFAULT_FILTER_STATE, applyFilters, countActiveFilters, filtersToUrlParams, urlParamsToFilters } from '@/components/cad/search-filter-panel'
+import { QuickActionsBar } from '@/components/cad/quick-actions-bar'
+import { Footer } from '@/components/cad/footer'
+import { JobActivityFeed, ActivityEvent, ActivityEventType } from '@/components/cad/job-activity-feed'
+
 
 // Type & API imports
 import {
@@ -99,8 +105,15 @@ export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [allJobs, setAllJobs] = useState<Job[]>([])
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
-  const [filterState, setFilterState] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [filterState, setFilterState] = useState<FilterState>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const urlFilters = urlParamsToFilters(params)
+      return { ...DEFAULT_FILTER_STATE, ...urlFilters }
+    }
+    return DEFAULT_FILTER_STATE
+  })
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newJobText, setNewJobText] = useState('')
   const [newJobPriority, setNewJobPriority] = useState(5)
@@ -124,8 +137,11 @@ export default function Home() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [newJobTags, setNewJobTags] = useState('')
   const [isAiEnhancing, setIsAiEnhancing] = useState(false)
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
+  const [showActivityFeed, setShowActivityFeed] = useState(false)
   const { toast } = useToast()
   const startTimeRef = useRef(Date.now())
+  const activityFeedRef = useRef<HTMLDivElement>(null)
 
   // ── Notification Helper ────────────────────────────────────────────────
 
@@ -149,6 +165,34 @@ export default function Home() {
   const clearAllNotifications = useCallback(() => {
     setNotifications([])
   }, [])
+
+  // ── Activity Feed Helper ─────────────────────────────────────────────
+
+  const addActivityEvent = useCallback((type: ActivityEventType, jobName: string, jobId: string, action: string) => {
+    const id = `activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    setActivityEvents(prev => {
+      const next = [{ id, type, jobName, jobId, action, timestamp: new Date() }, ...prev]
+      // Max 50 events, remove oldest
+      return next.slice(0, 50)
+    })
+  }, [])
+
+  const clearActivityEvents = useCallback(() => {
+    setActivityEvents([])
+  }, [])
+
+  // Close activity feed on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (activityFeedRef.current && !activityFeedRef.current.contains(e.target as Node)) {
+        setShowActivityFeed(false)
+      }
+    }
+    if (showActivityFeed) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showActivityFeed])
 
   // ── Recent Requests (for composer) ────────────────────────────────────
 
@@ -237,20 +281,8 @@ export default function Home() {
     try {
       const data = await fetchJobs()
       setAllJobs(data.jobs)
-      const filtered = filterState
-        ? data.jobs.filter(j => {
-            if (filterState === 'FAILED') return ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(j.state)
-            if (filterState === 'CANCELLED') return j.state === 'CANCELLED'
-            return j.state === filterState
-          })
-        : data.jobs
-      const searched = searchQuery
-        ? filtered.filter(j =>
-            j.inputRequest.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            j.id.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        : filtered
-      setJobs(searched)
+      const filtered = applyFilters(data.jobs, filterState)
+      setJobs(filtered)
       // Update selected job if it exists
       if (selectedJob) {
         const updated = data.jobs.find(j => j.id === selectedJob.id)
@@ -259,7 +291,7 @@ export default function Home() {
     } catch (err) {
       console.error('Failed to load jobs:', err)
     }
-  }, [filterState, searchQuery, selectedJob])
+  }, [filterState, selectedJob])
 
   // ── WebSocket + Polling Fallback ─────────────────────────────────────────
 
@@ -336,12 +368,19 @@ export default function Home() {
         return
       }
 
+      // ⌘K / Ctrl+K: Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowCommandPalette(true)
+        return
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault()
         setShowComposer(true)
         return
       }
       if (e.key === 'Escape') {
+        setShowCommandPalette(false)
         setShowComposer(false)
         setShowShortcuts(false)
         setShowStats(false)
@@ -412,6 +451,7 @@ export default function Home() {
       const { job } = await createJob(newJobText.trim(), tagsCustomerId, newJobPriority)
       toast({ title: 'Job created', description: `Priority ${newJobPriority}`, duration: 2000 })
       addNotification('parameter_updated', 'Job created', newJobText.trim().slice(0, 60))
+      addActivityEvent('created', newJobText.trim().slice(0, 30), job.id.slice(0, 8), 'Created')
       setNewJobText('')
       setNewJobPriority(5)
       setNewJobTags('')
@@ -479,6 +519,7 @@ export default function Home() {
         if (step === 'scad_generated') {
           toast({ title: 'SCAD Generated', description: 'Code generated successfully', duration: 1500 })
           addNotification('scad_updated', 'SCAD Generated', `Job ${job.id.slice(0, 8)} - Code generated`)
+          addActivityEvent('processed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'SCAD Generated')
         } else if (step === 'rendered') {
           toast({ title: 'Rendered', description: '3D model rendered', duration: 1500 })
         } else if (step === 'validated') {
@@ -486,12 +527,14 @@ export default function Home() {
         } else if (step === 'delivered') {
           toast({ title: 'Delivered!', description: 'All deliverables ready', duration: 2000 })
           addNotification('job_completed', 'Job Delivered', `Job ${job.id.slice(0, 8)} - All deliverables ready`)
+          addActivityEvent('delivered', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Delivered')
         }
       })
       await loadJobs()
     } catch {
       toast({ title: 'Processing failed', variant: 'destructive', duration: 3000 })
       addNotification('job_failed', 'Processing Failed', `Job ${job.id.slice(0, 8)} - An error occurred`)
+      addActivityEvent('failed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Processing Failed')
     } finally {
       setIsProcessing(false)
     }
@@ -525,6 +568,7 @@ export default function Home() {
       await cancelJob(job.id)
       toast({ title: 'Job cancelled', duration: 1500 })
       addNotification('job_cancelled', 'Job Cancelled', `Job ${job.id.slice(0, 8)} - Cancelled by user`)
+      addActivityEvent('failed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Cancelled')
       setCancelTarget(null)
       await loadJobs()
     } catch {
@@ -571,6 +615,98 @@ export default function Home() {
     setSelectedJob(job)
     setActiveTab('DEPS')
   }, [])
+
+  // ── Filter State Handler ────────────────────────────────────────────────
+
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilterState(newFilters)
+    // Sync to URL params
+    const params = filtersToUrlParams(newFilters)
+    const url = new URL(window.location.href)
+    // Clear existing filter params
+    for (const key of ['q', 'states', 'pmin', 'pmax', 'dr', 'df', 'dt', 'pf', 'bn', 'sort', 'order']) {
+      url.searchParams.delete(key)
+    }
+    // Set new params
+    params.forEach((value, key) => {
+      url.searchParams.set(key, value)
+    })
+    window.history.replaceState(null, '', url.pathname + (params.toString() ? '?' + params.toString() : ''))
+  }, [])
+
+  // ── Command Palette Actions ──────────────────────────────────────────────
+
+  const commandPaletteActions: CommandAction[] = useMemo(() => [
+    {
+      id: 'create-job',
+      label: 'Create New Job',
+      icon: <Plus className="w-4 h-4 text-emerald-400" />,
+      shortcut: '⌘N',
+      onSelect: () => setShowComposer(true),
+      category: 'action' as const,
+    },
+    {
+      id: 'toggle-theme',
+      label: 'Toggle Theme',
+      icon: <Palette className="w-4 h-4 text-violet-400" />,
+      shortcut: 'T',
+      onSelect: () => setShowSettings(true),
+      category: 'action' as const,
+    },
+    {
+      id: 'show-stats',
+      label: 'Show Statistics',
+      icon: <BarChart3 className="w-4 h-4 text-cyan-400" />,
+      shortcut: '',
+      onSelect: () => setShowStats(true),
+      category: 'action' as const,
+    },
+    {
+      id: 'show-compare',
+      label: 'Compare Jobs',
+      icon: <GitCompare className="w-4 h-4 text-amber-400" />,
+      shortcut: '',
+      onSelect: () => setShowCompare(true),
+      category: 'action' as const,
+    },
+    {
+      id: 'export-data',
+      label: 'Export All Data',
+      icon: <FileJson className="w-4 h-4 text-zinc-400" />,
+      shortcut: '',
+      onSelect: () => exportAllData(),
+      category: 'action' as const,
+    },
+  ], [])
+
+  // ── Quick Action Handlers ──────────────────────────────────────────────
+
+  const handleQuickEditPriority = useCallback((job: Job) => {
+    const newPriority = Math.min(10, job.priority + 1)
+    updatePriority(job.id, newPriority).then(() => {
+      addNotification('parameter_updated', 'Priority updated', `Job ${job.id.slice(0, 8)} → P${newPriority}`)
+      loadJobs()
+    })
+  }, [addNotification, loadJobs])
+
+  const handleQuickViewLog = useCallback((job: Job) => {
+    setSelectedJob(job)
+    setActiveTab('LOG')
+  }, [])
+
+  const handleQuickView3D = useCallback(() => {
+    // 3D viewer is already visible, just give feedback
+    toast({ title: '3D viewer active', duration: 1000 })
+  }, [toast])
+
+  const handleQuickShare = useCallback((job: Job) => {
+    const url = `${window.location.origin}?job=${job.id}`
+    navigator.clipboard.writeText(url).then(() => {
+      toast({ title: 'Link copied to clipboard', description: `Share link for job ${job.id.slice(0, 8)}`, duration: 2000 })
+    }).catch(() => {
+      toast({ title: 'Failed to copy link', variant: 'destructive', duration: 2000 })
+    })
+  }, [toast])
 
   // ── Computed Values ───────────────────────────────────────────────────────
 
@@ -723,6 +859,50 @@ export default function Home() {
             onMarkAllRead={markAllNotificationsRead}
             onClearAll={clearAllNotifications}
           />
+          {/* Activity Feed - Bell with popover */}
+          <div className="relative" ref={activityFeedRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300 relative"
+              onClick={() => setShowActivityFeed(!showActivityFeed)}
+            >
+              <Activity className="w-3 h-3" />
+              {activityEvents.length > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-0.5 -right-0.5 min-w-[12px] h-[12px] rounded-full bg-amber-500 text-white text-[6px] font-bold flex items-center justify-center px-0.5"
+                >
+                  {activityEvents.length > 9 ? '9+' : activityEvents.length}
+                </motion.span>
+              )}
+            </Button>
+            <AnimatePresence>
+              {showActivityFeed && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="absolute right-0 top-8 w-80 linear-surface linear-border rounded-lg linear-shadow-md z-50 max-h-[420px]"
+                >
+                  <JobActivityFeed
+                    events={activityEvents}
+                    onClear={clearActivityEvents}
+                    onEventClick={(event) => {
+                      const found = allJobs.find(j => j.id.slice(0, 8) === event.jobId)
+                      if (found) {
+                        setSelectedJob(found)
+                        setActiveTab('PARAMS')
+                      }
+                      setShowActivityFeed(false)
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -755,39 +935,13 @@ export default function Home() {
           {/* Left: Jobs List */}
           <ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
             <div className="flex flex-col h-full bg-[#141414]">
-              {/* Search */}
-              <div className="px-3 py-2 border-b border-white/[0.06]">
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
-                  <Input
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search jobs..."
-                    className="h-7 pl-7 text-[11px] bg-[#09090b] border-white/[0.06] placeholder:text-zinc-700"
-                  />
-                </div>
-              </div>
-
-              {/* Filter Pills */}
-              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-white/[0.06] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                {FILTER_STATES.map(f => {
-                  const count = f.key === 'ALL' ? allJobs.length :
-                    f.key === 'FAILED' ? (stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0) :
-                    stateCounts[f.key] || 0
-                  const isActive = filterState === f.key || (!filterState && f.key === 'ALL')
-                  return (
-                    <button
-                      key={f.key}
-                      className={`shrink-0 text-[9px] font-mono px-2 py-1 rounded-md transition-colors ${
-                        isActive ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30' : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
-                      }`}
-                      onClick={() => setFilterState(f.key === 'ALL' ? null : (f as any).stateKey || f.key)}
-                    >
-                      {f.label} {count > 0 ? count : ''}
-                    </button>
-                  )
-                })}
-              </div>
+              {/* Search & Filter Panel */}
+              <SearchFilterPanel
+                filters={filterState}
+                onFiltersChange={handleFilterChange}
+                allJobs={allJobs}
+                stateCounts={stateCounts}
+              />
 
               {/* Batch Action Bar */}
               <AnimatePresence>
@@ -902,40 +1056,23 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {selectedJob.state === 'NEW' && (
-                        <Button size="sm" className="h-6 text-[9px] gap-1 bg-emerald-600 hover:bg-emerald-500 linear-transition" onClick={() => handleProcess(selectedJob)} disabled={isProcessing}>
-                          {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                          {isProcessing ? 'Processing...' : 'Process'}
-                        </Button>
-                      )}
-                      {selectedJob.state === 'DELIVERED' && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-amber-400 hover:text-amber-300" onClick={() => handleProcess(selectedJob)}>
-                          <RotateCcw className="w-3 h-3" />Reprocess
-                        </Button>
-                      )}
-                      {CANCELABLE_STATES.includes(selectedJob.state) && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-orange-400 hover:text-orange-300" onClick={() => setCancelTarget(selectedJob)}>
-                          <Ban className="w-3 h-3" />Cancel
-                        </Button>
-                      )}
-                      {selectedJob.scadSource && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => downloadScad(selectedJob)}>
-                          <Download className="w-3 h-3" />SCAD
-                        </Button>
-                      )}
-                      {selectedJob.stlPath && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300">
-                          <Download className="w-3 h-3" />STL
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => handleDuplicate(selectedJob)}>
-                        <Repeat className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-rose-400 hover:text-rose-300" onClick={() => handleDelete(selectedJob.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      <StateBadge state={selectedJob.state} />
                     </div>
                   </div>
+                  {/* Quick Actions Bar */}
+                  <QuickActionsBar
+                    job={selectedJob}
+                    onProcess={handleProcess}
+                    onCancel={(j) => setCancelTarget(j)}
+                    onDelete={handleDelete}
+                    onReprocess={handleProcess}
+                    onDownloadScad={downloadScad}
+                    onView3D={handleQuickView3D}
+                    onEditPriority={handleQuickEditPriority}
+                    onViewLog={handleQuickViewLog}
+                    onShare={handleQuickShare}
+                    isProcessing={isProcessing}
+                  />
                   {/* Progress Bar */}
                   {isProcessing && (
                     <div className="px-3 py-1 progress-shimmer">
@@ -985,6 +1122,8 @@ export default function Home() {
                     <span className="text-zinc-700">›</span>
                     <span className="text-violet-400">{activeTab}</span>
                   </div>
+                  {/* Gradient separator between breadcrumb and tabs */}
+                  <div className="gradient-separator" />
                   <TabsList className="w-full justify-start px-2 py-1 bg-transparent border-b border-white/[0.06] h-auto rounded-none shrink-0">
                     {[
                       { key: 'PARAMS', label: 'PARAMS', icon: Settings },
@@ -1000,7 +1139,7 @@ export default function Home() {
                       <TabsTrigger
                         key={tab.key}
                         value={tab.key}
-                        className="text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
+                        className="tab-indicator text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
                       >
                         {tab.label}
                       </TabsTrigger>
@@ -1008,7 +1147,15 @@ export default function Home() {
                   </TabsList>
                   <div className="flex-1 overflow-hidden">
                     <AnimatePresence mode="wait" custom={tabDirection}>
-                      <motion.div key={activeTab} custom={tabDirection} initial={{ opacity: 0, x: tabDirection * 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: tabDirection * -20 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="h-full">
+                      <motion.div
+                        key={activeTab}
+                        custom={tabDirection}
+                        initial={{ opacity: 0, x: tabDirection * 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: tabDirection * -20 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className={`h-full ${tabDirection > 0 ? 'slide-in-right' : 'slide-in-left'}`}
+                      >
                         <TabsContent value="PARAMS" className="h-full m-0 data-[state=inactive]:hidden">
                           <ParameterPanel job={selectedJob} onUpdate={loadJobs} />
                         </TabsContent>
@@ -1042,12 +1189,19 @@ export default function Home() {
                 </Tabs>
               ) : (
                 <div className="relative flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-                  <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center empty-float">
-                    <Settings className="w-6 h-6 opacity-30" />
+                  {/* Enhanced empty state with SVG illustration */}
+                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="empty-float opacity-30">
+                    <rect x="8" y="8" width="48" height="48" rx="8" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" className="text-zinc-700" />
+                    <path d="M24 32h16M32 24v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-zinc-600" />
+                    <circle cx="32" cy="32" r="3" fill="currentColor" className="text-zinc-700" />
+                  </svg>
+                  <div className="text-center mt-2">
+                    <p className="text-sm font-medium text-zinc-500">Inspector Panel</p>
+                    <p className="text-[10px] text-zinc-700 mt-1 max-w-[200px]">Select a job from the list to view parameters, code, and pipeline details</p>
                   </div>
-                  <p className="text-sm text-zinc-500">Inspector</p>
-                  <p className="text-[10px] text-zinc-700">Select a job to inspect</p>
-
+                  <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 mt-2 border-zinc-700/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600" onClick={() => setShowComposer(true)}>
+                    <Plus className="w-3 h-3" />Create a Job to Begin
+                  </Button>
                 </div>
               )}
             </div>
@@ -1056,31 +1210,18 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="relative flex items-center justify-between px-4 py-1 border-t border-white/[0.06] bg-[#141414] shrink-0">
-        <div className="flex items-center gap-4 text-[9px] font-mono text-zinc-600">
-          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /><Activity className="w-2.5 h-2.5 text-emerald-500" />System Online</span>
-          <span className="footer-separator" />
-          <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-dot' : 'bg-rose-500'}`} />WS: {wsConnected ? 'Connected' : 'Disconnected'}</span>
-          <span className="footer-separator" />
-          <span className={jobCountFlash ? 'number-highlight' : ''}>Jobs: {allJobs.length}</span>
-          <span className="footer-separator" />
-          <span>Delivered: {stateCounts['DELIVERED'] || 0}</span>
-          <span className="footer-separator" />
-          <span>Failed: {(stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0)}</span>
-          <span className="footer-separator" />
-          <span className="flex items-center gap-1"><GitBranch className="w-2.5 h-2.5" />Deps: {linkedJobCount}</span>
-        </div>
-        <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-700">
-          <span className="flex items-center gap-1"><Timer className="w-2.5 h-2.5" />{formatUptime(uptime)}</span>
-          <span className="footer-separator" />
-          <span className="flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" />{successRate}%</span>
-          <span className="footer-separator" />
-          <span className="flex items-center gap-1"><Cpu className="w-2.5 h-2.5" />AgentSCAD v0.9</span>
-          <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-zinc-600 hover:text-zinc-400" onClick={exportAllData}>
-            <FileJson className="w-2.5 h-2.5" />Export
-          </Button>
-        </div>
-      </footer>
+      <Footer
+        wsConnected={wsConnected}
+        jobCount={allJobs.length}
+        jobCountFlash={jobCountFlash}
+        deliveredCount={stateCounts['DELIVERED'] || 0}
+        failedCount={(stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0)}
+        dependencyCount={linkedJobCount}
+        uptime={uptime}
+        successRate={successRate}
+        onExport={exportAllData}
+        formatUptime={formatUptime}
+      />
 
       {/* ── Dialogs ──────────────────────────────────────────────────────── */}
 
@@ -1358,6 +1499,15 @@ export default function Home() {
           <ThemePanel />
         </DialogContent>
       </Dialog>
+
+      {/* Command Palette */}
+      <CommandPalette
+        open={showCommandPalette}
+        onOpenChange={setShowCommandPalette}
+        jobs={allJobs}
+        onSelectJob={(job) => { setSelectedJob(job); setActiveTab('PARAMS') }}
+        actions={commandPaletteActions}
+      />
     </div>
   )
 }

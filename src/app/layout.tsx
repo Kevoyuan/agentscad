@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { CustomScrollbarStyle, CUSTOM_SCROLLBAR_CLASS } from "@/components/cad/custom-scrollbar";
+import { CustomScrollbarStyle } from "@/components/cad/custom-scrollbar";
+
+const CUSTOM_SCROLLBAR_CLASS = "cad-custom-scrollbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
