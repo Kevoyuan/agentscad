@@ -81,7 +81,7 @@ function ScadDiff({ oldValue, newValue }: { oldValue: string | null; newValue: s
   }
 
   return (
-    <div className="mt-1 font-mono text-[9px] max-h-32 overflow-y-auto rounded bg-[#09090b] border border-white/[0.06]">
+    <div className="mt-1 font-mono text-[9px] max-h-32 overflow-y-auto rounded bg-[var(--app-bg)] border border-[color:var(--app-border)]">
       {diffs.map((d, idx) => (
         <div
           key={idx}
@@ -246,7 +246,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
 
                   {/* Content */}
                   <div
-                    className="ml-5 rounded-md linear-border bg-[#141414] overflow-hidden cursor-pointer hover:bg-white/[0.04] linear-transition"
+                    className="ml-5 rounded-md linear-border bg-[var(--app-surface)] overflow-hidden cursor-pointer hover:bg-[var(--app-surface-hover)] linear-transition"
                     onClick={() => setExpandedId(isExpanded ? null : version.id)}
                   >
                     <div className="flex items-center justify-between px-3 py-1.5">

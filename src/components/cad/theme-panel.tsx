@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Palette, Type, LayoutGrid, Sparkles, RotateCcw, Check } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useTheme } from 'next-themes'
+import { Palette, Type, LayoutGrid, Sparkles, RotateCcw, Check, Sun, Moon, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
@@ -27,6 +28,12 @@ const UI_DENSITIES = [
   { name: 'Compact', value: 'compact', gap: '0.25rem', padding: '0.5rem' },
   { name: 'Normal', value: 'normal', gap: '0.5rem', padding: '0.75rem' },
   { name: 'Comfortable', value: 'comfortable', gap: '0.75rem', padding: '1rem' },
+]
+
+const THEME_MODES = [
+  { value: 'light' as const, label: 'Light', icon: Sun },
+  { value: 'dark' as const, label: 'Dark', icon: Moon },
+  { value: 'system' as const, label: 'System', icon: Monitor },
 ]
 
 interface ThemeSettings {
@@ -92,6 +99,7 @@ function applyThemeToDOM(settings: ThemeSettings) {
 // ─── Theme Panel Component ───────────────────────────────────────────────
 
 export function ThemePanel() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [settings, setSettings] = useState<ThemeSettings>(() => {
     if (typeof window === 'undefined') return DEFAULT_SETTINGS
     return loadSettings()
@@ -119,17 +127,72 @@ export function ThemePanel() {
     setSettings(DEFAULT_SETTINGS)
     saveSettings(DEFAULT_SETTINGS)
     applyThemeToDOM(DEFAULT_SETTINGS)
-  }, [])
+    setTheme('dark')
+  }, [setTheme])
 
   if (!isLoaded) return null
 
+  const isDark = resolvedTheme === 'dark'
+  const borderColor = isDark ? 'border-zinc-800/30' : 'border-zinc-200/80'
+  const borderHoverColor = isDark ? 'hover:border-zinc-700/50' : 'hover:border-zinc-300'
+  const bgHoverColor = isDark ? 'hover:bg-zinc-800/20' : 'hover:bg-zinc-100/60'
+  const bgActiveColor = isDark ? 'bg-zinc-800/40' : 'bg-zinc-100/80'
+  const separatorColor = isDark ? 'bg-zinc-800/40' : 'bg-zinc-200/60'
+  const labelColor = isDark ? 'text-zinc-500' : 'text-zinc-400'
+  const subLabelColor = isDark ? 'text-zinc-600' : 'text-zinc-400'
+  const descriptionColor = isDark ? 'text-zinc-700' : 'text-zinc-400'
+
   return (
     <div className="space-y-5 p-1">
+      {/* Theme Mode Toggle */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Sun className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
+          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Theme Mode</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {THEME_MODES.map((mode) => {
+            const isActive = theme === mode.value
+            const Icon = mode.icon
+            return (
+              <button
+                key={mode.value}
+                className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg border transition-all duration-200 ${
+                  isActive
+                    ? 'border-violet-500/50 bg-violet-600/15 text-violet-400 dark:text-violet-300'
+                    : `${borderColor} text-[var(--app-text-muted)] ${borderHoverColor} ${bgHoverColor} hover:text-[var(--app-text-secondary)]`
+                }`}
+                onClick={() => setTheme(mode.value)}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-mono">{mode.label}</span>
+                {isActive && (
+                  <motion.div
+                    layoutId="theme-mode-check"
+                    initial={false}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    <Check className="w-2.5 h-2.5 text-violet-400" />
+                  </motion.div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        {theme === 'system' && (
+          <p className={`text-[9px] ${subLabelColor} mt-1.5 ml-1`}>
+            System preference: {resolvedTheme === 'dark' ? 'Dark' : 'Light'} mode detected
+          </p>
+        )}
+      </div>
+
+      <Separator className={separatorColor} />
+
       {/* Accent Color */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Palette className="w-3.5 h-3.5 text-zinc-500" />
-          <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Accent Color</span>
+          <Palette className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
+          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Accent Color</span>
         </div>
         <div className="grid grid-cols-6 gap-2">
           {ACCENT_COLORS.map(accent => (
@@ -137,15 +200,15 @@ export function ThemePanel() {
               key={accent.name}
               className={`relative flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all duration-200 ${
                 settings.accentHue === accent.hue
-                  ? 'border-zinc-500/50 bg-zinc-800/40'
-                  : 'border-zinc-800/30 hover:border-zinc-700/50 hover:bg-zinc-800/20'
+                  ? `${borderColor} ${bgActiveColor}`
+                  : `${borderColor} ${borderHoverColor} ${bgHoverColor}`
               }`}
               onClick={() => updateSettings({ accentHue: accent.hue })}
             >
               <div className={`w-5 h-5 rounded-full ${accent.color} ${
-                settings.accentHue === accent.hue ? 'ring-2 ring-offset-1 ring-offset-[#09090b] ' + accent.ring : ''
+                settings.accentHue === accent.hue ? 'ring-2 ring-offset-1 ring-offset-[var(--app-bg)] ' + accent.ring : ''
               }`} />
-              <span className="text-[8px] font-mono text-zinc-600">{accent.name}</span>
+              <span className={`text-[8px] font-mono ${subLabelColor}`}>{accent.name}</span>
               {settings.accentHue === accent.hue && (
                 <motion.div
                   layoutId="accent-check"
@@ -153,7 +216,7 @@ export function ThemePanel() {
                   initial={false}
                   transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 >
-                  <Check className="w-2.5 h-2.5 text-zinc-300" />
+                  <Check className={`w-2.5 h-2.5 ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`} />
                 </motion.div>
               )}
             </button>
@@ -161,13 +224,13 @@ export function ThemePanel() {
         </div>
       </div>
 
-      <Separator className="bg-zinc-800/40" />
+      <Separator className={separatorColor} />
 
       {/* Font Size */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Type className="w-3.5 h-3.5 text-zinc-500" />
-          <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Font Size</span>
+          <Type className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
+          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Font Size</span>
         </div>
         <div className="flex items-center gap-2">
           {FONT_SIZES.map(fs => (
@@ -175,28 +238,28 @@ export function ThemePanel() {
               key={fs.value}
               className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 ${
                 settings.fontSize === fs.value
-                  ? 'border-zinc-500/50 bg-zinc-800/40'
-                  : 'border-zinc-800/30 hover:border-zinc-700/50 hover:bg-zinc-800/20'
+                  ? `${borderColor} ${bgActiveColor}`
+                  : `${borderColor} ${borderHoverColor} ${bgHoverColor}`
               }`}
               onClick={() => updateSettings({ fontSize: fs.value })}
             >
-              <span className={`font-mono ${settings.fontSize === fs.value ? 'text-zinc-200' : 'text-zinc-500'}`}
+              <span className={`font-mono ${settings.fontSize === fs.value ? 'text-[var(--app-text-primary)]' : labelColor}`}
                 style={{ fontSize: fs.value }}>
                 Aa
               </span>
-              <span className="text-[8px] font-mono text-zinc-600">{fs.name}</span>
+              <span className={`text-[8px] font-mono ${subLabelColor}`}>{fs.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <Separator className="bg-zinc-800/40" />
+      <Separator className={separatorColor} />
 
       {/* UI Density */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <LayoutGrid className="w-3.5 h-3.5 text-zinc-500" />
-          <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">UI Density</span>
+          <LayoutGrid className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
+          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">UI Density</span>
         </div>
         <div className="flex items-center gap-2">
           {UI_DENSITIES.map(d => (
@@ -204,35 +267,35 @@ export function ThemePanel() {
               key={d.value}
               className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 ${
                 settings.density === d.value
-                  ? 'border-zinc-500/50 bg-zinc-800/40'
-                  : 'border-zinc-800/30 hover:border-zinc-700/50 hover:bg-zinc-800/20'
+                  ? `${borderColor} ${bgActiveColor}`
+                  : `${borderColor} ${borderHoverColor} ${bgHoverColor}`
               }`}
               onClick={() => updateSettings({ density: d.value })}
             >
-              <div className={`flex flex-col ${settings.density === d.value ? 'text-zinc-300' : 'text-zinc-600'}`}
+              <div className={`flex flex-col ${settings.density === d.value ? 'text-[var(--app-text-secondary)]' : subLabelColor}`}
                 style={{ gap: d.gap }}>
                 <div className="w-4 h-1 rounded bg-current/30" />
                 <div className="w-4 h-1 rounded bg-current/30" />
                 <div className="w-4 h-1 rounded bg-current/30" />
               </div>
-              <span className="text-[8px] font-mono text-zinc-600">{d.name}</span>
+              <span className={`text-[8px] font-mono ${subLabelColor}`}>{d.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <Separator className="bg-zinc-800/40" />
+      <Separator className={separatorColor} />
 
       {/* Animations Toggle */}
       <div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
-            <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Animations</span>
+            <Sparkles className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
+            <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Animations</span>
           </div>
           <button
             className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-              settings.animationsEnabled ? 'bg-emerald-600' : 'bg-zinc-700'
+              settings.animationsEnabled ? 'bg-emerald-600' : isDark ? 'bg-zinc-700' : 'bg-zinc-300'
             }`}
             onClick={() => updateSettings({ animationsEnabled: !settings.animationsEnabled })}
           >
@@ -243,18 +306,18 @@ export function ThemePanel() {
             />
           </button>
         </div>
-        <p className="text-[9px] text-zinc-700 mt-1 ml-5">
+        <p className={`text-[9px] ${descriptionColor} mt-1 ml-5`}>
           {settings.animationsEnabled ? 'Animations enabled' : 'Reduced motion (respects prefers-reduced-motion)'}
         </p>
       </div>
 
-      <Separator className="bg-zinc-800/40" />
+      <Separator className={separatorColor} />
 
       {/* Reset to Defaults */}
       <Button
         variant="ghost"
         size="sm"
-        className="w-full h-7 text-[10px] gap-1.5 text-zinc-500 hover:text-zinc-300 border border-zinc-800/40"
+        className={`w-full h-7 text-[10px] gap-1.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] border ${borderColor}`}
         onClick={resetToDefaults}
       >
         <RotateCcw className="w-3 h-3" />Reset to Defaults

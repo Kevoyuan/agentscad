@@ -114,7 +114,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
       exit={{ height: 0, opacity: 0 }}
       className="overflow-hidden"
     >
-      <div className="border-t border-zinc-800/60 bg-[#141414]">
+      <div className="border-t border-[color:var(--app-border)] bg-[var(--app-surface)]">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/40">
           <div className="flex items-center gap-2">

@@ -215,7 +215,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
         {isEditing ? (
           <div className="flex h-full">
             {/* Line numbers (editing) */}
-            <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-zinc-800/30 bg-[#09090b] shrink-0 overflow-hidden">
+            <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-[color:var(--app-border)] bg-[var(--app-bg)] shrink-0 overflow-hidden">
               {displayLines.map((_, idx) => (
                 <span
                   key={idx}
@@ -233,7 +233,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
               value={editSource}
               onChange={e => setEditSource(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 p-4 text-xs font-mono leading-[20px] bg-[#09090b] text-zinc-200 resize-none outline-none border-none whitespace-pre overflow-auto"
+              className="flex-1 p-4 text-xs font-mono leading-[20px] bg-[var(--app-bg)] text-zinc-200 resize-none outline-none border-none whitespace-pre overflow-auto"
               spellCheck={false}
               autoFocus
             />
@@ -270,7 +270,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-t border-zinc-800/60 shrink-0 bg-[#141414]">
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] shrink-0 bg-[var(--app-surface)]">
         <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-600">
           <span>{charCount} chars</span>
           <span>{lineCount} lines</span>

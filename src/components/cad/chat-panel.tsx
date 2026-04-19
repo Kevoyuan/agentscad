@@ -209,7 +209,7 @@ export function ChatPanel({ job }: { job: Job }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
         <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase flex items-center gap-1.5">
           <Sparkles className="w-3 h-3 text-violet-400" />AI Assistant
         </h3>
@@ -344,7 +344,7 @@ export function ChatPanel({ job }: { job: Job }) {
           </div>
         )}
       </div>
-      <div className="p-2 border-t border-white/[0.06]">
+      <div className="p-2 border-t border-[color:var(--app-border)]">
         {/* Pending images preview */}
         {pendingImages.length > 0 && (
           <div className="flex gap-1.5 mb-2 flex-wrap">
@@ -387,7 +387,7 @@ export function ChatPanel({ job }: { job: Job }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder={isMultimodal ? 'Describe with images...' : 'Ask about this design...'}
-            className="h-7 text-[11px] bg-[#09090b] border-white/[0.06] placeholder:text-zinc-700"
+            className="h-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
             disabled={isStreaming}
           />
           {isStreaming ? (

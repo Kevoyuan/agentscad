@@ -250,7 +250,7 @@ export function SearchFilterPanel({
   }, [onFiltersChange])
 
   return (
-    <div className="border-b border-white/[0.06]">
+    <div className="border-b border-[color:var(--app-border)]">
       {/* Search Row - Always visible */}
       <div className="px-3 py-2 flex items-center gap-2">
         <div className="relative flex-1">
@@ -259,7 +259,7 @@ export function SearchFilterPanel({
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
             placeholder="Search jobs... (⌘K for command palette)"
-            className="h-7 pl-7 pr-7 text-[11px] bg-[#09090b] border-white/[0.06] placeholder:text-zinc-700"
+            className="h-7 pl-7 pr-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
           />
           {filters.search && (
             <button
@@ -388,14 +388,14 @@ export function SearchFilterPanel({
                         type="date"
                         value={filters.dateFrom || ''}
                         onChange={e => updateFilter('dateFrom', e.target.value || null)}
-                        className="h-6 text-[10px] bg-[#09090b] border-white/[0.06] text-zinc-400"
+                        className="h-6 text-[10px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
                       />
-                      <span className="text-[9px] text-zinc-700">to</span>
+                      <span className="text-[9px] text-[var(--app-text-dim)]">to</span>
                       <Input
                         type="date"
                         value={filters.dateTo || ''}
                         onChange={e => updateFilter('dateTo', e.target.value || null)}
-                        className="h-6 text-[10px] bg-[#09090b] border-white/[0.06] text-zinc-400"
+                        className="h-6 text-[10px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
                       />
                     </div>
                   )}

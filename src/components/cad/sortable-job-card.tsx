@@ -149,7 +149,7 @@ export function SortableJobCard({
       } ${
         isSelected
           ? 'linear-selected bg-violet-600/10 border border-violet-500/30'
-          : 'linear-surface border border-white/[0.06] hover:bg-white/[0.04]'
+          : 'linear-surface border border-[color:var(--app-border)] hover:bg-[var(--app-surface-hover)]'
       } ${stateBounce ? 'state-bounce' : ''}`}
       onClick={() => onSelect(job)}
     >

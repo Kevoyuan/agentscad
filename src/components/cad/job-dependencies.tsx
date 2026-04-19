@@ -144,7 +144,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Search for parent job..."
-                      className="h-6 text-[11px] bg-[#09090b] border-zinc-800/60 placeholder:text-zinc-700"
+                      className="h-6 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
                       autoFocus
                     />
                   </div>

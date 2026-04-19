@@ -219,7 +219,7 @@ export function QuickActionsBar(props: QuickActionsBarProps) {
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className="overflow-hidden"
       >
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-white/[0.04] bg-[#141414]/30">
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[color:var(--app-border)] bg-[var(--app-surface-50)]">
           {actions.map((action, idx) => {
             const variant = action.variant || 'default'
             const classes = VARIANT_CLASSES[variant]

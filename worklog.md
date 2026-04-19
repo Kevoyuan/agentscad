@@ -4,7 +4,93 @@
 
 The project is a **fully functional CAD Agent Dashboard** built with Next.js 16, implementing an engineering control room aesthetic for creating, processing, and managing CAD jobs through a multi-agent pipeline.
 
-**Status**: Stable, all features working. Version 0.9. Command Palette (⌘K), Advanced Search & Filter Panel, Quick Actions Bar, Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls, Job Dependencies, SCAD Editor, Theme Customization, Version History, Context Menu, Notifications, Tag Badges, Batch Parameter Edit, Enhanced Keyboard Shortcuts, AI Request Enhancement, Enhanced Job Cards, Job Activity Feed, Enhanced Footer.
+**Status**: Stable, all features working. Version 0.9. Command Palette (⌘K), Advanced Search & Filter Panel, Quick Actions Bar, Case Memory, Drag-and-Drop priority, Activity Timeline, Glassmorphism, Depth system, Micro-interactions, Enhanced Notes/Stats/Compare/ViewerControls, Job Dependencies, SCAD Editor, Theme Customization, Version History, Context Menu, Notifications, Tag Badges, Batch Parameter Edit, Enhanced Keyboard Shortcuts, AI Request Enhancement, Enhanced Job Cards, Job Activity Feed, Enhanced Footer, Dark/Light Theme Toggle, Breadcrumb Navigation.
+
+---
+
+### Task ID: 11-a
+**Agent**: Fullstack Dev Agent
+**Task**: Implement Dark/Light Theme Toggle (next-themes integration) and Breadcrumb Navigation
+
+#### Work Log:
+
+1. ✅ **Dark/Light Theme Toggle - Full next-themes Integration**:
+   - Created `src/components/providers.tsx` as a client component wrapper with ThemeProvider, CustomScrollbarStyle, and Toaster
+   - Updated `src/app/layout.tsx` to use the Providers component (server layout wraps client Providers)
+   - The ThemePanel already had Light/Dark/System toggle buttons with Sun/Moon/Monitor icons - verified working
+   - The header already had a quick theme toggle button (Sun/Moon icon) - verified working with `useTheme()`
+   - Updated `globals.css` with additional CSS variables for theme support:
+     - `--app-surface-50`: Semi-transparent surface (50% opacity)
+     - `--app-surface-95`: Nearly opaque surface (95% opacity, for dialogs)
+     - Updated `--app-text-secondary` in light mode from `#71717a` to `#52525b` for better readability
+     - Updated `--app-text-muted` in light mode from `#a1a1aa` to `#71717a` for proper hierarchy
+   - Updated 15+ component files to replace hardcoded dark colors with CSS variable references:
+     - `bg-[#09090b]` → `bg-[var(--app-bg)]`
+     - `bg-[#141414]` → `bg-[var(--app-surface)]`
+     - `border-white/[0.06]` → `border-[color:var(--app-border)]`
+     - `bg-[#09090b]/95` → `bg-[var(--app-surface-95)]`
+     - `placeholder:text-zinc-700` → `placeholder:text-[var(--app-text-dim)]`
+
+2. ✅ **Breadcrumb Navigation**:
+   - Updated existing `src/components/cad/breadcrumb-nav.tsx`:
+     - Added `h-6` compact height as specified
+     - Uses CSS variables for theme-aware colors (`var(--app-text-muted)`, `var(--app-text-secondary)`, `var(--app-text-dim)`)
+     - Shows: AgentSCAD > Jobs > [Job ID prefix] > [Active Tab Name]
+     - Each segment clickable (except current)
+     - ChevronRight separators
+     - Job ID shown as first 8 chars with copy-to-clipboard on click
+     - Active tab shown as text with violet color
+     - Clean, minimal Linear-style with muted zinc colors
+   - Integrated BreadcrumbNav in `src/app/page.tsx`:
+     - Replaced inline inspector breadcrumb with proper BreadcrumbNav component
+     - Passes `selectedJob.id` and `activeTab` as props
+     - Navigation callbacks deselect the current job (return to no-job state)
+
+3. ✅ **Component Theme Updates** (replaced hardcoded dark colors with CSS variables):
+   - `src/app/page.tsx` - Main structural elements, dialogs, inputs
+   - `src/components/cad/footer.tsx` - Footer background, borders, text colors
+   - `src/components/cad/theme-panel.tsx` - Full rewrite for theme-aware styling
+   - `src/components/cad/search-filter-panel.tsx` - Search input, borders
+   - `src/components/cad/command-palette.tsx` - Palette background and borders
+   - `src/components/cad/chat-panel.tsx` - Chat input, borders
+   - `src/components/cad/quick-actions-bar.tsx` - Actions bar background
+   - `src/components/cad/sortable-job-card.tsx` - Card borders and hover
+   - `src/components/cad/notes-panel.tsx` - Notes background and textarea
+   - `src/components/cad/parameter-panel.tsx` - Parameter groups
+   - `src/components/cad/stats-dashboard.tsx` - Stats cards
+   - `src/components/cad/job-compare.tsx` - Compare cards
+   - `src/components/cad/validation-panel.tsx` - Validation items
+   - `src/components/cad/batch-parameter-editor.tsx` - Batch editor
+   - `src/components/cad/scad-editor.tsx` - Editor background and footer
+   - `src/components/cad/job-version-history.tsx` - Version diffs
+   - `src/components/cad/job-dependencies.tsx` - Dependency search input
+
+#### New Files Created:
+- `src/components/providers.tsx` - Client component wrapper with ThemeProvider
+
+#### Files Modified:
+- `src/app/layout.tsx` - Uses Providers component instead of inline ThemeProvider
+- `src/app/globals.css` - Added `--app-surface-50`, `--app-surface-95` CSS variables, adjusted light theme text colors
+- `src/app/page.tsx` - CSS variable replacements for theme support, BreadcrumbNav integration
+- `src/components/cad/theme-panel.tsx` - Full rewrite for theme-aware styling
+- `src/components/cad/breadcrumb-nav.tsx` - Added h-6 compact height
+- `src/components/cad/footer.tsx` - CSS variable replacements
+- `src/components/cad/search-filter-panel.tsx` - CSS variable replacements
+- `src/components/cad/command-palette.tsx` - CSS variable replacements
+- `src/components/cad/chat-panel.tsx` - CSS variable replacements
+- `src/components/cad/quick-actions-bar.tsx` - CSS variable replacements
+- `src/components/cad/sortable-job-card.tsx` - CSS variable replacements
+- `src/components/cad/notes-panel.tsx` - CSS variable replacements
+- `src/components/cad/parameter-panel.tsx` - CSS variable replacements
+- `src/components/cad/stats-dashboard.tsx` - CSS variable replacements
+- `src/components/cad/job-compare.tsx` - CSS variable replacements
+- `src/components/cad/validation-panel.tsx` - CSS variable replacements
+- `src/components/cad/batch-parameter-editor.tsx` - CSS variable replacements
+- `src/components/cad/scad-editor.tsx` - CSS variable replacements
+- `src/components/cad/job-version-history.tsx` - CSS variable replacements
+- `src/components/cad/job-dependencies.tsx` - CSS variable replacements
+
+#### Lint Status: ✅ PASS (0 errors)
 
 ---
 

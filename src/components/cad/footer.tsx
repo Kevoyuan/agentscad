@@ -127,8 +127,8 @@ export function Footer({
   const liveClock = useLiveClock()
 
   return (
-    <footer className="relative flex items-center justify-between px-4 py-1.5 border-t border-white/[0.06] bg-[#141414] shrink-0">
-      <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-600">
+    <footer className="relative flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
+      <div className="flex items-center gap-3 text-[9px] font-mono text-[var(--app-text-muted)]">
         <FooterMetric tooltip="System health status">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -176,7 +176,7 @@ export function Footer({
           </>
         )}
       </div>
-      <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-700">
+      <div className="flex items-center gap-3 text-[9px] font-mono text-[var(--app-text-dim)]">
         <FooterMetric tooltip="Current time">
           <span className="flex items-center gap-1">
             <Clock className="w-2.5 h-2.5" />
@@ -204,7 +204,7 @@ export function Footer({
             AgentSCAD v0.9
           </span>
         </FooterMetric>
-        <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-zinc-600 hover:text-zinc-400" onClick={onExport}>
+        <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={onExport}>
           <FileJson className="w-2.5 h-2.5" />Export
         </Button>
       </div>

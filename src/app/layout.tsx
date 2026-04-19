@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import { CustomScrollbarStyle } from "@/components/cad/custom-scrollbar";
-
-const CUSTOM_SCROLLBAR_CLASS = "cad-custom-scrollbar";
+import { Providers } from "@/components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,11 +36,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased ${CUSTOM_SCROLLBAR_CLASS}`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased cad-custom-scrollbar`}
       >
-        <CustomScrollbarStyle />
-        {children}
-        <Toaster />
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -371,7 +371,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25 }}
-            className="rounded-xl border border-white/[0.06] bg-[#141414] overflow-hidden"
+            className="rounded-xl border border-[color:var(--app-border)] bg-[var(--app-surface)] overflow-hidden"
           >
             {/* Column headers */}
             <div className="grid grid-cols-[1fr_100px_20px_100px] items-center gap-1 px-2 py-1.5 bg-zinc-800/30 border-b border-zinc-800/60">

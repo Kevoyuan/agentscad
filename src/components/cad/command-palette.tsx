@@ -101,7 +101,7 @@ export function CommandPalette({
       onOpenChange={onOpenChange}
       title="Command Palette"
       description="Search jobs and actions..."
-      className="bg-[#141414] border-white/[0.06] [&_[cmdk-group-heading]]:text-zinc-500"
+      className="bg-[var(--app-surface)] border-[color:var(--app-border)] [&_[cmdk-group-heading]]:text-[var(--app-text-muted)]"
     >
       <CommandInput
         placeholder="Search jobs, actions, or type a command..."

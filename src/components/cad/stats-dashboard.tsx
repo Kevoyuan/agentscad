@@ -365,7 +365,7 @@ function StatCard({
   return (
     <motion.div
       variants={staggerChild}
-      className="relative rounded-xl border border-white/[0.06] bg-[#141414] p-3 overflow-hidden linear-surface-hover"
+      className="relative rounded-xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3 overflow-hidden linear-surface-hover"
     >
       <div className="flex items-center gap-1.5 mb-2">
         <Icon className="w-3 h-3 text-zinc-600" />
@@ -514,7 +514,7 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
     <div className="max-h-80 overflow-y-auto pr-1">
       {groupedEvents.map((group) => (
         <div key={group.label} className="mb-3 last:mb-0">
-          <span className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase block mb-1.5 sticky top-0 bg-[#141414] py-0.5 z-10">
+          <span className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase block mb-1.5 sticky top-0 bg-[var(--app-surface)] py-0.5 z-10">
             {group.label}
           </span>
           <motion.div
