@@ -1564,7 +1564,7 @@ Agent: Main Agent
 Task: Fix CSS build error, improve dark/light theme, fix left panel card jumping
 
 Work Log:
-- **Fixed CSS build error**: `text-[var(--app-text-*)]` pattern in `worklog.md` was being detected by Tailwind CSS v4 auto-content scanner and generating invalid CSS. Changed `*` to `{variant}` in documentation text.
+- **Fixed CSS build error**: A CSS class pattern with wildcard asterisk in `worklog.md` documentation was being detected by Tailwind CSS v4 auto-content scanner and generating invalid CSS. Replaced with safe placeholder text.
 - **Improved dark/light color scheme**: Sub-agent updated all `--app-*` CSS variables in globals.css:
   - Light mode: Warmer background (#f8f9fb), better text contrast, more visible borders, darker accent text for readability
   - Dark mode: Warmer bg (#0c0c0e), better surface separation (#151517), CRITICAL fix for text-dim (#3f3f46 → #55556a), brighter accent text (#b794f6), more visible scrollbars (#333340) and borders
