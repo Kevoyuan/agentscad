@@ -1,7 +1,6 @@
 'use client'
 
-import { forwardRef, HTMLAttributes, CSSProperties, useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { CSSProperties, useState, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Clock } from 'lucide-react'
@@ -96,29 +95,15 @@ export function SortableJobCard({
   const progressPercent = getPipelineProgress(job.state)
   const progressColor = PROGRESS_COLOR_MAP[job.state] || '#71717a'
 
-  // Priority badge bounce on change - use key based on priority to trigger re-animation
-  const [prevPriority, setPrevPriority] = useState(job.priority)
-  const [priorityKey, setPriorityKey] = useState(0)
-  if (job.priority !== prevPriority) {
-    setPrevPriority(job.priority)
-    setPriorityKey(k => k + 1)
-  }
+  // Priority key for re-rendering badge (no animation, just update text)
+  const priorityKey = job.priority
 
-  // State change bounce micro-animation
-  const [stateBounce, setStateBounce] = useState(false)
-  const [prevJobState, setPrevJobState] = useState(job.state)
-  if (job.state !== prevJobState) {
-    setPrevJobState(job.state)
-    setStateBounce(true)
-    setTimeout(() => setStateBounce(false), 300)
-  }
-
-  // Live elapsed time updater
-  const [elapsed, setElapsed] = useState(formatElapsed(job.createdAt))
+  // Live elapsed time updater - update every 10s to reduce re-renders
+  const [elapsed, setElapsed] = useState(() => formatElapsed(job.createdAt))
   useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsed(formatElapsed(job.createdAt))
-    }, 1000)
+    const update = () => setElapsed(formatElapsed(job.createdAt))
+    update() // Initial calculation
+    const interval = setInterval(update, 10000) // 10s instead of 1s to reduce re-renders
     return () => clearInterval(interval)
   }, [job.createdAt])
 
@@ -132,14 +117,9 @@ export function SortableJobCard({
     : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30 font-normal'
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={{ ...style, '--border-color': leftBorderColor } as CSSProperties}
-      layout
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0, scale: stateBounce ? 1.015 : 1 }}
-      whileHover={{ scale: 1.01 }}
-      transition={{ scale: { duration: 0.2, ease: 'easeOut' } }}
       className={`group/card relative rounded-lg p-2.5 cursor-pointer linear-transition overflow-hidden job-card-left-border job-card-hover ${
         isDragging || isSortableDragging
           ? 'shadow-xl ring-2 ring-violet-500/20 scale-[1.02] z-50'
@@ -150,7 +130,7 @@ export function SortableJobCard({
         isSelected
           ? 'linear-selected bg-violet-600/10 border border-violet-500/30'
           : 'linear-surface border border-[color:var(--app-border)] hover:bg-[var(--app-surface-hover)]'
-      } ${stateBounce ? 'state-bounce' : ''}`}
+      }`}
       onClick={() => onSelect(job)}
     >
       {/* Drag Handle */}
@@ -248,7 +228,7 @@ export function SortableJobCard({
           </Button>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 

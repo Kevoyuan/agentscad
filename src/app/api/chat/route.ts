@@ -73,9 +73,13 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       { role: "system", content: systemPrompt },
     ];
 
+    // Check if the model supports multimodal input
+    const multimodalModels = ["glm-4v", "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "qwen-vl-max"];
+    const isMultimodal = multimodalModels.includes(model || "");
+
     for (const msg of messages) {
       if (
-        model === "glm-4v" &&
+        isMultimodal &&
         images &&
         images.length > 0 &&
         msg.role === "user"
@@ -103,13 +107,13 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       const ZAI = ZAIModule.default;
       const zai = await ZAI.create();
 
-      // Build the create options - pass model if specified and supported
+      // Build the create options - pass model if specified
       const createOptions: Record<string, unknown> = {
         messages: formattedMessages,
         stream: true,
       };
 
-      if (model && model !== "default") {
+      if (model) {
         createOptions.model = model;
       }
 

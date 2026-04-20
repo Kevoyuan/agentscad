@@ -716,6 +716,11 @@ export default function Home() {
 
   // ── Computed Values ───────────────────────────────────────────────────────
 
+  // Sorted jobs for rendering (stable reference, no in-place sort mutation)
+  const sortedJobs = useMemo(() => {
+    return [...jobs].sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }, [jobs])
+
   const stateCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const j of allJobs) {
@@ -922,7 +927,7 @@ export default function Home() {
                   const next = resolvedTheme === 'dark' ? 'light' : 'dark'
                   setTheme(next)
                 }}>
-                  {resolvedTheme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+                  {!resolvedTheme ? <div className="w-3 h-3" /> : resolvedTheme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Toggle {resolvedTheme === 'dark' ? 'Light' : 'Dark'} Mode</p></TooltipContent>
@@ -1008,11 +1013,11 @@ export default function Home() {
               >
                 <ScrollArea className="flex-1">
                   <SortableContext
-                    items={jobs.sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(j => j.id)}
+                    items={sortedJobs.map(j => j.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="p-2 space-y-1">
-                      {jobs.sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(job => (
+                      {sortedJobs.map(job => (
                         <JobContextMenu
                           key={job.id}
                           job={job}
@@ -1053,7 +1058,7 @@ export default function Home() {
                 </ScrollArea>
                 <DragOverlay>
                   {activeDragId ? (
-                    <DragOverlayCard job={jobs.find(j => j.id === activeDragId)!} />
+                    <DragOverlayCard job={sortedJobs.find(j => j.id === activeDragId)!} />
                   ) : null}
                 </DragOverlay>
               </DndContext>

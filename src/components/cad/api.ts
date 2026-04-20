@@ -264,7 +264,11 @@ export interface ModelInfo {
   id: string
   name: string
   description: string
+  provider: string
+  providerName: string
   multimodal: boolean
+  reasoning: boolean
+  category: "flagship" | "fast" | "reasoning" | "vision" | "code"
 }
 
 export async function fetchModels(): Promise<{ models: ModelInfo[] }> {

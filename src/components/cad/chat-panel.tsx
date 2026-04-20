@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { Sparkles, MessageSquare, Send, Square, Clock, Copy, Check, ChevronDown, ImagePlus, X, Eye } from 'lucide-react'
+import { Sparkles, MessageSquare, Send, Square, Clock, Copy, Check, ChevronDown, ImagePlus, X, Eye, Brain, Zap, Code2, Star } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -53,16 +52,36 @@ function CodeCopyButton({ text }: { text: string }) {
   )
 }
 
+// Category badge colors
+const CATEGORY_STYLES: Record<string, { icon: React.ReactNode; color: string }> = {
+  flagship: { icon: <Star className="w-2.5 h-2.5" />, color: 'text-amber-400' },
+  fast: { icon: <Zap className="w-2.5 h-2.5" />, color: 'text-cyan-400' },
+  reasoning: { icon: <Brain className="w-2.5 h-2.5" />, color: 'text-violet-400' },
+  vision: { icon: <Eye className="w-2.5 h-2.5" />, color: 'text-emerald-400' },
+  code: { icon: <Code2 className="w-2.5 h-2.5" />, color: 'text-orange-400' },
+}
+
+// Provider display colors
+const PROVIDER_COLORS: Record<string, string> = {
+  openai: '#10a37f',
+  anthropic: '#d97706',
+  google: '#4285f4',
+  deepseek: '#5b6ef7',
+  zhipu: '#3b82f6',
+  qwen: '#8b5cf6',
+  mistral: '#f97316',
+}
+
 export function ChatPanel({ job }: { job: Job }) {
-  // Messages are scoped per job - using key-based reset via parent component
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
-  const [selectedModel, setSelectedModel] = useState('default')
+  const [selectedModel, setSelectedModel] = useState('gpt-4o')
   const [models, setModels] = useState<ModelInfo[]>([])
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [pendingImages, setPendingImages] = useState<string[]>([])
+  const [providerFilter, setProviderFilter] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<(() => void) | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -72,9 +91,9 @@ export function ChatPanel({ job }: { job: Job }) {
   useEffect(() => {
     fetchModels().then(data => setModels(data.models)).catch(() => {
       setModels([
-        { id: 'default', name: 'Default', description: 'Default model via SDK', multimodal: false },
-        { id: 'glm-4', name: 'GLM-4', description: '智谱GLM-4', multimodal: false },
-        { id: 'glm-4v', name: 'GLM-4V', description: '智谱GLM-4V 多模态', multimodal: true },
+        { id: 'gpt-4o', name: 'GPT-4o', description: 'OpenAI旗舰多模态模型', provider: 'openai', providerName: 'OpenAI', multimodal: true, reasoning: false, category: 'flagship' },
+        { id: 'glm-4', name: 'GLM-4', description: '智谱GLM-4高性能文本模型', provider: 'zhipu', providerName: '智谱AI', multimodal: false, reasoning: false, category: 'flagship' },
+        { id: 'glm-4v', name: 'GLM-4V', description: '智谱GLM-4V多模态模型', provider: 'zhipu', providerName: '智谱AI', multimodal: true, reasoning: false, category: 'vision' },
       ])
     })
   }, [])
@@ -114,6 +133,28 @@ export function ChatPanel({ job }: { job: Job }) {
 
   const suggestions = useMemo(() => getSmartSuggestions(job.partFamily), [job.partFamily])
 
+  // Group models by provider
+  const groupedModels = useMemo(() => {
+    const groups: Record<string, { provider: string; providerName: string; models: ModelInfo[] }> = {}
+    for (const model of models) {
+      if (providerFilter && model.provider !== providerFilter) continue
+      if (!groups[model.provider]) {
+        groups[model.provider] = { provider: model.provider, providerName: model.providerName, models: [] }
+      }
+      groups[model.provider].models.push(model)
+    }
+    return Object.values(groups)
+  }, [models, providerFilter])
+
+  // Unique providers for filter
+  const providers = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const m of models) {
+      if (!seen.has(m.provider)) seen.set(m.provider, m.providerName)
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
+  }, [models])
+
   // Smooth auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
@@ -126,7 +167,6 @@ export function ChatPanel({ job }: { job: Job }) {
       abortRef.current()
       abortRef.current = null
     }
-    // Save whatever was streamed so far as a message
     if (streamingContent) {
       setMessages(prev => [...prev, { role: 'assistant', content: streamingContent, timestamp: new Date() }])
     }
@@ -148,8 +188,6 @@ export function ChatPanel({ job }: { job: Job }) {
     const abort = sendChatMessageStream(
       chatHistory,
       job.id,
-      selectedModel !== 'default' ? selectedModel : undefined,
-      pendingImages.length > 0 ? pendingImages : undefined,
       (token) => {
         accumulated += token
         setStreamingContent(accumulated)
@@ -169,7 +207,9 @@ export function ChatPanel({ job }: { job: Job }) {
         setIsStreaming(false)
         setPendingImages([])
         abortRef.current = null
-      }
+      },
+      selectedModel !== 'gpt-4o' ? selectedModel : undefined,
+      pendingImages.length > 0 ? pendingImages : undefined,
     )
     abortRef.current = abort
   }
@@ -220,24 +260,59 @@ export function ChatPanel({ job }: { job: Job }) {
               className="flex items-center gap-1 text-[9px] font-mono text-zinc-500 hover:text-zinc-300 px-1.5 py-0.5 rounded transition-colors linear-surface-hover"
               onClick={() => setShowModelPicker(!showModelPicker)}
             >
-              {currentModel?.name || 'Default'}
+              {currentModel?.name || 'GPT-4o'}
               {isMultimodal && <Eye className="w-2.5 h-2.5 text-violet-400" />}
+              {currentModel?.reasoning && <Brain className="w-2.5 h-2.5 text-violet-400" />}
               <ChevronDown className="w-2.5 h-2.5" />
             </button>
             {showModelPicker && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-white/[0.08] rounded-md shadow-lg z-50 py-1">
-                {models.map(model => (
+              <div className="absolute right-0 top-full mt-1 w-72 bg-[#1a1a1a] border border-white/[0.08] rounded-lg shadow-xl z-50 py-1 max-h-[400px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#27272a #1a1a1a' }}>
+                {/* Provider filter tabs */}
+                <div className="flex gap-0.5 px-2 py-1.5 border-b border-white/[0.06] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                   <button
-                    key={model.id}
-                    className={`w-full text-left px-3 py-1.5 text-[10px] flex items-center gap-2 transition-colors ${
-                      selectedModel === model.id ? 'bg-violet-600/15 text-violet-300' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                    }`}
-                    onClick={() => { setSelectedModel(model.id); setShowModelPicker(false) }}
+                    className={`text-[8px] font-mono px-1.5 py-0.5 rounded shrink-0 transition-colors ${!providerFilter ? 'bg-violet-600/20 text-violet-300' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    onClick={() => setProviderFilter(null)}
                   >
-                    <span className="font-mono font-medium">{model.name}</span>
-                    {model.multimodal && <Eye className="w-2.5 h-2.5 text-violet-400" />}
-                    <span className="text-[8px] text-zinc-600 ml-auto">{model.id}</span>
+                    All
                   </button>
+                  {providers.map(p => (
+                    <button
+                      key={p.id}
+                      className={`text-[8px] font-mono px-1.5 py-0.5 rounded shrink-0 transition-colors ${providerFilter === p.id ? 'bg-violet-600/20 text-violet-300' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      onClick={() => setProviderFilter(p.id === providerFilter ? null : p.id)}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+                {/* Model groups by provider */}
+                {groupedModels.map(group => (
+                  <div key={group.provider}>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 text-[8px] font-mono text-zinc-600 uppercase tracking-wider">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PROVIDER_COLORS[group.provider] || '#71717a' }} />
+                      {group.providerName}
+                    </div>
+                    {group.models.map(model => {
+                      const catStyle = CATEGORY_STYLES[model.category] || CATEGORY_STYLES.flagship
+                      return (
+                        <button
+                          key={model.id}
+                          className={`w-full text-left px-3 py-1.5 text-[10px] flex items-center gap-2 transition-colors ${
+                            selectedModel === model.id ? 'bg-violet-600/15 text-violet-300' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                          }`}
+                          onClick={() => { setSelectedModel(model.id); setShowModelPicker(false) }}
+                        >
+                          <span className={`flex items-center gap-0.5 ${catStyle.color}`}>
+                            {catStyle.icon}
+                          </span>
+                          <span className="font-mono font-medium">{model.name}</span>
+                          {model.multimodal && <Eye className="w-2 h-2 text-emerald-400" />}
+                          {model.reasoning && <Brain className="w-2 h-2 text-violet-400" />}
+                          <span className="text-[8px] text-zinc-600 ml-auto truncate max-w-[80px]">{model.description.slice(0, 20)}...</span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 ))}
               </div>
             )}
@@ -257,7 +332,7 @@ export function ChatPanel({ job }: { job: Job }) {
             </div>
             <div className="text-center">
               <p className="text-xs">Ask about this CAD job</p>
-              <p className="text-[10px] text-zinc-700 mt-1">Get help with parameters, design, or manufacturing</p>
+              <p className="text-[10px] text-zinc-700 mt-1">Using {currentModel?.name || 'GPT-4o'} by {currentModel?.providerName || 'OpenAI'}</p>
             </div>
             <div className="flex flex-wrap gap-1 justify-center mt-1 max-w-[280px]">
               {suggestions.map(q => (
@@ -327,7 +402,7 @@ export function ChatPanel({ job }: { job: Job }) {
             </div>
           </div>
         )}
-        {/* Typing indicator (before first token) - Wave animation */}
+        {/* Typing indicator (before first token) */}
         {isStreaming && !streamingContent && (
           <div className="flex justify-start">
             <div className="bg-zinc-800/50 border border-zinc-700/30 rounded-lg px-3 py-2">
@@ -378,7 +453,7 @@ export function ChatPanel({ job }: { job: Job }) {
             className={`h-7 w-7 p-0 shrink-0 ${isMultimodal ? 'text-violet-400 hover:text-violet-300' : 'text-zinc-700 cursor-not-allowed'}`}
             onClick={() => isMultimodal && fileInputRef.current?.click()}
             disabled={!isMultimodal || isStreaming}
-            title={isMultimodal ? 'Attach image (GLM-4V)' : 'Switch to GLM-4V for image support'}
+            title={isMultimodal ? 'Attach image' : 'Switch to a multimodal model for image support'}
           >
             <ImagePlus className="w-3.5 h-3.5" />
           </Button>

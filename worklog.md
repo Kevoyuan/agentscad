@@ -1227,3 +1227,43 @@ Work Log:
 - **Context Menu**: Right-click any job card for quick actions — Process/Reprocess, Duplicate, Cancel, Priority submenu (P1-P10), Link to Parent, Copy Job ID, Copy URL, Delete
 - **SCAD Highlight Refactor**: highlightScad already extracted to shared utility `src/lib/scad-highlight.ts`, both ScadViewer and ScadEditor import from it
 - **Version remains v0.7**
+
+---
+Task ID: 12
+Agent: Main Agent
+Task: Fix left panel card jumping/flickering + Update outdated model list with latest LLM models
+
+Work Log:
+- Diagnosed card jumping root causes: (1) motion.div `layout` prop causing position animations on data refresh, (2) stateBounce scale animation, (3) 1-second elapsed time updates causing constant re-renders, (4) in-place jobs.sort() mutation in render path
+- Fixed SortableJobCard: removed `layout` prop from motion.div, converted to plain `div`, removed stateBounce animation, reduced elapsed time update from 1s to 10s, removed priority key bounce, removed unused imports (motion, useRef, memo)
+- Fixed page.tsx: added `sortedJobs` useMemo to prevent in-place sort mutation, replaced all `jobs.sort()` calls with `sortedJobs`, added hydration mismatch guard for theme toggle icon
+- Researched latest LLM models via web search across 9 search queries covering OpenAI, Anthropic, Google, DeepSeek, Zhipu, Qwen, and Mistral
+- Updated `/api/models/route.ts` with comprehensive 29-model list across 7 providers:
+  - OpenAI (8): GPT-4o, GPT-4o Mini, o1, o1 Mini, o3 Mini, GPT-4.1, GPT-4.1 Mini, GPT-4.1 Nano
+  - Anthropic (4): Claude Sonnet 4, Claude Opus 4, Claude 3.5 Sonnet, Claude 3.5 Haiku
+  - Google (4): Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.5 Flash-Lite, Gemini 2.0 Flash
+  - DeepSeek (2): DeepSeek-V3, DeepSeek-R1
+  - Zhipu (3): GLM-4, GLM-4V, GLM-4 Flash
+  - Qwen (4): Qwen Max, Qwen Plus, Qwen Turbo, Qwen VL Max
+  - Mistral (3): Mistral Large, Mistral Small, Codestral
+- Updated ModelInfo interface with new fields: provider, providerName, reasoning, category
+- Updated chat API route: multimodal model detection now covers all vision-capable models, model passthrough to SDK now always sends model ID
+- Completely rewrote ChatPanel with provider-grouped model picker: filter tabs by provider, category icons (Star/Zap/Brain/Eye/Code2), provider color dots, model descriptions
+- Updated fallback model list in ChatPanel to match new structure
+- Created 15-minute webDevReview cron job (job ID: 107757)
+- All lint checks pass (0 errors)
+
+Stage Summary:
+- **Card jumping fixed**: Removed layout animations, reduced re-render frequency, eliminated sort mutation
+- **Hydration fix**: Added guard for theme toggle icon when resolvedTheme is undefined
+- **Model list updated**: 3 old models → 29 latest models across 7 providers with categorization
+- **Chat panel enhanced**: Provider-grouped model picker with filtering, category icons, multimodal/reasoning badges
+- **Chat API updated**: Multimodal detection covers all vision models, model passthrough to SDK
+
+Files Modified:
+- `src/components/cad/sortable-job-card.tsx` - Removed motion.div/layout/stateBounce, reduced elapsed time update frequency
+- `src/app/page.tsx` - Added sortedJobs useMemo, fixed theme toggle hydration, replaced inline sorts
+- `src/app/api/models/route.ts` - Complete rewrite with 29 models across 7 providers
+- `src/app/api/chat/route.ts` - Updated multimodal model detection, model passthrough
+- `src/components/cad/api.ts` - Updated ModelInfo interface with provider/category fields
+- `src/components/cad/chat-panel.tsx` - Complete rewrite with provider-grouped model picker
