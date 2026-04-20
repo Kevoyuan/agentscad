@@ -27,7 +27,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
@@ -283,21 +282,26 @@ export default function Home() {
 
   // ── Data Fetching ─────────────────────────────────────────────────────────
 
+  // Use ref for selectedJob to avoid loadJobs dependency changes on selection
+  const selectedJobRef = useRef<Job | null>(null)
+  selectedJobRef.current = selectedJob
+
   const loadJobs = useCallback(async () => {
     try {
       const data = await fetchJobs()
       setAllJobs(data.jobs)
       const filtered = applyFilters(data.jobs, filterState)
       setJobs(filtered)
-      // Update selected job if it exists
-      if (selectedJob) {
-        const updated = data.jobs.find(j => j.id === selectedJob.id)
+      // Update selected job if it exists (using ref to avoid dep)
+      const currentSelected = selectedJobRef.current
+      if (currentSelected) {
+        const updated = data.jobs.find(j => j.id === currentSelected.id)
         if (updated) setSelectedJob(updated)
       }
     } catch (err) {
       console.error('Failed to load jobs:', err)
     }
-  }, [filterState, selectedJob])
+  }, [filterState])
 
   // ── WebSocket + Polling Fallback ─────────────────────────────────────────
 
@@ -1011,7 +1015,7 @@ export default function Home() {
                 onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
               >
-                <ScrollArea className="flex-1">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                   <SortableContext
                     items={sortedJobs.map(j => j.id)}
                     strategy={verticalListSortingStrategy}
@@ -1055,7 +1059,7 @@ export default function Home() {
                       )}
                     </div>
                   </SortableContext>
-                </ScrollArea>
+                </div>
                 <DragOverlay>
                   {activeDragId ? (
                     <DragOverlayCard job={sortedJobs.find(j => j.id === activeDragId)!} />

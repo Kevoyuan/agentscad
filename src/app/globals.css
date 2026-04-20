@@ -426,11 +426,12 @@ pre:hover .code-copy-btn { opacity: 1; }
 
 /* ─── Task 6: Enhanced Styling Classes ─────────────────────────── */
 
-/* Job card hover - gradient + shadow + subtle scale */
+/* Job card hover - gradient + shadow (no layout shift) */
 .job-card-hover {
   position: relative;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+  will-change: box-shadow;
 }
 .job-card-hover::after {
   content: '';
@@ -447,7 +448,6 @@ pre:hover .code-copy-btn { opacity: 1; }
 }
 .job-card-hover:hover {
   box-shadow: var(--app-card-hover-shadow);
-  transform: translateY(-1px);
 }
 
 /* Tab indicator - active tab left border */

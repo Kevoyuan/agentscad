@@ -98,12 +98,12 @@ export function SortableJobCard({
   // Priority key for re-rendering badge (no animation, just update text)
   const priorityKey = job.priority
 
-  // Live elapsed time updater - update every 10s to reduce re-renders
+  // Live elapsed time updater - update every 30s to reduce re-renders and card jumping
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.createdAt))
   useEffect(() => {
     const update = () => setElapsed(formatElapsed(job.createdAt))
     update() // Initial calculation
-    const interval = setInterval(update, 10000) // 10s instead of 1s to reduce re-renders
+    const interval = setInterval(update, 30000) // 30s to minimize re-renders
     return () => clearInterval(interval)
   }, [job.createdAt])
 
@@ -125,7 +125,7 @@ export function SortableJobCard({
           ? 'shadow-xl ring-2 ring-violet-500/20 scale-[1.02] z-50'
           : ''
       } ${
-        isProcessing ? 'status-pulse' : ''
+        isProcessing ? 'opacity-95' : '' // Subtle visual indicator without layout shift
       } ${
         isSelected
           ? 'linear-selected bg-violet-600/10 border border-violet-500/30'

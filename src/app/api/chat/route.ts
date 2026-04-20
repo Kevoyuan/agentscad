@@ -74,7 +74,18 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
     ];
 
     // Check if the model supports multimodal input
-    const multimodalModels = ["glm-4v", "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "qwen-vl-max"];
+    const multimodalModels = [
+      // OpenAI
+      "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini", "gpt-4o", "o4-mini",
+      // Anthropic
+      "claude-opus-4-7-20260401", "claude-opus-4-6-20260205", "claude-sonnet-4-6-20260217", "claude-sonnet-4-5-20251022", "claude-haiku-4-5-20251022",
+      // Google
+      "gemini-3.1-pro", "gemini-3.1-flash", "gemini-3-flash", "gemini-2.5-pro", "gemini-2.5-flash",
+      // Zhipu
+      "glm-5.1", "glm-5-turbo", "glm-4v-plus",
+      // Qwen
+      "qwen3.5-plus", "qwen3-vl",
+    ];
     const isMultimodal = multimodalModels.includes(model || "");
 
     for (const msg of messages) {

@@ -1267,3 +1267,144 @@ Files Modified:
 - `src/app/api/chat/route.ts` - Updated multimodal model detection, model passthrough
 - `src/components/cad/api.ts` - Updated ModelInfo interface with provider/category fields
 - `src/components/cad/chat-panel.tsx` - Complete rewrite with provider-grouped model picker
+
+---
+Task ID: 3
+Agent: Fullstack Dev Agent
+Task: Fix 3D Preview Models + Fix Jobs Panel Scrolling
+
+Work Log:
+- Read full three-d-viewer.tsx (475 lines) - found basic box/cylinder geometry for all part families
+- Read jobs panel section of page.tsx (lines 960-1070) - found ScrollArea with `className="flex-1"` not scrolling
+- Created involute gear tooth profile generator function (`createInvoluteGearShape`) using THREE.Shape with:
+  - Proper involute curve approximation from root to tip with progressive angular offset
+  - Tip arc between flanks
+  - Root fillet arcs between teeth
+  - Bore hole as shape hole
+  - Hub boss, keyway, and lightened weight-reduction holes
+- Created rounded rectangle shape generator (`createRoundedRectShape`) using quadraticCurveTo for corners
+- Created hexagonal shape generator (`createHexShape`) for hex bolt head
+- Replaced spur_gear model: CylinderGeometry + BoxGeometry teeth → ExtrudeGeometry with involute profile shape
+- Replaced device_stand model: basic boxes → rounded-corner extruded shapes, angle support ribs, cable management channel, rubber feet recesses
+- Replaced phone_case model: basic boxes → rounded-corner extruded shell, camera cutout with lens circles, side button recesses (volume + power), charging port cutout
+- Replaced electronics_enclosure (default) model: basic boxes → rounded-corner extruded shell, snap-fit clips at corners, ventilation slots on side, PCB mounting posts, transparent lid
+- Added new hex_bolt part family model: hex head via ExtrudeGeometry, cylindrical shaft, thread visualization with torus rings, chamfered head top, dimension label in viewer
+- Fixed jobs panel scrolling: replaced `<ScrollArea className="flex-1">` with `<div className="flex-1 min-h-0 overflow-y-auto">` - ScrollArea needs defined height which flex-1 doesn't provide; min-h-0 allows flex child to shrink and enable overflow
+- Removed unused ScrollArea import from page.tsx
+- Fixed lint error: renamed `module` variable to `gearModule` in involute gear shape function (Next.js rule: no-assign-module-variable)
+- All lint checks pass (0 errors, 0 warnings)
+
+Stage Summary:
+- **3D Viewer Models**: All 5 part families now use realistic CAD-quality geometry instead of basic primitives
+  - spur_gear: Involute tooth profile with ExtrudeGeometry, hub boss, keyway, lightened holes
+  - hex_bolt: Hex head + shaft + thread rings + chamfer
+  - device_stand: Rounded base/back/lip, angle support ribs, cable channel, rubber feet
+  - phone_case: Rounded shell, camera cutout, lens circles, button recesses, charging port
+  - electronics_enclosure: Rounded corners, snap-fit clips, ventilation slots, PCB posts, transparent lid
+- **Jobs Panel Scrolling**: Fixed by replacing ScrollArea with proper overflow div using `flex-1 min-h-0 overflow-y-auto`
+- **Lint**: ✅ PASS (0 errors)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix left panel card jumping/flickering (user raised 3 times)
+
+Work Log:
+- Identified root causes of card jumping:
+  1. `.job-card-hover:hover { transform: translateY(-1px) }` in globals.css caused layout shifts on hover
+  2. `loadJobs` callback had `selectedJob` in its dependency array, causing unnecessary re-creation and re-fetches
+  3. `status-pulse` animation on processing cards caused visual flickering
+  4. Elapsed time counter updated every 10s causing unnecessary re-renders of all cards
+- Applied fixes:
+  1. Removed `transform: translateY(-1px)` from hover, kept box-shadow only (no layout shift)
+  2. Changed `transition: all 0.2s ease` to specific `transition: box-shadow 0.2s ease, background-color 0.2s ease`
+  3. Added `will-change: box-shadow` for GPU acceleration hint
+  4. Used `useRef` for selectedJob in loadJobs to stabilize the callback (removed selectedJob from deps)
+  5. Replaced `status-pulse` animation class with simple `opacity-95` for processing cards
+  6. Increased elapsed time update interval from 10s to 30s to reduce re-renders
+
+Stage Summary:
+- Card jumping fixed by removing layout-shifting transforms and stabilizing re-renders
+- Lint passes with 0 errors
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Update LLM Model Matrix with Latest 2026 Models (verified via web search)
+
+Work Log:
+- Used z-ai web-search CLI to verify latest models from all providers:
+  - Searched OpenAI, Anthropic, Google Gemini, DeepSeek, Zhipu GLM, Qwen models
+- Updated `/home/z/my-project/src/app/api/models/route.ts` with verified 2026 models:
+  - OpenAI: Added GPT-5, GPT-5-mini, o3, o4-mini; kept GPT-4.1 series; marked GPT-4o as deprecated
+  - Anthropic: Added Claude Opus 4.7, Opus 4.6, Sonnet 4.6, Sonnet 4.5, Haiku 4.5; removed old 3.x models
+  - Google: Added Gemini 3.1 Pro, 3.1 Flash, 3 Flash; marked 2.5 series as deprecated; removed 2.0
+  - DeepSeek: Kept V3 and R1 (V4/R2 not yet released as of April 2026)
+  - Zhipu: Added GLM-5.1 (744B, April 2026), GLM-5 Turbo, GLM-4V-Plus; removed old GLM-4/GV-4V
+  - Qwen: Added Qwen3-Max, Qwen3.5-Plus, Qwen3-VL; replaced old qwen-max/plus/turbo/vl-max
+  - Mistral: Kept Large/Small/Codestral (unchanged, still current)
+- Added `released` and `deprecated` fields to ModelInfo interface
+- Updated multimodal models list in `/home/z/my-project/src/app/api/chat/route.ts`
+- Total: 27 models across 7 providers (was 26 models across 7 providers, but all updated to 2026 versions)
+
+Stage Summary:
+- Model matrix fully updated with verified 2026 model IDs and descriptions
+- All deprecated models marked accordingly
+- Multimodal model list in chat API updated to match
+- Lint passes with 0 errors
+
+---
+Task ID: 3
+Agent: Fullstack Dev Agent
+Task: Fix 3D Preview Models + Fix Jobs Panel Scrolling
+
+Work Log (from sub-agent):
+- 3D Viewer Enhancements:
+  - Spur Gear: Replaced cylinder+box with proper involute gear tooth profile using THREE.Shape + ExtrudeGeometry
+    - Involute curve approximation, tip arcs, root fillets, bore hole, hub boss, keyway slot, weight-reduction holes
+  - Hex Bolt (new): Proper hex head via ExtrudeGeometry with beveled edges, shaft with torus thread visualization, chamfered head
+  - Device Stand: Rounded-corner extruded base/back/lip, triangular support ribs, cable management channel, rubber feet recesses
+  - Phone Case: Rounded-corner shell with beveled edges, camera cutout, button recesses, charging port cutout
+  - Electronics Enclosure: Rounded-corner extruded shell, snap-fit clips, ventilation slots, PCB mounting posts, transparent lid
+- Jobs Panel Scroll Fix:
+  - Replaced `<ScrollArea className="flex-1">` with `<div className="flex-1 min-h-0 overflow-y-auto">`
+  - The `min-h-0` is critical - allows flex child to shrink below content size, enabling overflow scroll
+
+Stage Summary:
+- 3D models now generate realistic CAD-quality geometry instead of basic boxes/cylinders
+- Jobs panel scrolling works correctly with min-h-0 fix
+- Lint passes with 0 errors
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: Create cron job for continuous development
+
+Work Log:
+- Created cron job (ID: 108121) with 15-minute interval (fixed_rate: 900s)
+- Uses webDevReview payload type for QA + development cycle
+- Priority: 10 (high)
+
+Stage Summary:
+- Cron job active, will trigger every 15 minutes for automated QA + development
+
+## Current Project Status (April 2026)
+
+### Completed This Session:
+1. ✅ Left panel card jumping fixed (CSS transform removed, loadJobs stabilized, re-render reduced)
+2. ✅ LLM model matrix updated to 2026 latest (27 models, 7 providers, verified via web search)
+3. ✅ 3D preview models enhanced (involute gear profile, realistic enclosures, phone cases, etc.)
+4. ✅ Jobs panel scrolling fixed (min-h-0 + overflow-y-auto)
+5. ✅ Cron job created for continuous development
+
+### Still Pending:
+- 🟡 Linear-style design improvements (reference awesome-design-md)
+- 🟡 Answer: current bound model, workflow explanation, PRD diagram
+- 🟡 LLM router architecture design + provider-specific coding plan
+- 🟡 CADAM project source code reference
+
+### Key Decisions:
+- Used web search to verify latest model IDs before updating (GPT-5, Claude Opus 4.7, Gemini 3.1 Pro are confirmed real)
+- DeepSeek V4/R2 not yet released (as of April 6, 2026) - kept V3/R1
+- GLM-5.1 confirmed as April 2026 release (744B MoE, surpasses GPT-5.4 on SWE-bench Pro)
+- Card jumping fix prioritized stable layout over animation effects
