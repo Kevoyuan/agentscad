@@ -130,7 +130,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                         isFailedStep ? 'text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20' :
                         isCurrent && !isFailed ? 'text-amber-300 bg-amber-500/10 ring-1 ring-amber-500/20' :
                         isCompleted ? 'text-lime-400' :
-                        'text-zinc-600'
+                        'text-[var(--app-text-dim)]'
                       }`}
                       whileHover={isClickable ? { scale: 1.12 } : undefined}
                       whileTap={isClickable ? { scale: 0.95 } : undefined}
@@ -168,7 +168,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                       )}
                       {/* Estimated time for upcoming steps */}
                       {!isCompleted && !isCurrent && !isFailedStep && (
-                        <span className="text-[7px] font-mono text-zinc-700">~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
+                        <span className="text-[7px] font-mono text-[var(--app-text-dim)]">~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
                       )}
                       {/* Running indicator for current step */}
                       {isCurrent && !isFailed && (
@@ -183,7 +183,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                   <TooltipContent side="bottom" className="text-xs max-w-[200px]">
                     <div className="font-mono font-semibold">{step.label}: {step.key.replace(/_/g, ' ')}</div>
                     {duration !== undefined && (
-                      <div className="text-[10px] text-zinc-400 mt-0.5">Duration: {formatDuration(duration)}</div>
+                      <div className="text-[10px] text-[var(--app-text-muted)] mt-0.5">Duration: {formatDuration(duration)}</div>
                     )}
                     {isCurrent && !isFailed && (
                       <div className="text-[10px] text-amber-400 mt-0.5">Currently processing</div>
@@ -195,7 +195,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                       <div className="text-[10px] text-lime-400 mt-0.5">Completed</div>
                     )}
                     {isClickable && (
-                      <div className="text-[10px] text-zinc-500 mt-1">Click to view in inspector</div>
+                      <div className="text-[10px] text-[var(--app-text-muted)] mt-1">Click to view in inspector</div>
                     )}
                   </TooltipContent>
                 </Tooltip>
@@ -205,7 +205,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
               {idx < PIPELINE_STEPS.length - 1 && (
                 <div className="relative flex items-center mx-0.5">
                   {/* Background line */}
-                  <div className="w-4 h-0.5 bg-zinc-800 rounded-full" />
+                  <div className="w-4 h-0.5 bg-[var(--app-surface-raised)] rounded-full" />
                   {/* Animated filled line */}
                   <AnimatePresence>
                     {isLineCompleted && (
@@ -234,7 +234,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                   <ChevronRight className={`w-2.5 h-2.5 relative z-10 linear-transition ${
                     idx < effectiveCurrentIdx ? 'text-lime-500/60' :
                     isFailed && idx === failedStepIdx - 1 ? 'text-rose-500/60' :
-                    'text-zinc-700'
+                    'text-[var(--app-text-dim)]'
                   }`} />
                 </div>
               )}
@@ -262,7 +262,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
           className={`pipeline-mini-progress-fill ${
             isFailed ? 'bg-rose-500' :
             progress === 100 ? 'bg-lime-500' :
-            'bg-violet-500'
+            'bg-[var(--app-accent)]'
           }`}
           style={{ width: `${isFailed ? Math.max(progress - 20, 20) : progress}%` }}
         />

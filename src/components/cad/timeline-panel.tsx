@@ -12,9 +12,9 @@ export function TimelinePanel({ job }: { job: Job }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Timeline</h3>
-        <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800/50 text-zinc-500 border-zinc-700/50">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Timeline</h3>
+        <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
           {logs.length} events
         </Badge>
       </div>
@@ -33,20 +33,20 @@ export function TimelinePanel({ job }: { job: Job }) {
               transition={{ ...slideInLeftTransition, delay: i * 0.03 }}
               className="flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.04] linear-transition group"
             >
-              <span className="text-[8px] font-mono text-zinc-700 mt-0.5 whitespace-nowrap">{formatTime(log.timestamp)}</span>
+              <span className="text-[8px] font-mono text-[var(--app-text-dim)] mt-0.5 whitespace-nowrap">{formatTime(log.timestamp)}</span>
               <span className={`text-[8px] font-mono px-1 py-0.5 rounded shrink-0 ${
                 log.event.includes('FAILED') ? 'bg-rose-500/10 text-rose-400' :
                 log.event === 'DELIVERED' ? 'bg-lime-500/10 text-lime-400' :
                 log.event === 'SCAD_GENERATED' ? 'bg-amber-500/10 text-amber-400' :
                 log.event === 'RENDERED' ? 'bg-cyan-500/10 text-cyan-400' :
                 log.event === 'VALIDATED' ? 'bg-emerald-500/10 text-emerald-400' :
-                'bg-zinc-800/60 text-zinc-400'
+                'bg-[var(--app-surface-hover)] text-[var(--app-text-muted)]'
               }`}>{log.event}</span>
-              <span className="text-[11px] text-zinc-500 flex-1">{log.message}</span>
+              <span className="text-[11px] text-[var(--app-text-muted)] flex-1">{log.message}</span>
             </motion.div>
           ))}
           {logs.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 text-zinc-600 gap-2">
+            <div className="flex flex-col items-center justify-center py-8 text-[var(--app-text-dim)] gap-2">
               <Clock className="w-6 h-6 opacity-30" />
               <span className="text-xs">No events yet</span>
             </div>

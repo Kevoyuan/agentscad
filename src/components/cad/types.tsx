@@ -87,7 +87,7 @@ export const STATE_COLORS: Record<string, { bg: string; text: string; dot: strin
   GEOMETRY_FAILED: { bg: 'bg-red-500/20', text: 'text-red-300', dot: 'bg-red-400', border: 'border-red-500/30' },
   RENDER_FAILED: { bg: 'bg-red-500/20', text: 'text-red-300', dot: 'bg-red-400', border: 'border-red-500/30' },
   HUMAN_REVIEW: { bg: 'bg-yellow-500/20', text: 'text-yellow-300', dot: 'bg-yellow-400', border: 'border-yellow-500/30' },
-  CANCELLED: { bg: 'bg-zinc-500/20', text: 'text-zinc-400', dot: 'bg-zinc-500', border: 'border-zinc-500/30' },
+  CANCELLED: { bg: 'bg-[var(--app-empty-bg)]', text: 'text-[var(--app-text-muted)]', dot: 'bg-zinc-500', border: 'border-zinc-500/30' },
 }
 
 export function InboxIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -157,7 +157,7 @@ export function timeAgo(iso: string) {
 }
 
 export function getStateInfo(state: string) {
-  return STATE_COLORS[state] || { bg: 'bg-zinc-500/20', text: 'text-zinc-300', dot: 'bg-zinc-400', border: 'border-zinc-500/30' }
+  return STATE_COLORS[state] || { bg: 'bg-[var(--app-empty-bg)]', text: 'text-[var(--app-text-secondary)]', dot: 'bg-zinc-400', border: 'border-zinc-500/30' }
 }
 
 export function parseJSON<T>(str: string | null, fallback: T): T {

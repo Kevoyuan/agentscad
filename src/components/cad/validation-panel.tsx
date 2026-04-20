@@ -10,8 +10,8 @@ import { fadeInUp, fadeInUpTransition, staggerContainer, staggerChild, staggerTr
 export function ValidationPanel({ job }: { job: Job }) {
   const results = parseJSON<ValidationResult[]>(job.validationResults, [])
   if (results.length === 0) return (
-    <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
+      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
         <Shield className="w-6 h-6 opacity-30" />
       </div>
       <p className="text-sm">No validation results</p>
@@ -24,14 +24,14 @@ export function ValidationPanel({ job }: { job: Job }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Validation</h3>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Validation</h3>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-8 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+            <div className="w-8 h-1.5 rounded-full bg-[var(--app-surface-raised)] overflow-hidden">
               <div className={`h-full rounded-full transition-all ${score === 100 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${score}%` }} />
             </div>
-            <span className="text-[9px] font-mono text-zinc-500">{score}%</span>
+            <span className="text-[9px] font-mono text-[var(--app-text-muted)]">{score}%</span>
           </div>
           <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">{passed}✓</Badge>
           {failed > 0 && <Badge variant="outline" className="text-[9px] h-4 bg-rose-500/10 text-rose-400 border-rose-500/20">{failed}✗</Badge>}
@@ -62,16 +62,16 @@ export function ValidationPanel({ job }: { job: Job }) {
               }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-mono text-zinc-600 bg-zinc-800/50 px-1 rounded">{r.rule_id}</span>
-                  <span className="text-xs text-zinc-300">{r.rule_name}</span>
+                  <span className="text-[9px] font-mono text-[var(--app-text-dim)] bg-[var(--app-surface-raised)] px-1 rounded">{r.rule_id}</span>
+                  <span className="text-xs text-[var(--app-text-secondary)]">{r.rule_name}</span>
                   {r.is_critical && (
                     <span className="flex items-center gap-0.5 text-[8px] text-amber-500">
                       <AlertTriangle className="w-2.5 h-2.5" />CRITICAL
                     </span>
                   )}
-                  <Badge variant="outline" className="text-[8px] h-3 px-1 border-zinc-700/50 text-zinc-500">{r.level}</Badge>
+                  <Badge variant="outline" className="text-[8px] h-3 px-1 border-[color:var(--app-border)] text-[var(--app-text-muted)]">{r.level}</Badge>
                 </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5">{r.message}</p>
+                <p className="text-[11px] text-[var(--app-text-muted)] mt-0.5">{r.message}</p>
               </div>
             </motion.div>
           ))}

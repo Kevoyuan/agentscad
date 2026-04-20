@@ -10,12 +10,12 @@ import { Separator } from '@/components/ui/separator'
 // ─── Theme Config ────────────────────────────────────────────────────────
 
 const ACCENT_COLORS = [
-  { name: 'Violet', hue: 263, color: 'bg-violet-500', ring: 'ring-violet-400' },
-  { name: 'Cyan', hue: 185, color: 'bg-cyan-500', ring: 'ring-cyan-400' },
-  { name: 'Emerald', hue: 155, color: 'bg-emerald-500', ring: 'ring-emerald-400' },
-  { name: 'Amber', hue: 38, color: 'bg-amber-500', ring: 'ring-amber-400' },
-  { name: 'Rose', hue: 345, color: 'bg-rose-500', ring: 'ring-rose-400' },
-  { name: 'Orange', hue: 25, color: 'bg-orange-500', ring: 'ring-orange-400' },
+  { name: 'Violet', hue: 263, hex: '#7c3aed', color: 'bg-violet-500', ring: 'ring-violet-400' },
+  { name: 'Cyan', hue: 185, hex: '#06b6d4', color: 'bg-cyan-500', ring: 'ring-cyan-400' },
+  { name: 'Emerald', hue: 155, hex: '#10b981', color: 'bg-emerald-500', ring: 'ring-emerald-400' },
+  { name: 'Amber', hue: 38, hex: '#f59e0b', color: 'bg-amber-500', ring: 'ring-amber-400' },
+  { name: 'Rose', hue: 345, hex: '#f43f5e', color: 'bg-rose-500', ring: 'ring-rose-400' },
+  { name: 'Orange', hue: 25, hex: '#f97316', color: 'bg-orange-500', ring: 'ring-orange-400' },
 ]
 
 const FONT_SIZES = [
@@ -69,9 +69,67 @@ function saveSettings(settings: ThemeSettings) {
 
 function applyThemeToDOM(settings: ThemeSettings) {
   const root = document.documentElement
+  const accent = ACCENT_COLORS.find(a => a.hue === settings.accentHue) || ACCENT_COLORS[0]
+  const isDark = root.classList.contains('dark')
 
-  // Apply accent hue as CSS custom properties
+  // Apply accent as --app-accent CSS custom properties
+  // This makes all components using var(--app-accent) update automatically
+  root.style.setProperty('--app-accent', accent.hex)
   root.style.setProperty('--accent-hue', String(settings.accentHue))
+
+  // Accent hover: slightly lighter in dark, slightly darker in light
+  const accentHover = isDark
+    ? `hsl(${settings.accentHue}, 70%, 65%)`
+    : `hsl(${settings.accentHue}, 70%, 45%)`
+  root.style.setProperty('--app-accent-hover', accentHover)
+
+  // Accent background: subtle tint
+  const accentBg = `hsla(${settings.accentHue}, 70%, 50%, 0.08)`
+  root.style.setProperty('--app-accent-bg', accentBg)
+
+  // Accent text: lighter in dark mode, darker in light mode
+  const accentText = isDark
+    ? `hsl(${settings.accentHue}, 70%, 72%)`
+    : `hsl(${settings.accentHue}, 70%, 42%)`
+  root.style.setProperty('--app-accent-text', accentText)
+
+  // Accent border
+  const accentBorder = `hsla(${settings.accentHue}, 70%, 50%, 0.25)`
+  root.style.setProperty('--app-accent-border', accentBorder)
+
+  // Accent text secondary (dimmer)
+  const accentTextSec = isDark
+    ? `hsla(${settings.accentHue}, 60%, 72%, 0.7)`
+    : `hsla(${settings.accentHue}, 60%, 42%, 0.7)`
+  root.style.setProperty('--app-accent-text-secondary', accentTextSec)
+
+  // Batch bar
+  const batchBarBg = `hsla(${settings.accentHue}, 70%, 50%, 0.06)`
+  root.style.setProperty('--app-batch-bar-bg', batchBarBg)
+  const batchBarText = isDark
+    ? `hsl(${settings.accentHue}, 50%, 78%)`
+    : `hsl(${settings.accentHue}, 70%, 42%)`
+  root.style.setProperty('--app-batch-bar-text', batchBarText)
+
+  // Focus ring
+  const focusRing = `hsla(${settings.accentHue}, 70%, 50%, ${isDark ? '0.3' : '0.2'})`
+  root.style.setProperty('--app-focus-ring', focusRing)
+
+  // Interactive hover
+  const interactiveHover = `hsla(${settings.accentHue}, 70%, 50%, 0.06)`
+  root.style.setProperty('--app-interactive-hover', interactiveHover)
+
+  // Selected bg
+  const selectedBg = `hsla(${settings.accentHue}, 70%, 50%, ${isDark ? '0.08' : '0.05'})`
+  root.style.setProperty('--app-selected-bg', selectedBg)
+
+  // Gradient separator
+  const gradSep = isDark
+    ? `linear-gradient(90deg, transparent, hsla(${settings.accentHue}, 70%, 50%, 0.25), hsla(${settings.accentHue}, 70%, 50%, 0.08), transparent)`
+    : `linear-gradient(90deg, transparent, hsla(${settings.accentHue}, 70%, 50%, 0.12), hsla(${settings.accentHue}, 70%, 50%, 0.04), transparent)`
+  root.style.setProperty('--app-gradient-separator', gradSep)
+
+  // Legacy accent variables (for backwards compat)
   root.style.setProperty('--accent-color', `hsl(${settings.accentHue}, 70%, 60%)`)
   root.style.setProperty('--accent-color-dim', `hsl(${settings.accentHue}, 50%, 30%)`)
   root.style.setProperty('--accent-color-bright', `hsl(${settings.accentHue}, 80%, 70%)`)
@@ -104,15 +162,22 @@ export function ThemePanel() {
     if (typeof window === 'undefined') return DEFAULT_SETTINGS
     return loadSettings()
   })
-  const [isLoaded, setIsLoaded] = useState(() => {
+  const [mounted, setMounted] = useState(() => {
     if (typeof window === 'undefined') return false
     return true
   })
 
-  // Apply theme on mount
+  // Apply theme on mount and when settings change
   useEffect(() => {
     applyThemeToDOM(settings)
   }, [settings])
+
+  // Re-apply accent colors when theme mode changes (dark/light affects accent text/hover)
+  useEffect(() => {
+    if (mounted) {
+      applyThemeToDOM(settings)
+    }
+  }, [resolvedTheme, mounted])
 
   const updateSettings = useCallback((partial: Partial<ThemeSettings>) => {
     setSettings(prev => {
@@ -123,6 +188,17 @@ export function ThemePanel() {
     })
   }, [])
 
+  const handleThemeChange = useCallback((value: string) => {
+    // Add transition class for smooth theme switch
+    const root = document.documentElement
+    root.classList.add('theme-transition')
+    setTheme(value)
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      root.classList.remove('theme-transition')
+    }, 400)
+  }, [setTheme])
+
   const resetToDefaults = useCallback(() => {
     setSettings(DEFAULT_SETTINGS)
     saveSettings(DEFAULT_SETTINGS)
@@ -130,17 +206,9 @@ export function ThemePanel() {
     setTheme('dark')
   }, [setTheme])
 
-  if (!isLoaded) return null
+  if (!mounted) return null
 
   const isDark = resolvedTheme === 'dark'
-  const borderColor = isDark ? 'border-zinc-800/30' : 'border-zinc-200/80'
-  const borderHoverColor = isDark ? 'hover:border-zinc-700/50' : 'hover:border-zinc-300'
-  const bgHoverColor = isDark ? 'hover:bg-zinc-800/20' : 'hover:bg-zinc-100/60'
-  const bgActiveColor = isDark ? 'bg-zinc-800/40' : 'bg-zinc-100/80'
-  const separatorColor = isDark ? 'bg-zinc-800/40' : 'bg-zinc-200/60'
-  const labelColor = isDark ? 'text-zinc-500' : 'text-zinc-400'
-  const subLabelColor = isDark ? 'text-zinc-600' : 'text-zinc-400'
-  const descriptionColor = isDark ? 'text-zinc-700' : 'text-zinc-400'
 
   return (
     <div className="space-y-5 p-1">
@@ -159,10 +227,10 @@ export function ThemePanel() {
                 key={mode.value}
                 className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg border transition-all duration-200 ${
                   isActive
-                    ? 'border-violet-500/50 bg-violet-600/15 text-violet-400 dark:text-violet-300'
-                    : `${borderColor} text-[var(--app-text-muted)] ${borderHoverColor} ${bgHoverColor} hover:text-[var(--app-text-secondary)]`
+                    ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
+                    : `border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:border-[color:var(--app-border-strong)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]`
                 }`}
-                onClick={() => setTheme(mode.value)}
+                onClick={() => handleThemeChange(mode.value)}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span className="text-[9px] font-mono">{mode.label}</span>
@@ -172,7 +240,7 @@ export function ThemePanel() {
                     initial={false}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                   >
-                    <Check className="w-2.5 h-2.5 text-violet-400" />
+                    <Check className="w-2.5 h-2.5 text-[var(--app-accent-text)]" />
                   </motion.div>
                 )}
               </button>
@@ -180,13 +248,13 @@ export function ThemePanel() {
           })}
         </div>
         {theme === 'system' && (
-          <p className={`text-[9px] ${subLabelColor} mt-1.5 ml-1`}>
+          <p className="text-[9px] text-[var(--app-text-dim)] mt-1.5 ml-1">
             System preference: {resolvedTheme === 'dark' ? 'Dark' : 'Light'} mode detected
           </p>
         )}
       </div>
 
-      <Separator className={separatorColor} />
+      <Separator className="bg-[var(--app-surface-hover)]" />
 
       {/* Accent Color */}
       <div>
@@ -200,15 +268,15 @@ export function ThemePanel() {
               key={accent.name}
               className={`relative flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all duration-200 ${
                 settings.accentHue === accent.hue
-                  ? `${borderColor} ${bgActiveColor}`
-                  : `${borderColor} ${borderHoverColor} ${bgHoverColor}`
+                  ? `border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)]`
+                  : `border-[color:var(--app-border)] hover:border-[color:var(--app-border-strong)] hover:bg-[var(--app-surface-hover)]`
               }`}
               onClick={() => updateSettings({ accentHue: accent.hue })}
             >
               <div className={`w-5 h-5 rounded-full ${accent.color} ${
                 settings.accentHue === accent.hue ? 'ring-2 ring-offset-1 ring-offset-[var(--app-bg)] ' + accent.ring : ''
               }`} />
-              <span className={`text-[8px] font-mono ${subLabelColor}`}>{accent.name}</span>
+              <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{accent.name}</span>
               {settings.accentHue === accent.hue && (
                 <motion.div
                   layoutId="accent-check"
@@ -216,7 +284,7 @@ export function ThemePanel() {
                   initial={false}
                   transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 >
-                  <Check className={`w-2.5 h-2.5 ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`} />
+                  <Check className="w-2.5 h-2.5 text-[var(--app-text-secondary)]" />
                 </motion.div>
               )}
             </button>
@@ -224,7 +292,7 @@ export function ThemePanel() {
         </div>
       </div>
 
-      <Separator className={separatorColor} />
+      <Separator className="bg-[var(--app-surface-hover)]" />
 
       {/* Font Size */}
       <div>
@@ -238,22 +306,22 @@ export function ThemePanel() {
               key={fs.value}
               className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 ${
                 settings.fontSize === fs.value
-                  ? `${borderColor} ${bgActiveColor}`
-                  : `${borderColor} ${borderHoverColor} ${bgHoverColor}`
+                  ? `border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)]`
+                  : `border-[color:var(--app-border)] hover:border-[color:var(--app-border-strong)] hover:bg-[var(--app-surface-hover)]`
               }`}
               onClick={() => updateSettings({ fontSize: fs.value })}
             >
-              <span className={`font-mono ${settings.fontSize === fs.value ? 'text-[var(--app-text-primary)]' : labelColor}`}
+              <span className={`font-mono ${settings.fontSize === fs.value ? 'text-[var(--app-text-primary)]' : 'text-[var(--app-text-muted)]'}`}
                 style={{ fontSize: fs.value }}>
                 Aa
               </span>
-              <span className={`text-[8px] font-mono ${subLabelColor}`}>{fs.name}</span>
+              <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{fs.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <Separator className={separatorColor} />
+      <Separator className="bg-[var(--app-surface-hover)]" />
 
       {/* UI Density */}
       <div>
@@ -267,24 +335,24 @@ export function ThemePanel() {
               key={d.value}
               className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 ${
                 settings.density === d.value
-                  ? `${borderColor} ${bgActiveColor}`
-                  : `${borderColor} ${borderHoverColor} ${bgHoverColor}`
+                  ? `border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)]`
+                  : `border-[color:var(--app-border)] hover:border-[color:var(--app-border-strong)] hover:bg-[var(--app-surface-hover)]`
               }`}
               onClick={() => updateSettings({ density: d.value })}
             >
-              <div className={`flex flex-col ${settings.density === d.value ? 'text-[var(--app-text-secondary)]' : subLabelColor}`}
+              <div className={`flex flex-col ${settings.density === d.value ? 'text-[var(--app-text-secondary)]' : 'text-[var(--app-text-dim)]'}`}
                 style={{ gap: d.gap }}>
                 <div className="w-4 h-1 rounded bg-current/30" />
                 <div className="w-4 h-1 rounded bg-current/30" />
                 <div className="w-4 h-1 rounded bg-current/30" />
               </div>
-              <span className={`text-[8px] font-mono ${subLabelColor}`}>{d.name}</span>
+              <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{d.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <Separator className={separatorColor} />
+      <Separator className="bg-[var(--app-surface-hover)]" />
 
       {/* Animations Toggle */}
       <div>
@@ -295,7 +363,7 @@ export function ThemePanel() {
           </div>
           <button
             className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-              settings.animationsEnabled ? 'bg-emerald-600' : isDark ? 'bg-zinc-700' : 'bg-zinc-300'
+              settings.animationsEnabled ? 'bg-[var(--app-success)]' : 'bg-[var(--app-priority-inactive)]'
             }`}
             onClick={() => updateSettings({ animationsEnabled: !settings.animationsEnabled })}
           >
@@ -306,18 +374,18 @@ export function ThemePanel() {
             />
           </button>
         </div>
-        <p className={`text-[9px] ${descriptionColor} mt-1 ml-5`}>
+        <p className="text-[9px] text-[var(--app-text-dim)] mt-1 ml-5">
           {settings.animationsEnabled ? 'Animations enabled' : 'Reduced motion (respects prefers-reduced-motion)'}
         </p>
       </div>
 
-      <Separator className={separatorColor} />
+      <Separator className="bg-[var(--app-surface-hover)]" />
 
       {/* Reset to Defaults */}
       <Button
         variant="ghost"
         size="sm"
-        className={`w-full h-7 text-[10px] gap-1.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] border ${borderColor}`}
+        className="w-full h-7 text-[10px] gap-1.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] border border-[color:var(--app-border)]"
         onClick={resetToDefaults}
       >
         <RotateCcw className="w-3 h-3" />Reset to Defaults

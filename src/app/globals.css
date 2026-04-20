@@ -79,39 +79,73 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* AgentSCAD custom - Light */
-  --app-bg: #f8f9fa;
+  --app-bg: #f0f1f3;
   --app-surface: #ffffff;
+  --app-surface-raised: #f7f7f8;
   --app-surface-50: rgba(255, 255, 255, 0.5);
-  --app-surface-hover: rgba(0, 0, 0, 0.03);
-  --app-surface-95: rgba(248, 249, 250, 0.95);
-  --app-border: rgba(0, 0, 0, 0.08);
-  --app-border-subtle: rgba(0, 0, 0, 0.05);
-  --app-text-primary: #18181b;
-  --app-text-secondary: #52525b;
-  --app-text-muted: #71717a;
-  --app-text-dim: #a1a1aa;
-  --app-scrollbar-thumb: #d4d4d8;
-  --app-scrollbar-thumb-hover: #a1a1aa;
+  --app-surface-hover: rgba(0, 0, 0, 0.04);
+  --app-surface-95: rgba(240, 241, 243, 0.95);
+  --app-border: rgba(0, 0, 0, 0.12);
+  --app-border-subtle: rgba(0, 0, 0, 0.08);
+  --app-border-strong: rgba(0, 0, 0, 0.2);
+  --app-text-primary: #1a1a1f;
+  --app-text-secondary: #4a4a55;
+  --app-text-muted: #5c5c6a;
+  --app-text-dim: #8a8a96;
+  --app-text-bright: #000000;
+  --app-scrollbar-thumb: #b8b8c0;
+  --app-scrollbar-thumb-hover: #8a8a96;
   --app-scrollbar-track: transparent;
-  --app-focus-ring: rgba(124, 58, 237, 0.25);
+  --app-focus-ring: rgba(124, 58, 237, 0.2);
   --app-interactive-hover: rgba(124, 58, 237, 0.06);
   --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --app-keyboard-bg: #f4f4f5;
-  --app-keyboard-border: rgba(0, 0, 0, 0.1);
-  --app-keyboard-text: #71717a;
+  --app-keyboard-bg: #e8e9eb;
+  --app-keyboard-border: rgba(0, 0, 0, 0.12);
+  --app-keyboard-text: #5c5c6a;
   --app-skeleton-bg: rgba(0, 0, 0, 0.06);
-  --app-notification-hover: rgba(0, 0, 0, 0.03);
-  --app-footer-separator: rgba(0, 0, 0, 0.08);
-  --app-footer-tooltip-bg: #f4f4f5;
-  --app-footer-tooltip-border: rgba(0, 0, 0, 0.08);
-  --app-footer-tooltip-text: #52525b;
-  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.15), rgba(124, 58, 237, 0.05), transparent);
+  --app-notification-hover: rgba(0, 0, 0, 0.04);
+  --app-footer-separator: rgba(0, 0, 0, 0.09);
+  --app-footer-tooltip-bg: #ffffff;
+  --app-footer-tooltip-border: rgba(0, 0, 0, 0.1);
+  --app-footer-tooltip-text: #4a4a55;
+  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.12), rgba(124, 58, 237, 0.04), transparent);
   --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --app-pipeline-bg: rgba(0, 0, 0, 0.05);
-  --app-activity-hover: rgba(0, 0, 0, 0.02);
-  --app-selected-bg: rgba(124, 58, 237, 0.06);
-  --app-code-copy-hover: rgba(0, 0, 0, 0.05);
+  --app-activity-hover: rgba(0, 0, 0, 0.03);
+  --app-selected-bg: rgba(124, 58, 237, 0.05);
+  --app-code-copy-hover: rgba(0, 0, 0, 0.06);
+  --app-empty-bg: rgba(0, 0, 0, 0.03);
+  --app-accent: #7c3aed;
+  --app-accent-hover: #6d28d9;
+  --app-accent-bg: rgba(124, 58, 237, 0.08);
+  --app-accent-border: rgba(124, 58, 237, 0.25);
+  --app-accent-text: #7c3aed;
+  --app-accent-text-secondary: rgba(124, 58, 237, 0.7);
+  --app-danger: #ef4444;
+  --app-danger-bg: rgba(239, 68, 68, 0.08);
+  --app-warning: #f59e0b;
+  --app-warning-bg: rgba(245, 158, 11, 0.08);
+  --app-success: #10b981;
+  --app-success-bg: rgba(16, 185, 129, 0.08);
+  --app-info: #3b82f6;
+  --app-info-bg: rgba(59, 130, 246, 0.08);
+  --app-header-bg: rgba(255, 255, 255, 0.85);
+  --app-dialog-overlay: rgba(0, 0, 0, 0.3);
+  --app-dialog-bg: #ffffff;
+  --app-code-bg: #f6f8fa;
+  --app-code-border: rgba(0, 0, 0, 0.08);
+  --app-tag-bg: rgba(0, 0, 0, 0.05);
+  --app-tag-border: rgba(0, 0, 0, 0.08);
+  --app-batch-bar-bg: rgba(124, 58, 237, 0.06);
+  --app-batch-bar-text: #7c3aed;
+  --app-input-bg: #ffffff;
+  --app-input-border: rgba(0, 0, 0, 0.12);
+  --app-input-focus-border: rgba(124, 58, 237, 0.5);
+  --app-priority-high: #ef4444;
+  --app-priority-medium: #f59e0b;
+  --app-priority-low: #6b7280;
+  --app-priority-inactive: rgba(0, 0, 0, 0.08);
 }
 
 /* ─── Dark Theme Variables ──────────────────────────────────── */
@@ -149,39 +183,73 @@
   --sidebar-ring: oklch(0.556 0 0);
 
   /* AgentSCAD custom - Dark */
-  --app-bg: #09090b;
-  --app-surface: #141414;
-  --app-surface-50: rgba(20, 20, 20, 0.5);
+  --app-bg: #0a0a0c;
+  --app-surface: #111113;
+  --app-surface-raised: #18181b;
+  --app-surface-50: rgba(17, 17, 19, 0.5);
   --app-surface-hover: rgba(255, 255, 255, 0.04);
-  --app-surface-95: rgba(9, 9, 11, 0.95);
-  --app-border: rgba(255, 255, 255, 0.06);
+  --app-surface-95: rgba(10, 10, 12, 0.95);
+  --app-border: rgba(255, 255, 255, 0.07);
   --app-border-subtle: rgba(255, 255, 255, 0.04);
-  --app-text-primary: #f4f4f5;
+  --app-border-strong: rgba(255, 255, 255, 0.14);
+  --app-text-primary: #ededef;
   --app-text-secondary: #a1a1aa;
-  --app-text-muted: #71717a;
+  --app-text-muted: #6e6e7a;
   --app-text-dim: #3f3f46;
+  --app-text-bright: #ffffff;
   --app-scrollbar-thumb: #27272a;
   --app-scrollbar-thumb-hover: #52525b;
   --app-scrollbar-track: transparent;
   --app-focus-ring: rgba(124, 58, 237, 0.3);
-  --app-interactive-hover: rgba(124, 58, 237, 0.06);
+  --app-interactive-hover: rgba(124, 58, 237, 0.08);
   --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --app-keyboard-bg: #1a1a1a;
+  --app-keyboard-bg: #1a1a1c;
   --app-keyboard-border: rgba(255, 255, 255, 0.08);
   --app-keyboard-text: #a1a1aa;
   --app-skeleton-bg: rgba(39, 39, 42, 0.3);
   --app-notification-hover: rgba(255, 255, 255, 0.04);
-  --app-footer-separator: rgba(255, 255, 255, 0.06);
+  --app-footer-separator: rgba(255, 255, 255, 0.07);
   --app-footer-tooltip-bg: #27272a;
   --app-footer-tooltip-border: rgba(255, 255, 255, 0.08);
   --app-footer-tooltip-text: #a1a1aa;
-  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.3), rgba(124, 58, 237, 0.1), transparent);
+  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.25), rgba(124, 58, 237, 0.08), transparent);
   --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
   --app-pipeline-bg: rgba(255, 255, 255, 0.06);
   --app-activity-hover: rgba(255, 255, 255, 0.03);
-  --app-selected-bg: rgba(124, 58, 237, 0.06);
+  --app-selected-bg: rgba(124, 58, 237, 0.08);
   --app-code-copy-hover: rgba(255, 255, 255, 0.08);
+  --app-empty-bg: rgba(255, 255, 255, 0.04);
+  --app-accent: #7c3aed;
+  --app-accent-hover: #8b5cf6;
+  --app-accent-bg: rgba(124, 58, 237, 0.12);
+  --app-accent-border: rgba(124, 58, 237, 0.3);
+  --app-accent-text: #a78bfa;
+  --app-accent-text-secondary: rgba(167, 139, 250, 0.7);
+  --app-danger: #f87171;
+  --app-danger-bg: rgba(248, 113, 113, 0.1);
+  --app-warning: #fbbf24;
+  --app-warning-bg: rgba(251, 191, 36, 0.1);
+  --app-success: #34d399;
+  --app-success-bg: rgba(52, 211, 153, 0.1);
+  --app-info: #60a5fa;
+  --app-info-bg: rgba(96, 165, 250, 0.1);
+  --app-header-bg: rgba(17, 17, 19, 0.85);
+  --app-dialog-overlay: rgba(0, 0, 0, 0.6);
+  --app-dialog-bg: #18181b;
+  --app-code-bg: #0f0f11;
+  --app-code-border: rgba(255, 255, 255, 0.06);
+  --app-tag-bg: rgba(255, 255, 255, 0.06);
+  --app-tag-border: rgba(255, 255, 255, 0.08);
+  --app-batch-bar-bg: rgba(124, 58, 237, 0.08);
+  --app-batch-bar-text: #c4b5fd;
+  --app-input-bg: #0f0f11;
+  --app-input-border: rgba(255, 255, 255, 0.1);
+  --app-input-focus-border: rgba(124, 58, 237, 0.5);
+  --app-priority-high: #f87171;
+  --app-priority-medium: #fbbf24;
+  --app-priority-low: #6b7280;
+  --app-priority-inactive: rgba(255, 255, 255, 0.06);
 }
 
 @layer base {
@@ -190,7 +258,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color 0.3s ease, color 0.2s ease;
   }
 }
 
@@ -223,7 +291,7 @@
   position: absolute;
   height: 100%;
   border-radius: 2px;
-  background: #7c3aed;
+  background: var(--app-accent);
 }
 
 [data-radix-slider-thumb] {
@@ -232,7 +300,7 @@
   height: 14px;
   border-radius: 50%;
   background: var(--app-surface);
-  border: 2px solid #7c3aed;
+  border: 2px solid var(--app-accent);
   box-shadow: var(--app-shadow-sm);
   transition: transform 0.1s ease;
   outline: none;
@@ -244,13 +312,13 @@
 
 /* Progress Bar */
 [data-slot="progress-indicator"] {
-  background: #7c3aed;
+  background: var(--app-accent);
   transition: width 0.3s ease;
 }
 
 /* Resizable Handle */
 [data-panel-group-direction="horizontal"] > [data-resize-handle] { transition: background 0.15s ease; }
-[data-resize-handle][data-resize-handle-active] { background: #7c3aed !important; }
+[data-resize-handle][data-resize-handle-active] { background: var(--app-accent) !important; }
 
 /* Code Block */
 pre code { font-variant-ligatures: none; }
@@ -386,7 +454,7 @@ pre:hover .code-copy-btn { opacity: 1; }
   left: 0;
   right: 0;
   height: 1px;
-  background: #7c3aed;
+  background: var(--app-accent);
 }
 
 /* Notification item */
@@ -417,14 +485,14 @@ pre:hover .code-copy-btn { opacity: 1; }
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #34d399;
+  background: var(--app-success);
   display: inline-block;
 }
 
 /* Compare card border */
 .compare-border-left { position: relative; border-left: 2px solid transparent; }
 
-/* ─── Task 6: Enhanced Styling Classes ─────────────────────────── */
+/* ─── Enhanced Styling Classes ─────────────────────────── */
 
 /* Job card hover - gradient + shadow (no layout shift) */
 .job-card-hover {
@@ -437,7 +505,7 @@ pre:hover .code-copy-btn { opacity: 1; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.04) 0%, transparent 60%);
+  background: linear-gradient(135deg, var(--app-accent-bg) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
@@ -462,7 +530,7 @@ pre:hover .code-copy-btn { opacity: 1; }
   bottom: 4px;
   width: 2px;
   border-radius: 0 1px 1px 0;
-  background: #7c3aed;
+  background: var(--app-accent);
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -594,7 +662,7 @@ pre:hover .code-copy-btn { opacity: 1; }
 .linear-surface-hover:hover { background: var(--app-surface-hover); }
 .linear-border { border: 1px solid var(--app-border); }
 .linear-focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--app-focus-ring); }
-.linear-selected { border-left: 2px solid #7c3aed; background: var(--app-selected-bg); }
+.linear-selected { border-left: 2px solid var(--app-accent); background: var(--app-selected-bg); }
 .linear-transition { transition: all 0.15s ease; }
 .linear-shadow-sm { box-shadow: var(--app-shadow-sm); }
 .linear-shadow-md { box-shadow: var(--app-shadow-md); }
@@ -616,9 +684,9 @@ pre:hover .code-copy-btn { opacity: 1; }
 
 /* Status icon pulse ring */
 @keyframes statusIconPulse {
-  0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.2); }
-  70% { box-shadow: 0 0 0 20px rgba(124, 58, 237, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+  0% { box-shadow: 0 0 0 0 var(--app-accent-border); }
+  70% { box-shadow: 0 0 0 20px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 .status-icon-pulse { animation: statusIconPulse 2s ease-out infinite; }
 
@@ -637,4 +705,12 @@ pre:hover .code-copy-btn { opacity: 1; }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ─── Theme Transition ──────────────────────────────────── */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease, fill 0.2s ease, stroke 0.2s ease !important;
 }

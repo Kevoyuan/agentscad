@@ -114,7 +114,7 @@ export function SortableJobCard({
     ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
     : job.priority >= 4
     ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30 font-normal'
+    : 'bg-zinc-500/20 text-[var(--app-text-muted)] border-zinc-500/30 font-normal'
 
   return (
     <div
@@ -128,14 +128,14 @@ export function SortableJobCard({
         isProcessing ? 'opacity-95' : '' // Subtle visual indicator without layout shift
       } ${
         isSelected
-          ? 'linear-selected bg-violet-600/10 border border-violet-500/30'
+          ? 'linear-selected bg-[var(--app-accent-bg)] border border-violet-500/30'
           : 'linear-surface border border-[color:var(--app-border)] hover:bg-[var(--app-surface-hover)]'
       }`}
       onClick={() => onSelect(job)}
     >
       {/* Drag Handle */}
       <div
-        className="absolute top-2 right-1 z-10 cursor-grab active:cursor-grabbing text-zinc-700 hover:text-zinc-400 transition-colors"
+        className="absolute top-2 right-1 z-10 cursor-grab active:cursor-grabbing text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors"
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
@@ -147,7 +147,7 @@ export function SortableJobCard({
       <div className="absolute top-2 left-1 z-10" onClick={e => e.stopPropagation()}>
         <button
           className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-colors ${
-            isChecked ? 'bg-violet-500 text-white' : 'bg-zinc-800/60 text-zinc-600 hover:bg-zinc-700/60'
+            isChecked ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-surface-hover)] text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)]'
           }`}
           onClick={() => onToggleSelect(job.id)}
         >
@@ -157,7 +157,7 @@ export function SortableJobCard({
 
       <div className="pl-4 relative z-[1]">
         <div className="flex items-start justify-between gap-1.5 pr-5">
-          <p className="text-[11px] text-zinc-300 leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
+          <p className="text-[11px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
             <span
@@ -170,13 +170,13 @@ export function SortableJobCard({
         </div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <StateBadge state={job.state} />
-          <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
+          <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{timeAgo(job.createdAt)}</span>
         </div>
 
         {/* Elapsed time since creation */}
         <div className="flex items-center gap-1 mt-1">
-          <Clock className="w-2.5 h-2.5 text-zinc-700" />
-          <span className="text-[8px] text-zinc-600 font-mono">{elapsed} elapsed</span>
+          <Clock className="w-2.5 h-2.5 text-[var(--app-text-dim)]" />
+          <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{elapsed} elapsed</span>
         </div>
 
         {/* Mini progress indicator for pipeline states */}
@@ -220,10 +220,10 @@ export function SortableJobCard({
               <Ban className="w-2.5 h-2.5" />Cancel
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onDuplicate(job)}>
+          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onDuplicate(job)}>
             <Repeat className="w-2.5 h-2.5" />Duplicate
           </Button>
-          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-rose-300 hover:bg-rose-500/10" onClick={() => onDelete(job.id)}>
+          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-rose-300 hover:bg-rose-500/10" onClick={() => onDelete(job.id)}>
             <Trash2 className="w-2.5 h-2.5" />Delete
           </Button>
         </div>
@@ -247,7 +247,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
     ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
     : job.priority >= 4
     ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+    : 'bg-zinc-500/20 text-[var(--app-text-muted)] border-zinc-500/30'
 
   return (
     <div
@@ -256,7 +256,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
     >
       <div className="pl-4 pr-5">
         <div className="flex items-start justify-between gap-1.5">
-          <p className="text-[11px] text-zinc-300 leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
+          <p className="text-[11px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
             <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual}`}>
@@ -266,7 +266,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
         </div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <StateBadge state={job.state} />
-          <span className="text-[8px] text-zinc-700 font-mono">{timeAgo(job.createdAt)}</span>
+          <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{timeAgo(job.createdAt)}</span>
         </div>
         <TagBadges customerId={job.customerId} maxDisplay={3} />
       </div>

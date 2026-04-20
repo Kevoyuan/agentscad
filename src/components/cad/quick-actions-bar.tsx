@@ -182,8 +182,8 @@ function getActionsForState(
 
 const VARIANT_CLASSES: Record<string, { button: string; hover: string }> = {
   default: {
-    button: 'text-zinc-400',
-    hover: 'hover:text-zinc-200 hover:bg-white/[0.06]',
+    button: 'text-[var(--app-text-muted)]',
+    hover: 'hover:text-[var(--app-text-primary)] hover:bg-white/[0.06]',
   },
   success: {
     button: 'text-emerald-400',
@@ -242,7 +242,7 @@ export function QuickActionsBar(props: QuickActionsBarProps) {
                   <TooltipContent side="bottom" className="text-xs">
                     <span>{action.label}</span>
                     {action.shortcut && (
-                      <span className="ml-2 text-zinc-500 font-mono text-[9px]">[{action.shortcut}]</span>
+                      <span className="ml-2 text-[var(--app-text-muted)] font-mono text-[9px]">[{action.shortcut}]</span>
                     )}
                   </TooltipContent>
                 </Tooltip>

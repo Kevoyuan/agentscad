@@ -658,7 +658,7 @@ export default function Home() {
     {
       id: 'toggle-theme',
       label: 'Toggle Theme',
-      icon: <Palette className="w-4 h-4 text-violet-400" />,
+      icon: <Palette className="w-4 h-4 text-[var(--app-accent-text)]" />,
       shortcut: 'T',
       onSelect: () => setShowSettings(true),
       category: 'action' as const,
@@ -682,7 +682,7 @@ export default function Home() {
     {
       id: 'export-data',
       label: 'Export All Data',
-      icon: <FileJson className="w-4 h-4 text-zinc-400" />,
+      icon: <FileJson className="w-4 h-4 text-[var(--app-text-muted)]" />,
       shortcut: '',
       onSelect: () => exportAllData(),
       category: 'action' as const,
@@ -837,7 +837,7 @@ export default function Home() {
       <header className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#7c3aed] flex items-center justify-center">
+            <div className="w-6 h-6 rounded-md bg-[var(--app-accent)] flex items-center justify-center">
               <Box className="w-3.5 h-3.5 text-white" />
             </div>
             <h1 className="text-sm font-semibold text-[var(--app-text-primary)]">
@@ -857,7 +857,7 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => setShowStats(true)}>
+                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowStats(true)}>
                   <BarChart3 className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -867,7 +867,7 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => setShowCompare(true)}>
+                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowCompare(true)}>
                   <GitCompare className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -885,7 +885,7 @@ export default function Home() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300 relative"
+              className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
               onClick={() => setShowActivityFeed(!showActivityFeed)}
             >
               <Activity className="w-3 h-3" />
@@ -927,7 +927,7 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => {
+                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => {
                   const next = resolvedTheme === 'dark' ? 'light' : 'dark'
                   setTheme(next)
                 }}>
@@ -940,7 +940,7 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => setShowSettings(true)}>
+                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowSettings(true)}>
                   <Palette className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -950,14 +950,14 @@ export default function Home() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={() => setShowShortcuts(true)}>
+                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowShortcuts(true)}>
                   <Keyboard className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Shortcuts (?)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="h-6 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 linear-transition" onClick={() => setShowComposer(true)}>
+          <Button size="sm" className="h-6 text-[10px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition" onClick={() => setShowComposer(true)}>
             <Plus className="w-3 h-3" />New Job
           </Button>
         </div>
@@ -984,10 +984,10 @@ export default function Home() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden border-b border-[color:var(--app-border)] bg-violet-600/10"
+                    className="overflow-hidden border-b border-[color:var(--app-border)] bg-[var(--app-batch-bar-bg)]"
                   >
                     <div className="flex items-center justify-between px-3 py-1.5">
-                      <span className="text-[9px] font-mono text-violet-300">{selectedIds.size} selected</span>
+                      <span className="text-[9px] font-mono text-[var(--app-batch-bar-text)]">{selectedIds.size} selected</span>
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-1 text-amber-400 hover:text-amber-300" onClick={() => handleBatchAction('reprocess')}>
                           <RotateCcw className="w-2.5 h-2.5" />Reprocess
@@ -998,7 +998,7 @@ export default function Home() {
                         <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-1 text-rose-400 hover:text-rose-300" onClick={() => handleBatchAction('delete')}>
                           <Trash2 className="w-2.5 h-2.5" />Delete
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-5 text-[8px] text-zinc-500" onClick={() => setSelectedIds(new Set())}>
+                        <Button variant="ghost" size="sm" className="h-5 text-[8px] text-[var(--app-text-muted)]" onClick={() => setSelectedIds(new Set())}>
                           <X className="w-2.5 h-2.5" />
                         </Button>
                       </div>
@@ -1046,13 +1046,13 @@ export default function Home() {
                         </JobContextMenu>
                       ))}
                       {jobs.length === 0 && (
-                        <div className="relative flex flex-col items-center justify-center py-12 text-zinc-600 gap-3">
-                          <div className="w-14 h-14 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
+                        <div className="relative flex flex-col items-center justify-center py-12 text-[var(--app-text-muted)] gap-3">
+                          <div className="w-14 h-14 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center empty-float">
                             <Layers className="w-7 h-7 opacity-20" />
                           </div>
                           <div className="text-center">
-                            <p className="text-sm text-zinc-500">No jobs found</p>
-                            <p className="text-[10px] text-zinc-700 mt-1">Create a new job or adjust filters</p>
+                            <p className="text-sm text-[var(--app-text-muted)]">No jobs found</p>
+                            <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Create a new job or adjust filters</p>
                           </div>
 
                         </div>
@@ -1082,7 +1082,7 @@ export default function Home() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <PartFamilyIcon family={selectedJob.partFamily || 'unknown'} size={18} className={getPartFamilyColor(selectedJob.partFamily)} />
-                        <span className="text-[11px] font-medium text-zinc-300 truncate max-w-[160px]">{getPartFamilyLabel(selectedJob.partFamily)}</span>
+                        <span className="text-[11px] font-medium text-[var(--app-text-secondary)] truncate max-w-[160px]">{getPartFamilyLabel(selectedJob.partFamily)}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {/* Priority Indicator */}
@@ -1092,11 +1092,11 @@ export default function Home() {
                               key={i}
                               className={`w-1.5 h-3 rounded-sm transition-colors duration-200 ${
                                 i < Math.ceil(selectedJob.priority / 2)
-                                  ? selectedJob.priority >= 8 ? 'bg-rose-500' :
-                                    selectedJob.priority >= 6 ? 'bg-orange-500' :
-                                    selectedJob.priority >= 4 ? 'bg-amber-500' :
-                                    'bg-zinc-500'
-                                  : 'bg-zinc-800'
+                                  ? selectedJob.priority >= 8 ? 'bg-[var(--app-priority-high)]' :
+                                    selectedJob.priority >= 6 ? 'bg-[var(--app-priority-medium)]' :
+                                    selectedJob.priority >= 4 ? 'bg-[var(--app-priority-medium)]' :
+                                    'bg-[var(--app-priority-low)]'
+                                  : 'bg-[var(--app-priority-inactive)]'
                               }`}
                             ></div>
                           ))}
@@ -1106,28 +1106,28 @@ export default function Home() {
                     </div>
 
                     {/* Row 2: Input Request - larger, readable */}
-                    <p className="text-[13px] text-zinc-200 leading-relaxed line-clamp-2">{selectedJob.inputRequest}</p>
+                    <p className="text-[13px] text-[var(--app-text-primary)] leading-relaxed line-clamp-2">{selectedJob.inputRequest}</p>
 
                     {/* Row 3: Metadata tags */}
                     <div className="flex flex-wrap items-center gap-2 text-[9px] font-mono">
-                      <span className="flex items-center gap-1 text-zinc-600">
+                      <span className="flex items-center gap-1 text-[var(--app-text-muted)]">
                         <Clock className="w-3 h-3" />
                         Created: {timeAgo(selectedJob.createdAt)}
                       </span>
                       {selectedJob.completedAt && (
-                        <span className="flex items-center gap-1 text-lime-500/70">
+                        <span className="flex items-center gap-1 text-[var(--app-success)]">
                           <CheckCircle2 className="w-3 h-3" />
                           Completed: {timeAgo(selectedJob.completedAt)}
                         </span>
                       )}
                       {selectedJob.builderName && (
-                        <span className="flex items-center gap-1 text-zinc-700">
+                        <span className="flex items-center gap-1 text-[var(--app-text-dim)]">
                           <Cpu className="w-3 h-3" />
                           {selectedJob.builderName}
                         </span>
                       )}
                       {selectedJob.generationPath && (
-                        <span className="flex items-center gap-1 text-zinc-700">
+                        <span className="flex items-center gap-1 text-[var(--app-text-dim)]">
                           <Layers className="w-3 h-3" />
                           {selectedJob.generationPath}
                         </span>
@@ -1185,7 +1185,7 @@ export default function Home() {
                     // DELIVERED: Show 3D viewer
                     if (selectedJob.state === 'DELIVERED') {
                       return (
-                        <div className="flex-1 viewer-gradient-border">
+                        <div className="flex-1">
                           <ThreeDViewer job={selectedJob} />
                         </div>
                       )
@@ -1194,16 +1194,16 @@ export default function Home() {
                     // NEW: Show empty/ready state with Process button
                     return (
                       <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
-                          <Play className="w-8 h-8 opacity-20 text-zinc-400" />
+                        <div className="w-16 h-16 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center empty-float">
+                          <Play className="w-8 h-8 opacity-20 text-[var(--app-text-muted)]" />
                         </div>
                         <div className="text-center">
-                          <p className="text-sm font-medium text-zinc-400">Ready to Process</p>
-                          <p className="text-[10px] text-zinc-600 mt-1">This job is queued and waiting to be processed</p>
+                          <p className="text-sm font-medium text-[var(--app-text-muted)]">Ready to Process</p>
+                          <p className="text-[10px] text-[var(--app-text-muted)] mt-1">This job is queued and waiting to be processed</p>
                         </div>
                         <Button
                           size="sm"
-                          className="h-8 text-xs gap-1.5 bg-violet-600 hover:bg-violet-500 linear-transition"
+                          className="h-8 text-xs gap-1.5 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition"
                           onClick={() => handleProcess(selectedJob)}
                           disabled={isProcessing}
                         >
@@ -1215,16 +1215,16 @@ export default function Home() {
                   })()}
                 </>
               ) : (
-                <div className="relative flex flex-col items-center justify-center h-full text-zinc-600 gap-4">
-                  <div className="w-20 h-20 rounded-2xl bg-zinc-800/20 flex items-center justify-center empty-float">
+                <div className="relative flex flex-col items-center justify-center h-full text-[var(--app-text-muted)] gap-4">
+                  <div className="w-20 h-20 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center empty-float">
                     <Box className="w-10 h-10 opacity-15" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-zinc-500">No job selected</p>
-                    <p className="text-[10px] text-zinc-700 mt-1">Select a job from the list or create a new one</p>
+                    <p className="text-sm font-medium text-[var(--app-text-muted)]">No job selected</p>
+                    <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Select a job from the list or create a new one</p>
                   </div>
 
-                  <Button size="sm" className="h-7 text-[10px] gap-1 bg-violet-600 hover:bg-violet-500 mt-2" onClick={() => setShowComposer(true)}>
+                  <Button size="sm" className="h-7 text-[10px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] mt-2" onClick={() => setShowComposer(true)}>
                     <Plus className="w-3 h-3" />Create First Job
                   </Button>
                 </div>
@@ -1272,7 +1272,7 @@ export default function Home() {
                       <TabsTrigger
                         key={tab.key}
                         value={tab.key}
-                        className="tab-indicator text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-violet-600/15 data-[state=active]:text-violet-300 data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
+                        className="tab-indicator text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-[var(--app-accent-bg)] data-[state=active]:text-[var(--app-accent-text)] data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
                       >
                         {tab.label}
                       </TabsTrigger>
@@ -1321,18 +1321,18 @@ export default function Home() {
                   </div>
                 </Tabs>
               ) : (
-                <div className="relative flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
+                <div className="relative flex flex-col items-center justify-center h-full text-[var(--app-text-muted)] gap-3 p-6">
                   {/* Enhanced empty state with SVG illustration */}
                   <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="empty-float opacity-30">
-                    <rect x="8" y="8" width="48" height="48" rx="8" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" className="text-zinc-700" />
-                    <path d="M24 32h16M32 24v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-zinc-600" />
-                    <circle cx="32" cy="32" r="3" fill="currentColor" className="text-zinc-700" />
+                    <rect x="8" y="8" width="48" height="48" rx="8" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" className="text-[var(--app-text-dim)]" />
+                    <path d="M24 32h16M32 24v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--app-text-muted)]" />
+                    <circle cx="32" cy="32" r="3" fill="currentColor" className="text-[var(--app-text-dim)]" />
                   </svg>
                   <div className="text-center mt-2">
-                    <p className="text-sm font-medium text-zinc-500">Inspector Panel</p>
-                    <p className="text-[10px] text-zinc-700 mt-1 max-w-[200px]">Select a job from the list to view parameters, code, and pipeline details</p>
+                    <p className="text-sm font-medium text-[var(--app-text-muted)]">Inspector Panel</p>
+                    <p className="text-[10px] text-[var(--app-text-dim)] mt-1 max-w-[200px]">Select a job from the list to view parameters, code, and pipeline details</p>
                   </div>
-                  <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 mt-2 border-zinc-700/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600" onClick={() => setShowComposer(true)}>
+                  <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 mt-2 border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:border-[color:var(--app-border-strong)]" onClick={() => setShowComposer(true)}>
                     <Plus className="w-3 h-3" />Create a Job to Begin
                   </Button>
                 </div>
@@ -1363,7 +1363,7 @@ export default function Home() {
         <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-lg dialog-enter">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <Plus className="w-4 h-4 text-violet-400" />New CAD Job
+              <Plus className="w-4 h-4 text-[var(--app-accent-text)]" />New CAD Job
             </DialogTitle>
           </DialogHeader>
           <div className="gradient-divider" />
@@ -1371,12 +1371,12 @@ export default function Home() {
             {/* Recent Requests */}
             {recentRequests.length > 0 && (
               <div>
-                <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">Recent Requests</label>
+                <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase mb-1.5 block">Recent Requests</label>
                 <div className="flex flex-col gap-1 max-h-20 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                   {recentRequests.map((req, i) => (
                     <button
                       key={i}
-                      className="recent-request-item text-left text-[10px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-800/40 truncate"
+                      className="recent-request-item text-left text-[10px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] px-2 py-1 rounded border border-[color:var(--app-border)] truncate"
                       onClick={() => setNewJobText(req)}
                     >
                       {req.slice(0, 80)}{req.length > 80 ? '...' : ''}
@@ -1388,11 +1388,11 @@ export default function Home() {
             <JobTemplateCards onSelect={(template) => setNewJobText(template)} />
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase">Request</label>
+                <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Request</label>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`h-5 text-[8px] gap-1 ${isAiEnhancing ? 'ai-enhance-glow text-violet-400' : 'text-violet-500 hover:text-violet-300'}`}
+                  className={`h-5 text-[8px] gap-1 ${isAiEnhancing ? 'ai-enhance-glow text-[var(--app-accent-text)]' : 'text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)]'}`}
                   onClick={handleAiEnhance}
                   disabled={!newJobText.trim() || isAiEnhancing}
                 >
@@ -1405,12 +1405,12 @@ export default function Home() {
                 value={newJobText}
                 onChange={e => setNewJobText(e.target.value)}
                 placeholder="e.g. A 40mm×30mm×15mm electronics enclosure with 2mm walls"
-                className="min-h-[100px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-sm placeholder:text-[var(--app-text-dim)] focus:border-violet-500/40"
+                className="min-h-[100px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-sm placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent-border)]"
                 maxLength={5000}
               />
               <div className="flex justify-between mt-1">
-                <span className="text-[9px] text-zinc-700">{newJobText.length}/5000</span>
-                <span className="text-[9px] text-zinc-700">⌘+Enter</span>
+                <span className="text-[9px] text-[var(--app-text-dim)]">{newJobText.length}/5000</span>
+                <span className="text-[9px] text-[var(--app-text-dim)]">⌘+Enter</span>
               </div>
               {/* Case Memory - Similar Past Jobs */}
               <CaseMemory
@@ -1425,7 +1425,7 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mb-2 block">Priority</label>
+              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase mb-2 block">Priority</label>
               <div className="flex items-center gap-2">
                 <input
                   type="range"
@@ -1433,27 +1433,27 @@ export default function Home() {
                   max={10}
                   value={newJobPriority}
                   onChange={e => setNewJobPriority(Number(e.target.value))}
-                  className="flex-1 accent-violet-500"
+                  className="flex-1 accent-[var(--app-accent)]"
                 />
                 <span className={`text-xs font-mono px-2 py-0.5 rounded border min-w-[36px] text-center ${getPriorityColor(newJobPriority)}`}>
                   P{newJobPriority}
                 </span>
               </div>
-              <div className="flex justify-between text-[8px] text-zinc-700 mt-1">
+              <div className="flex justify-between text-[8px] text-[var(--app-text-dim)] mt-1">
                 <span>Low</span>
                 <span>Critical</span>
               </div>
             </div>
             {/* Tags Input */}
             <div>
-              <label className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
+              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase mb-2 flex items-center gap-1.5">
                 <Tag className="w-2.5 h-2.5" />Tags
               </label>
               <Input
                 value={newJobTags}
                 onChange={e => setNewJobTags(e.target.value)}
                 placeholder="e.g. enclosure, prototype, urgent (comma-separated)"
-                className="h-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-violet-500/40"
+                className="h-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent-border)]"
               />
               {newJobTags.trim() && (
                 <div className="mt-1.5">
@@ -1462,7 +1462,7 @@ export default function Home() {
               )}
             </div>
             <Button
-              className="w-full bg-violet-600 hover:bg-violet-500 btn-press"
+              className="w-full bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] btn-press"
               onClick={handleCreate}
               disabled={!newJobText.trim() || isCreating}
             >
@@ -1478,12 +1478,12 @@ export default function Home() {
         <AlertDialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] dialog-enter">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">Cancel Job?</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-zinc-500">
+            <AlertDialogDescription className="text-xs text-[var(--app-text-muted)]">
               This will cancel job &quot;{cancelTarget?.inputRequest?.slice(0, 60)}&quot;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-zinc-800/50 border-zinc-700/50 text-zinc-400 text-xs">Keep Running</AlertDialogCancel>
+            <AlertDialogCancel className="bg-[var(--app-surface-raised)] border-[color:var(--app-border)] text-[var(--app-text-muted)] text-xs">Keep Running</AlertDialogCancel>
             <AlertDialogAction className="bg-orange-600 hover:bg-orange-500 text-xs" onClick={() => cancelTarget && handleCancel(cancelTarget)}>
               Cancel Job
             </AlertDialogAction>
@@ -1496,7 +1496,7 @@ export default function Home() {
         <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-md dialog-enter">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <Keyboard className="w-4 h-4 text-violet-400" />Keyboard Shortcuts
+              <Keyboard className="w-4 h-4 text-[var(--app-accent-text)]" />Keyboard Shortcuts
             </DialogTitle>
           </DialogHeader>
           <div className="gradient-divider" />
@@ -1504,8 +1504,8 @@ export default function Home() {
             {/* Navigation */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <ArrowUpDown className="w-3 h-3 text-violet-400" />
-                <span className="text-[10px] font-mono tracking-widest text-violet-400 uppercase">Navigation</span>
+                <ArrowUpDown className="w-3 h-3 text-[var(--app-accent-text)]" />
+                <span className="text-[10px] font-mono tracking-widest text-[var(--app-accent-text)] uppercase">Navigation</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
@@ -1517,7 +1517,7 @@ export default function Home() {
                   { keys: ['T', ''], desc: 'Open theme settings' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-zinc-500">{s.desc}</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
                     <div className="flex items-center gap-0.5">
                       {s.keys.map((k, i) => k ? <span key={i} className="keyboard-key">{k}</span> : <span key={i} />)}
                     </div>
@@ -1541,7 +1541,7 @@ export default function Home() {
                   { keys: ['⇧', '↓'], desc: 'Priority down' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-zinc-500">{s.desc}</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
                     <div className="flex items-center gap-0.5">
                       {s.keys.map((k, i) => <span key={i} className="keyboard-key">{k}</span>)}
                     </div>
@@ -1566,7 +1566,7 @@ export default function Home() {
                   { key: '7', tab: 'DEPS' },
                 ].map((s) => (
                   <div key={s.tab} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-zinc-500 font-mono">{s.tab}</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)] font-mono">{s.tab}</span>
                     <span className="keyboard-key">{s.key}</span>
                   </div>
                 ))}
@@ -1584,7 +1584,7 @@ export default function Home() {
                   { keys: ['?'], desc: 'Toggle this panel' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-zinc-500">{s.desc}</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
                     <div className="flex items-center gap-0.5">
                       {s.keys.map((k, i) => <span key={i} className="keyboard-key">{k}</span>)}
                     </div>
@@ -1601,7 +1601,7 @@ export default function Home() {
         <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-2xl dialog-enter">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-violet-400" />Stats Dashboard
+              <BarChart3 className="w-4 h-4 text-[var(--app-accent-text)]" />Stats Dashboard
             </DialogTitle>
           </DialogHeader>
           <StatsDashboard jobs={allJobs} />
@@ -1613,7 +1613,7 @@ export default function Home() {
         <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-4xl max-h-[80vh] dialog-enter">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <GitCompare className="w-4 h-4 text-violet-400" />Compare Jobs
+              <GitCompare className="w-4 h-4 text-[var(--app-accent-text)]" />Compare Jobs
             </DialogTitle>
           </DialogHeader>
           <JobCompare jobs={allJobs} />
@@ -1625,7 +1625,7 @@ export default function Home() {
         <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-sm dialog-enter">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <Palette className="w-4 h-4 text-violet-400" />Theme & Settings
+              <Palette className="w-4 h-4 text-[var(--app-accent-text)]" />Theme & Settings
             </DialogTitle>
           </DialogHeader>
           <div className="gradient-divider" />

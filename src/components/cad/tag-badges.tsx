@@ -77,7 +77,7 @@ export function TagBadges({ customerId, maxDisplay = 3 }: TagBadgesProps) {
         <TagBadge key={tag} tag={tag} index={i} />
       ))}
       {remaining > 0 && (
-        <span className="text-[7px] text-zinc-600 font-mono">+{remaining}</span>
+        <span className="text-[7px] text-[var(--app-text-dim)] font-mono">+{remaining}</span>
       )}
     </div>
   )

@@ -21,8 +21,8 @@ export function ScadViewer({ code }: { code: string | null }) {
   }, [code])
 
   if (!code) return (
-    <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
+      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
         <FileCode className="w-6 h-6 opacity-30" />
       </div>
       <p className="text-sm">No SCAD source</p>
@@ -39,13 +39,13 @@ export function ScadViewer({ code }: { code: string | null }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">SCAD Source</h3>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">SCAD Source</h3>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800/50 text-zinc-500 border-zinc-700/50">
+          <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {lineCount} lines
           </Badge>
-          <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={handleCopy}>
+          <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleCopy}>
             {copied ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
             {copied ? 'Copied!' : 'Copy'}
           </Button>
@@ -54,9 +54,9 @@ export function ScadViewer({ code }: { code: string | null }) {
       <ScrollArea className="flex-1">
         <div className="flex">
           {/* Line numbers */}
-          <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-zinc-800/30">
+          <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-[color:var(--app-border)]">
             {lines.map((_, idx) => (
-              <span key={idx} className="text-[10px] font-mono leading-relaxed text-zinc-700">
+              <span key={idx} className="text-[10px] font-mono leading-relaxed text-[var(--app-text-dim)]">
                 {idx + 1}
               </span>
             ))}

@@ -233,7 +233,7 @@ export function PartFamilyIcon({
   const Icon = ICON_MAP[key] || ICON_MAP.unknown
 
   return (
-    <span className={`inline-flex items-center justify-center text-zinc-500 ${className}`}>
+    <span className={`inline-flex items-center justify-center text-[var(--app-text-muted)] ${className}`}>
       <Icon size={size} animate={animate} />
     </span>
   )
@@ -259,7 +259,7 @@ export function getPartFamilyLabel(family: string | null): string {
  * Returns a color class for the part family icon.
  */
 export function getPartFamilyColor(family: string | null): string {
-  if (!family) return 'text-zinc-500'
+  if (!family) return 'text-[var(--app-text-muted)]'
   const colors: Record<string, string> = {
     spur_gear: 'text-violet-400',
     device_stand: 'text-cyan-400',
@@ -268,5 +268,5 @@ export function getPartFamilyColor(family: string | null): string {
     bracket: 'text-rose-400',
     bolt: 'text-blue-400',
   }
-  return colors[family.toLowerCase()] || 'text-zinc-500'
+  return colors[family.toLowerCase()] || 'text-[var(--app-text-muted)]'
 }

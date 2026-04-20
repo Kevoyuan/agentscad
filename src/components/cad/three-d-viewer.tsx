@@ -903,8 +903,8 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
   if (job.state === 'NEW' || job.state === 'SCAD_GENERATED') {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-800/20 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center">
           <Box className="w-8 h-8 opacity-20" />
         </div>
         <span className="text-xs">Process job to generate 3D preview</span>
@@ -914,10 +914,10 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-4">
+      <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-4">
         <AlertCircle className="w-8 h-8 text-rose-500/50" />
         <span className="text-xs text-rose-400">3D preview unavailable</span>
-        <span className="text-[10px] text-zinc-700">{error}</span>
+        <span className="text-[10px] text-[var(--app-text-dim)]">{error}</span>
       </div>
     )
   }
@@ -929,15 +929,15 @@ export function ThreeDViewer({ job }: { job: Job }) {
           <div className="flex flex-col items-center gap-3 w-3/4 max-w-xs">
             <div className="skeleton-loading w-full h-40 rounded-lg" />
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
-              <span className="text-[10px] text-zinc-500">Loading 3D preview...</span>
+              <Loader2 className="w-6 h-6 animate-spin text-[var(--app-accent-text)]" />
+              <span className="text-[10px] text-[var(--app-text-muted)]">Loading 3D preview...</span>
             </div>
           </div>
         </div>
       )}
       <div ref={mountRef} className="w-full h-full" />
       <div className="absolute bottom-2 left-2 flex items-center gap-2 z-[5]">
-        <span className="text-[9px] font-mono text-zinc-600 bg-black/40 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] font-mono text-[var(--app-text-dim)] bg-black/40 px-1.5 py-0.5 rounded">
           {partFamily === 'spur_gear' ? `${teeth}T ⌀${outerDiam}mm` :
            partFamily === 'hex_bolt' ? `M${safeNum(values.thread_size, 8)} × ${safeNum(values.shaft_length, 40)}mm` :
            partFamily === 'phone_case' ? `${safeNum(values.body_length, 158)}×${safeNum(values.body_width, 78)}mm` :
@@ -946,7 +946,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
         </span>
       </div>
       <div className="absolute bottom-2 right-3 z-[5] pointer-events-none">
-        <span className="text-[8px] font-mono text-zinc-700/30 tracking-widest">AgentSCAD Preview</span>
+        <span className="text-[8px] font-mono text-[var(--app-text-dim)] tracking-widest">AgentSCAD Preview</span>
       </div>
       <ViewerControls
         state={controlsState}

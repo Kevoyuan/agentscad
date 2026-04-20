@@ -69,18 +69,18 @@ export function JobContextMenu({
           >
             {job.state === 'DELIVERED' ? <RotateCcw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             {job.state === 'DELIVERED' ? 'Reprocess' : 'Process'}
-            <ContextMenuShortcut className="text-[9px] text-zinc-600">⌘P</ContextMenuShortcut>
+            <ContextMenuShortcut className="text-[9px] text-[var(--app-text-dim)]">⌘P</ContextMenuShortcut>
           </ContextMenuItem>
         )}
 
         {/* Duplicate */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-zinc-300 focus:text-zinc-200 focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-zinc-500/10"
           onClick={() => onDuplicate(job)}
         >
           <Copy className="w-3.5 h-3.5" />
           Duplicate
-          <ContextMenuShortcut className="text-[9px] text-zinc-600">⌘D</ContextMenuShortcut>
+          <ContextMenuShortcut className="text-[9px] text-[var(--app-text-dim)]">⌘D</ContextMenuShortcut>
         </ContextMenuItem>
 
         {/* Cancel (for active states) */}
@@ -94,31 +94,31 @@ export function JobContextMenu({
           </ContextMenuItem>
         )}
 
-        <ContextMenuSeparator className="bg-zinc-800/60" />
+        <ContextMenuSeparator className="bg-[var(--app-surface-hover)]" />
 
         {/* Set Priority submenu */}
         <ContextMenuSub>
-          <ContextMenuSubTrigger className="text-[11px] gap-2 text-zinc-300">
+          <ContextMenuSubTrigger className="text-[11px] gap-2 text-[var(--app-text-secondary)]">
             <ArrowUp className="w-3.5 h-3.5" />
             Set Priority
-            <span className="ml-auto text-[9px] text-zinc-600">P{job.priority}</span>
+            <span className="ml-auto text-[9px] text-[var(--app-text-dim)]">P{job.priority}</span>
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-36 linear-surface linear-border linear-shadow-md">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(p => (
               <ContextMenuItem
                 key={p}
                 className={`text-[10px] gap-2 font-mono ${
-                  p === job.priority ? 'text-violet-400 bg-violet-500/10' : 'text-zinc-400'
+                  p === job.priority ? 'text-[var(--app-accent-text)] bg-violet-500/10' : 'text-[var(--app-text-muted)]'
                 }`}
                 onClick={() => onSetPriority(job.id, p)}
               >
-                <span className={`w-4 text-center ${p >= 8 ? 'text-rose-400' : p >= 6 ? 'text-orange-400' : p >= 4 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                <span className={`w-4 text-center ${p >= 8 ? 'text-rose-400' : p >= 6 ? 'text-orange-400' : p >= 4 ? 'text-amber-400' : 'text-[var(--app-text-muted)]'}`}>
                   P{p}
                 </span>
-                {p === 1 && <span className="text-[8px] text-zinc-600">Low</span>}
-                {p === 5 && <span className="text-[8px] text-zinc-600">Normal</span>}
-                {p === 10 && <span className="text-[8px] text-zinc-600">Critical</span>}
-                {p === job.priority && <span className="ml-auto text-[8px] text-violet-400">●</span>}
+                {p === 1 && <span className="text-[8px] text-[var(--app-text-dim)]">Low</span>}
+                {p === 5 && <span className="text-[8px] text-[var(--app-text-dim)]">Normal</span>}
+                {p === 10 && <span className="text-[8px] text-[var(--app-text-dim)]">Critical</span>}
+                {p === job.priority && <span className="ml-auto text-[8px] text-[var(--app-accent-text)]">●</span>}
               </ContextMenuItem>
             ))}
           </ContextMenuSubContent>
@@ -126,35 +126,35 @@ export function JobContextMenu({
 
         {/* Link to Parent */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-zinc-300 focus:text-zinc-200 focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-zinc-500/10"
           onClick={() => onLinkParent(job)}
         >
           <Link2 className="w-3.5 h-3.5" />
           Link to Parent
         </ContextMenuItem>
 
-        <ContextMenuSeparator className="bg-zinc-800/60" />
+        <ContextMenuSeparator className="bg-[var(--app-surface-hover)]" />
 
         {/* Copy Job ID */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-zinc-400 focus:text-zinc-300 focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-zinc-500/10"
           onClick={handleCopyId}
         >
           <Clipboard className="w-3.5 h-3.5" />
           Copy Job ID
-          <ContextMenuShortcut className="text-[9px] text-zinc-600">⌘C</ContextMenuShortcut>
+          <ContextMenuShortcut className="text-[9px] text-[var(--app-text-dim)]">⌘C</ContextMenuShortcut>
         </ContextMenuItem>
 
         {/* Open in New Tab (copies URL) */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-zinc-400 focus:text-zinc-300 focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-zinc-500/10"
           onClick={handleOpenInNewTab}
         >
           <ExternalLink className="w-3.5 h-3.5" />
           Copy URL
         </ContextMenuItem>
 
-        <ContextMenuSeparator className="bg-zinc-800/60" />
+        <ContextMenuSeparator className="bg-[var(--app-surface-hover)]" />
 
         {/* Delete - destructive */}
         <ContextMenuItem

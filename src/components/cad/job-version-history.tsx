@@ -12,7 +12,7 @@ import { fetchJobVersions, JobVersion } from './api'
 // ─── Field metadata ────────────────────────────────────────────────────────
 
 const FIELD_INFO: Record<string, { label: string; icon: typeof Settings; color: string }> = {
-  parameters: { label: 'Parameters', icon: Settings, color: 'text-violet-400' },
+  parameters: { label: 'Parameters', icon: Settings, color: 'text-[var(--app-accent-text)]' },
   scadSource: { label: 'SCAD Source', icon: FileCode, color: 'text-cyan-400' },
   notes: { label: 'Notes', icon: StickyNote, color: 'text-amber-400' },
 }
@@ -36,16 +36,16 @@ function ParameterDiff({ oldValue, newValue }: { oldValue: string | null; newVal
   }
 
   if (changes.length === 0) {
-    return <span className="text-[9px] text-zinc-600 italic">No specific changes detected</span>
+    return <span className="text-[9px] text-[var(--app-text-dim)] italic">No specific changes detected</span>
   }
 
   return (
     <div className="space-y-1 mt-1">
       {changes.map(c => (
         <div key={c.key} className="flex items-center gap-2 text-[10px] font-mono">
-          <span className="text-zinc-500 min-w-[60px]">{c.key}</span>
+          <span className="text-[var(--app-text-muted)] min-w-[60px]">{c.key}</span>
           <span className="text-rose-400 line-through">{c.old != null ? String(c.old) : '—'}</span>
-          <span className="text-zinc-600">→</span>
+          <span className="text-[var(--app-text-dim)]">→</span>
           <span className="text-emerald-400">{c.new != null ? String(c.new) : '—'}</span>
         </div>
       ))}
@@ -88,15 +88,15 @@ function ScadDiff({ oldValue, newValue }: { oldValue: string | null; newValue: s
           className={`flex ${
             d.type === 'removed' ? 'bg-rose-500/10 text-rose-300' :
             d.type === 'added' ? 'bg-emerald-500/10 text-emerald-300' :
-            'text-zinc-600'
+            'text-[var(--app-text-dim)]'
           }`}
         >
-          <span className="w-8 text-right pr-2 shrink-0 select-none text-zinc-700">{d.lineNum}</span>
+          <span className="w-8 text-right pr-2 shrink-0 select-none text-[var(--app-text-dim)]">{d.lineNum}</span>
           <span className="flex-1 truncate">{d.type === 'removed' ? `- ${d.oldContent}` : d.type === 'added' ? `+ ${d.newContent}` : `  ${d.newContent}`}</span>
         </div>
       ))}
       {maxLen > 20 && (
-        <div className="text-center text-zinc-700 py-0.5">... {maxLen - 20} more lines</div>
+        <div className="text-center text-[var(--app-text-dim)] py-0.5">... {maxLen - 20} more lines</div>
       )}
     </div>
   )
@@ -109,13 +109,13 @@ function NotesDiff({ oldValue, newValue }: { oldValue: string | null; newValue: 
     <div className="mt-1 space-y-1">
       {oldValue && (
         <div>
-          <span className="text-[8px] text-zinc-700 uppercase">Before</span>
+          <span className="text-[8px] text-[var(--app-text-dim)] uppercase">Before</span>
           <p className="text-[10px] text-rose-300/80 line-through truncate max-w-full">{oldValue.slice(0, 100)}{oldValue.length > 100 ? '...' : ''}</p>
         </div>
       )}
       {newValue && (
         <div>
-          <span className="text-[8px] text-zinc-700 uppercase">After</span>
+          <span className="text-[8px] text-[var(--app-text-dim)] uppercase">After</span>
           <p className="text-[10px] text-emerald-300/80 truncate max-w-full">{newValue.slice(0, 100)}{newValue.length > 100 ? '...' : ''}</p>
         </div>
       )}
@@ -165,7 +165,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
+      <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
         <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-[10px]">Loading history...</p>
       </div>
@@ -174,12 +174,12 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
 
   if (versions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-        <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
+        <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
           <History className="w-6 h-6 opacity-30" />
         </div>
         <p className="text-sm">No version history</p>
-        <p className="text-[10px] text-zinc-700">Changes to parameters, SCAD, and notes will be tracked here</p>
+        <p className="text-[10px] text-[var(--app-text-dim)]">Changes to parameters, SCAD, and notes will be tracked here</p>
       </div>
     )
   }
@@ -187,20 +187,20 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 shrink-0">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)] shrink-0">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
           <History className="w-3 h-3" />
           Version History
         </h3>
-        <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800/50 text-zinc-500 border-zinc-700/50">
+        <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
           {versions.length} changes
         </Badge>
       </div>
 
       {/* Filter */}
       {Object.keys(fieldCounts).length > 1 && (
-        <div className="flex items-center gap-1 px-4 py-1.5 border-b border-zinc-800/40">
-          <Search className="w-3 h-3 text-zinc-600" />
+        <div className="flex items-center gap-1 px-4 py-1.5 border-b border-[color:var(--app-border)]">
+          <Search className="w-3 h-3 text-[var(--app-text-dim)]" />
           {['all', ...Object.keys(fieldCounts)].map(f => {
             const isActive = f === 'all' ? !filterField : filterField === f
             const info = f !== 'all' ? FIELD_INFO[f] : null
@@ -208,7 +208,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
               <button
                 key={f}
                 className={`shrink-0 text-[8px] font-mono px-1.5 py-0.5 rounded linear-transition ${
-                  isActive ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30' : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                  isActive ? 'bg-violet-600/20 text-[var(--app-accent-text)] border border-violet-500/30' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                 }`}
                 onClick={() => setFilterField(f === 'all' ? null : f)}
               >
@@ -224,7 +224,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
         <div className="p-3 space-y-1">
           <AnimatePresence>
             {filteredVersions.map((version, idx) => {
-              const fieldInfo = FIELD_INFO[version.field] || { label: version.field, icon: Settings, color: 'text-zinc-400' }
+              const fieldInfo = FIELD_INFO[version.field] || { label: version.field, icon: Settings, color: 'text-[var(--app-text-muted)]' }
               const FieldIcon = fieldInfo.icon
               const isExpanded = expandedId === version.id
 
@@ -240,7 +240,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
                   <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center">
                     <div className={`w-2 h-2 rounded-full mt-2 ${fieldInfo.color.replace('text-', 'bg-')}`} />
                     {idx < filteredVersions.length - 1 && (
-                      <div className="flex-1 w-px bg-zinc-800/60 mt-1" />
+                      <div className="flex-1 w-px bg-[var(--app-surface-hover)] mt-1" />
                     )}
                   </div>
 
@@ -252,20 +252,20 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
                     <div className="flex items-center justify-between px-3 py-1.5">
                       <div className="flex items-center gap-1.5">
                         <FieldIcon className={`w-3 h-3 ${fieldInfo.color}`} />
-                        <span className="text-[10px] font-medium text-zinc-300">{fieldInfo.label}</span>
-                        <span className="text-[8px] text-zinc-600">changed</span>
+                        <span className="text-[10px] font-medium text-[var(--app-text-secondary)]">{fieldInfo.label}</span>
+                        <span className="text-[8px] text-[var(--app-text-dim)]">changed</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1 text-[8px] text-zinc-600">
+                        <span className="flex items-center gap-1 text-[8px] text-[var(--app-text-dim)]">
                           <User className="w-2 h-2" />
                           {version.changedBy}
                         </span>
-                        <span className="text-[8px] text-zinc-700">{timeAgo(version.createdAt)}</span>
+                        <span className="text-[8px] text-[var(--app-text-dim)]">{timeAgo(version.createdAt)}</span>
                         <motion.div
                           animate={{ rotate: isExpanded ? 180 : 0 }}
                           transition={{ duration: 0.15 }}
                         >
-                          <ChevronDown className="w-3 h-3 text-zinc-600" />
+                          <ChevronDown className="w-3 h-3 text-[var(--app-text-dim)]" />
                         </motion.div>
                       </div>
                     </div>
@@ -280,7 +280,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
                           transition={{ duration: 0.2, ease: 'easeOut' }}
                           className="overflow-hidden"
                         >
-                          <div className="px-3 pb-2 border-t border-zinc-800/30">
+                          <div className="px-3 pb-2 border-t border-[color:var(--app-border)]">
                             {version.field === 'parameters' && (
                               <ParameterDiff oldValue={version.oldValue} newValue={version.newValue} />
                             )}
@@ -290,7 +290,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
                             {version.field === 'notes' && (
                               <NotesDiff oldValue={version.oldValue} newValue={version.newValue} />
                             )}
-                            <div className="text-[8px] text-zinc-700 mt-1">
+                            <div className="text-[8px] text-[var(--app-text-dim)] mt-1">
                               {new Date(version.createdAt).toLocaleString()}
                             </div>
                           </div>

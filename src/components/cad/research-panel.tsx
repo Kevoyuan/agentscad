@@ -16,13 +16,13 @@ export function ResearchPanel({ job }: { job: Job }) {
   const hasData = research || intent || design
 
   if (!hasData) return (
-    <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
+      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
         <Beaker className="w-6 h-6 opacity-30" />
       </div>
       <div className="text-center">
         <p className="text-sm">No research data yet</p>
-        <p className="text-[10px] text-zinc-700 mt-1">Process a job to generate research</p>
+        <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Process a job to generate research</p>
       </div>
     </div>
   )
@@ -30,13 +30,13 @@ export function ResearchPanel({ job }: { job: Job }) {
   const sections = [
     { data: research, icon: Globe, label: 'Research', color: 'text-sky-400' },
     { data: intent, icon: Lightbulb, label: 'Intent', color: 'text-amber-400' },
-    { data: design, icon: Beaker, label: 'Design', color: 'text-violet-400' },
+    { data: design, icon: Beaker, label: 'Design', color: 'text-[var(--app-accent-text)]' },
   ]
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Research & Intent</h3>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Research & Intent</h3>
       </div>
       <ScrollArea className="flex-1">
         <motion.div
@@ -88,15 +88,15 @@ export function ResearchPanel({ job }: { job: Job }) {
               transition={fadeInUpTransition}
               className="rounded-lg linear-surface linear-border overflow-hidden"
             >
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/20 border-b border-zinc-800/40">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--app-empty-bg)] border-b border-[color:var(--app-border)]">
                 <Icon className={`w-3 h-3 ${color}`} />
                 <span className={`text-[9px] font-mono tracking-wider ${color} uppercase`}>{label}</span>
               </div>
               <div className="p-2.5 space-y-1.5">
                 {Object.entries(data).map(([key, value]) => (
                   <div key={key} className="flex items-start gap-2">
-                    <span className="text-[9px] font-mono text-zinc-600 min-w-[90px] shrink-0">{key}</span>
-                    <span className="text-[10px] text-zinc-400 flex-1">
+                    <span className="text-[9px] font-mono text-[var(--app-text-dim)] min-w-[90px] shrink-0">{key}</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)] flex-1">
                       {Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value, null, 0) : String(value)}
                     </span>
                   </div>
@@ -112,7 +112,7 @@ export function ResearchPanel({ job }: { job: Job }) {
               transition={fadeInUpTransition}
               className="rounded-lg linear-surface linear-border overflow-hidden"
             >
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/20 border-b border-zinc-800/40">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--app-empty-bg)] border-b border-[color:var(--app-border)]">
                 <Info className="w-3 h-3 text-emerald-400" />
                 <span className="text-[9px] font-mono tracking-wider text-emerald-400 uppercase">Schema Info</span>
               </div>

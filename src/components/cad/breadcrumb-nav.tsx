@@ -55,7 +55,7 @@ export function BreadcrumbNav({ jobId, activeTab, onNavigateHome, onNavigateJobs
       </button>
       <ChevronRight className="w-2.5 h-2.5 text-[var(--app-text-dim)]" />
       <button
-        className="flex items-center gap-1 text-[var(--app-text-secondary)] hover:text-violet-400 transition-colors duration-150 group"
+        className="flex items-center gap-1 text-[var(--app-text-secondary)] hover:text-[var(--app-accent-text)] transition-colors duration-150 group"
         onClick={handleCopyId}
         title="Click to copy full Job ID"
         aria-label={`Job ID: ${jobPrefix}. Click to copy.`}
@@ -68,7 +68,7 @@ export function BreadcrumbNav({ jobId, activeTab, onNavigateHome, onNavigateJobs
         )}
       </button>
       <ChevronRight className="w-2.5 h-2.5 text-[var(--app-text-dim)]" />
-      <span className="text-violet-400 font-medium">
+      <span className="text-[var(--app-accent-text)] font-medium">
         {tabLabel}
       </span>
     </nav>

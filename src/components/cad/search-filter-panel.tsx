@@ -254,7 +254,7 @@ export function SearchFilterPanel({
       {/* Search Row - Always visible */}
       <div className="px-3 py-2 flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--app-text-dim)]" />
           <Input
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
@@ -263,7 +263,7 @@ export function SearchFilterPanel({
           />
           {filters.search && (
             <button
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors"
               onClick={() => updateFilter('search', '')}
             >
               <X className="w-3 h-3" />
@@ -276,7 +276,7 @@ export function SearchFilterPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 w-7 p-0 relative ${expanded ? 'bg-violet-600/15 text-violet-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`h-7 w-7 p-0 relative ${expanded ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
                 onClick={() => setExpanded(!expanded)}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -305,7 +305,7 @@ export function SearchFilterPanel({
             <button
               key={f.key}
               className={`shrink-0 text-[9px] font-mono px-2 py-1 rounded-md transition-colors ${
-                isMultiActive ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30' : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
               }`}
               onClick={() => {
                 if (f.key === 'ALL') {
@@ -336,7 +336,7 @@ export function SearchFilterPanel({
               <div className="flex items-start gap-4">
                 {/* Priority Range */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">
+                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Priority Range
                   </label>
                   <div className="flex items-center gap-2">
@@ -348,8 +348,8 @@ export function SearchFilterPanel({
                       onChange={e => updateFilter('priorityMin', Math.min(Number(e.target.value), filters.priorityMax))}
                       className="flex-1 accent-violet-500 h-1"
                     />
-                    <span className="text-[9px] font-mono text-zinc-500 min-w-[28px] text-center">P{filters.priorityMin}</span>
-                    <span className="text-[9px] text-zinc-700">—</span>
+                    <span className="text-[9px] font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMin}</span>
+                    <span className="text-[9px] text-[var(--app-text-dim)]">—</span>
                     <input
                       type="range"
                       min={1}
@@ -358,13 +358,13 @@ export function SearchFilterPanel({
                       onChange={e => updateFilter('priorityMax', Math.max(Number(e.target.value), filters.priorityMin))}
                       className="flex-1 accent-violet-500 h-1"
                     />
-                    <span className="text-[9px] font-mono text-zinc-500 min-w-[28px] text-center">P{filters.priorityMax}</span>
+                    <span className="text-[9px] font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMax}</span>
                   </div>
                 </div>
 
                 {/* Date Range */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">
+                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Date Range
                   </label>
                   <div className="flex items-center gap-1">
@@ -373,8 +373,8 @@ export function SearchFilterPanel({
                         key={opt.key}
                         className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
                           filters.dateRange === opt.key
-                            ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                            : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                         }`}
                         onClick={() => updateFilter('dateRange', opt.key as FilterState['dateRange'])}
                       >
@@ -406,15 +406,15 @@ export function SearchFilterPanel({
               <div className="flex items-start gap-4">
                 {/* Part Family */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">
+                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Part Family
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
                       className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
                         !filters.partFamily
-                          ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                          : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                          ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                          : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                       }`}
                       onClick={() => updateFilter('partFamily', null)}
                     >
@@ -425,8 +425,8 @@ export function SearchFilterPanel({
                         key={pf}
                         className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
                           filters.partFamily === pf
-                            ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                            : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                         }`}
                         onClick={() => updateFilter('partFamily', pf === filters.partFamily ? null : pf)}
                       >
@@ -438,15 +438,15 @@ export function SearchFilterPanel({
 
                 {/* Builder Name */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">
+                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Builder
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
                       className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
                         !filters.builderName
-                          ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                          : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                          ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                          : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                       }`}
                       onClick={() => updateFilter('builderName', null)}
                     >
@@ -457,8 +457,8 @@ export function SearchFilterPanel({
                         key={bn}
                         className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
                           filters.builderName === bn
-                            ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                            : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                         }`}
                         onClick={() => updateFilter('builderName', bn === filters.builderName ? null : bn)}
                       >
@@ -470,7 +470,7 @@ export function SearchFilterPanel({
 
                 {/* Sort */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5 block">
+                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Sort By
                   </label>
                   <div className="flex items-center gap-1">
@@ -479,8 +479,8 @@ export function SearchFilterPanel({
                         key={opt.key}
                         className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
                           filters.sortBy === opt.key
-                            ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                            : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                         }`}
                         onClick={() => updateFilter('sortBy', opt.key as FilterState['sortBy'])}
                       >
@@ -488,7 +488,7 @@ export function SearchFilterPanel({
                       </button>
                     ))}
                     <button
-                      className="text-[9px] px-1.5 py-1 rounded-md text-zinc-500 hover:text-zinc-300 transition-colors"
+                      className="text-[9px] px-1.5 py-1 rounded-md text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
                       onClick={() => updateFilter('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
                       title={filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                     >
@@ -501,7 +501,7 @@ export function SearchFilterPanel({
               {/* Clear All */}
               {activeCount > 0 && (
                 <div className="flex items-center justify-between pt-1 border-t border-white/[0.04]">
-                  <span className="text-[9px] text-zinc-600">
+                  <span className="text-[9px] text-[var(--app-text-dim)]">
                     {activeCount} active filter{activeCount !== 1 ? 's' : ''}
                   </span>
                   <Button

@@ -109,15 +109,15 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
   return (
     <div className="mt-3">
       <div className="flex items-center gap-1.5 mb-2">
-        <Brain className="w-3 h-3 text-violet-400" />
-        <span className="text-[9px] font-mono text-zinc-500 tracking-widest uppercase">
+        <Brain className="w-3 h-3 text-[var(--app-accent-text)]" />
+        <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
           Case Memory
         </span>
         {isSearching && (
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-[8px] text-violet-400 animate-pulse"
+            className="text-[8px] text-[var(--app-accent-text)] animate-pulse"
           >
             searching...
           </motion.span>
@@ -144,23 +144,23 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
                 <div className="flex items-start gap-2">
                   <PartFamilyIcon family={job.partFamily || 'unknown'} size={16} animate={false} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-zinc-300 leading-tight line-clamp-2">
+                    <p className="text-[10px] text-[var(--app-text-secondary)] leading-tight line-clamp-2">
                       {job.inputRequest}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <StateBadge state={job.state} />
                       {job.partFamily && (
-                        <span className="text-[8px] font-mono text-zinc-600">
+                        <span className="text-[8px] font-mono text-[var(--app-text-dim)]">
                           {getPartFamilyLabel(job.partFamily)}
                         </span>
                       )}
-                      <span className="text-[8px] text-zinc-700 font-mono">
+                      <span className="text-[8px] text-[var(--app-text-dim)] font-mono">
                         {timeAgo(job.createdAt)}
                       </span>
                     </div>
                   </div>
                   <button
-                    className="shrink-0 flex items-center gap-0.5 text-[8px] text-violet-400 opacity-0 group-hover/suggestion:opacity-100 transition-opacity duration-200 hover:text-violet-300 bg-violet-600/10 px-1.5 py-1 rounded border border-violet-500/20"
+                    className="shrink-0 flex items-center gap-0.5 text-[8px] text-[var(--app-accent-text)] opacity-0 group-hover/suggestion:opacity-100 transition-opacity duration-200 hover:text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] px-1.5 py-1 rounded border border-violet-500/20"
                     onClick={(e) => {
                       e.stopPropagation()
                       onSuggestionClick?.(job)
@@ -177,7 +177,7 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[10px] text-zinc-700 py-2 text-center"
+              className="text-[10px] text-[var(--app-text-dim)] py-2 text-center"
             >
               No similar past jobs found
             </motion.div>

@@ -87,11 +87,11 @@ export function JobActivityFeed({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
         <div className="flex items-center gap-2">
-          <Activity className="w-3.5 h-3.5 text-violet-400" />
-          <span className="text-[11px] font-medium text-zinc-300">Activity Feed</span>
-          <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-400 border border-violet-500/20">
+          <Activity className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
+          <span className="text-[11px] font-medium text-[var(--app-text-secondary)]">Activity Feed</span>
+          <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
             {filteredEvents.length}
           </span>
         </div>
@@ -100,7 +100,7 @@ export function JobActivityFeed({
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 text-[8px] gap-0.5 text-zinc-500 hover:text-zinc-400 px-1"
+              className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-muted)] px-1"
               onClick={onClear}
             >
               <Trash2 className="w-2.5 h-2.5" />Clear
@@ -110,15 +110,15 @@ export function JobActivityFeed({
       </div>
 
       {/* Filter Pills */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-800/40 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        <Filter className="w-2.5 h-2.5 text-zinc-600 shrink-0" />
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[color:var(--app-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        <Filter className="w-2.5 h-2.5 text-[var(--app-text-dim)] shrink-0" />
         {FILTER_OPTIONS.map(opt => (
           <button
             key={opt.key}
             className={`shrink-0 text-[8px] font-mono px-1.5 py-0.5 rounded-md transition-colors ${
               filter === opt.key
-                ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                : 'text-zinc-600 hover:text-zinc-400 border border-transparent'
+                ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
+                : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
             }`}
             onClick={() => setFilter(opt.key)}
           >
@@ -131,16 +131,16 @@ export function JobActivityFeed({
       <ScrollArea className="flex-1 max-h-80" ref={scrollRef}>
         {filteredEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-800/20 flex items-center justify-center gentle-float">
-              <Activity className="w-5 h-5 text-zinc-700" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center gentle-float">
+              <Activity className="w-5 h-5 text-[var(--app-text-dim)]" />
             </div>
-            <p className="text-[11px] text-zinc-600">
+            <p className="text-[11px] text-[var(--app-text-dim)]">
               {filter === 'ALL' ? 'No activity yet' : `No ${filter} events`}
             </p>
-            <p className="text-[9px] text-zinc-700">Events will appear here as jobs progress</p>
+            <p className="text-[9px] text-[var(--app-text-dim)]">Events will appear here as jobs progress</p>
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800/40">
+          <div className="divide-y divide-[color:var(--app-border)]">
             <AnimatePresence>
               {filteredEvents.map(event => {
                 const config = EVENT_CONFIG[event.type]
@@ -160,15 +160,15 @@ export function JobActivityFeed({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-zinc-300 truncate max-w-[120px]">
+                        <span className="text-[10px] text-[var(--app-text-secondary)] truncate max-w-[120px]">
                           {event.jobName.length > 20 ? event.jobName.slice(0, 20) + '...' : event.jobName}
                         </span>
-                        <span className="text-[9px] text-zinc-600">{event.action}</span>
+                        <span className="text-[9px] text-[var(--app-text-dim)]">{event.action}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[8px] font-mono text-zinc-700">{event.jobId}</span>
-                        <span className="text-[8px] text-zinc-700">·</span>
-                        <span className="text-[8px] text-zinc-700">{activityTimeAgo(event.timestamp)}</span>
+                        <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{event.jobId}</span>
+                        <span className="text-[8px] text-[var(--app-text-dim)]">·</span>
+                        <span className="text-[8px] text-[var(--app-text-dim)]">{activityTimeAgo(event.timestamp)}</span>
                       </div>
                     </div>
                   </motion.div>

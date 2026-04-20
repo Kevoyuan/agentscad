@@ -105,28 +105,28 @@ export function CommandPalette({
     >
       <CommandInput
         placeholder="Search jobs, actions, or type a command..."
-        className="text-zinc-300 placeholder:text-zinc-600"
+        className="text-[var(--app-text-secondary)] placeholder:text-[var(--app-text-dim)]"
       />
       <CommandList className="max-h-[400px]">
-        <CommandEmpty className="text-zinc-600 text-sm py-6">No results found.</CommandEmpty>
+        <CommandEmpty className="text-[var(--app-text-dim)] text-sm py-6">No results found.</CommandEmpty>
 
         {/* Recent Commands */}
         {(recentJobs.length > 0 || recentActions.length > 0) && (
           <>
-            <CommandGroup heading="Recent" className="[&_[cmdk-group-heading]]:text-zinc-600 [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
+            <CommandGroup heading="Recent" className="[&_[cmdk-group-heading]]:text-[var(--app-text-dim)] [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
               {recentJobs.map(job => (
                 <CommandItem
                   key={`recent-job-${job.id}`}
                   value={`recent-job-${job.id} ${job.inputRequest}`}
                   onSelect={() => handleSelectJob(job)}
-                  className="text-zinc-300 data-[selected=true]:bg-violet-600/15 data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
+                  className="text-[var(--app-text-secondary)] data-[selected=true]:bg-[var(--app-accent-bg)] data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
                 >
                   <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
                   <div className="flex-1 min-w-0 ml-1">
                     <span className="text-[11px] truncate block max-w-[280px]">{job.inputRequest}</span>
                   </div>
                   <StateBadge state={job.state} />
-                  <span className="text-[8px] font-mono text-zinc-600 ml-1">{job.id.slice(0, 8)}</span>
+                  <span className="text-[8px] font-mono text-[var(--app-text-dim)] ml-1">{job.id.slice(0, 8)}</span>
                 </CommandItem>
               ))}
               {recentActions.map(action => (
@@ -134,11 +134,11 @@ export function CommandPalette({
                   key={`recent-action-${action.id}`}
                   value={`recent-action-${action.id} ${action.label}`}
                   onSelect={() => handleSelectAction(action)}
-                  className="text-zinc-300 data-[selected=true]:bg-violet-600/15 data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
+                  className="text-[var(--app-text-secondary)] data-[selected=true]:bg-[var(--app-accent-bg)] data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
                 >
                   {action.icon}
                   <span className="text-[11px] ml-2">{action.label}</span>
-                  {action.shortcut && <CommandShortcut className="text-[9px] text-zinc-600">{action.shortcut}</CommandShortcut>}
+                  {action.shortcut && <CommandShortcut className="text-[9px] text-[var(--app-text-dim)]">{action.shortcut}</CommandShortcut>}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -147,18 +147,18 @@ export function CommandPalette({
         )}
 
         {/* Jobs */}
-        <CommandGroup heading="Jobs" className="[&_[cmdk-group-heading]]:text-zinc-600 [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
+        <CommandGroup heading="Jobs" className="[&_[cmdk-group-heading]]:text-[var(--app-text-dim)] [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
           {filteredJobItems.map(job => (
             <CommandItem
               key={`job-${job.id}`}
               value={`job-${job.id} ${job.inputRequest} ${job.state}`}
               onSelect={() => handleSelectJob(job)}
-              className="text-zinc-300 data-[selected=true]:bg-violet-600/15 data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
+              className="text-[var(--app-text-secondary)] data-[selected=true]:bg-[var(--app-accent-bg)] data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
             >
               <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
               <div className="flex-1 min-w-0 ml-1">
                 <span className="text-[11px] truncate block max-w-[280px]">{job.inputRequest}</span>
-                <span className="text-[8px] font-mono text-zinc-600">{job.id.slice(0, 8)} · P{job.priority}</span>
+                <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{job.id.slice(0, 8)} · P{job.priority}</span>
               </div>
               <StateBadge state={job.state} />
             </CommandItem>
@@ -167,18 +167,18 @@ export function CommandPalette({
         <CommandSeparator className="bg-white/[0.04]" />
 
         {/* Actions */}
-        <CommandGroup heading="Actions" className="[&_[cmdk-group-heading]]:text-zinc-600 [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
+        <CommandGroup heading="Actions" className="[&_[cmdk-group-heading]]:text-[var(--app-text-dim)] [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
           {actions.map(action => (
             <CommandItem
               key={`action-${action.id}`}
               value={`action-${action.id} ${action.label}`}
               onSelect={() => handleSelectAction(action)}
-              className="text-zinc-300 data-[selected=true]:bg-violet-600/15 data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
+              className="text-[var(--app-text-secondary)] data-[selected=true]:bg-[var(--app-accent-bg)] data-[selected=true]:text-violet-200 rounded-md px-2 py-1.5 cursor-pointer"
             >
               {action.icon}
               <span className="text-[11px] ml-2">{action.label}</span>
-              {action.description && <span className="text-[9px] text-zinc-600 ml-2 hidden sm:inline">{action.description}</span>}
-              {action.shortcut && <CommandShortcut className="text-[9px] text-zinc-600">{action.shortcut}</CommandShortcut>}
+              {action.description && <span className="text-[9px] text-[var(--app-text-dim)] ml-2 hidden sm:inline">{action.description}</span>}
+              {action.shortcut && <CommandShortcut className="text-[9px] text-[var(--app-text-dim)]">{action.shortcut}</CommandShortcut>}
             </CommandItem>
           ))}
         </CommandGroup>
@@ -186,8 +186,8 @@ export function CommandPalette({
 
       {/* Footer */}
       <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/[0.04]">
-        <span className="text-[9px] text-zinc-600 font-mono">↑↓ Navigate · ↵ Select · Esc Close</span>
-        <span className="text-[9px] text-zinc-700 font-mono">⌘K</span>
+        <span className="text-[9px] text-[var(--app-text-dim)] font-mono">↑↓ Navigate · ↵ Select · Esc Close</span>
+        <span className="text-[9px] text-[var(--app-text-dim)] font-mono">⌘K</span>
       </div>
     </CommandDialog>
   )

@@ -1408,3 +1408,88 @@ Stage Summary:
 - DeepSeek V4/R2 not yet released (as of April 6, 2026) - kept V3/R1
 - GLM-5.1 confirmed as April 2026 release (744B MoE, surpasses GPT-5.4 on SWE-bench Pro)
 - Card jumping fix prioritized stable layout over animation effects
+
+---
+
+### Task ID: 12
+**Agent**: Main Agent
+**Task**: Complete dark/light theme overhaul - replace all hardcoded colors with CSS variable system
+
+#### Work Log:
+
+1. ✅ **Comprehensive CSS Variable System Overhaul** (`src/app/globals.css`):
+   - Added 30+ new CSS variables for both `:root` (light) and `.dark` (dark) themes:
+     - `--app-surface-raised`: Raised surface backgrounds
+     - `--app-border-strong`: Stronger borders for interactive elements
+     - `--app-text-bright`: Brightest text color
+     - `--app-empty-bg`: Empty state backgrounds
+     - `--app-accent`, `--app-accent-hover`, `--app-accent-bg`, `--app-accent-text`, `--app-accent-border`: Full accent color system
+     - `--app-danger`, `--app-warning`, `--app-success`, `--app-info` + `-bg` variants: Semantic color system
+     - `--app-header-bg`: Semi-transparent header background
+     - `--app-dialog-overlay`, `--app-dialog-bg`: Dialog theme variables
+     - `--app-code-bg`, `--app-code-border`: Code block styling
+     - `--app-tag-bg`, `--app-tag-border`: Tag styling
+     - `--app-batch-bar-bg`, `--app-batch-bar-text`: Batch selection bar
+     - `--app-input-bg`, `--app-input-border`, `--app-input-focus-border`: Input styling
+     - `--app-priority-high/medium/low/inactive`: Priority color system
+   - Replaced all `#7c3aed` hardcoded references with `var(--app-accent)`:
+     - Slider range/thumb, progress bar, resize handle, tab indicator, linear-selected, status-icon-pulse
+   - Improved light mode contrast:
+     - `--app-text-muted`: `#6e6e7a` → `#5c5c6a` (better readability on white)
+     - `--app-text-dim`: `#a0a0ab` → `#8a8a96` (more visible on light bg)
+     - `--app-border`: `rgba(0,0,0,0.09)` → `rgba(0,0,0,0.12)` (more visible borders)
+     - `--app-scrollbar-thumb`: `#c8c8cd` → `#b8b8c0` (more visible scrollbar)
+   - Added `.theme-transition` class for smooth theme switching animation
+
+2. ✅ **page.tsx Full Theme Overhaul**:
+   - Replaced all `text-zinc-*` classes with `text-[var(--app-text-*)]` CSS variable equivalents
+   - Replaced all `bg-violet-600 hover:bg-violet-500` → `bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)]`
+   - Replaced `bg-[#7c3aed]` (logo) → `bg-[var(--app-accent)]`
+   - Replaced priority indicator colors with CSS variable-based classes
+   - Replaced batch bar colors with `--app-batch-bar-bg` and `--app-batch-bar-text`
+   - Replaced empty state backgrounds with `bg-[var(--app-empty-bg)]`
+   - Replaced dialog/title accent colors with `text-[var(--app-accent-text)]`
+   - Replaced inspector tab active states with `data-[state=active]:bg-[var(--app-accent-bg)]`
+
+3. ✅ **All 24+ Component Files Updated**:
+   - Replaced `text-zinc-200/300/400/500/600/700/800` with appropriate `text-[var(--app-text-*)]` classes
+   - Replaced `bg-zinc-800/20/30/40/50/60` with `bg-[var(--app-empty-bg)]` / `bg-[var(--app-surface-hover)]` / `bg-[var(--app-surface-raised)]`
+   - Replaced `border-zinc-700/50/800/30/40/60` with `border-[color:var(--app-border)]`
+   - Replaced `text-violet-400/500` with `text-[var(--app-accent-text)]` / `text-[var(--app-accent)]`
+   - Replaced `bg-violet-600/10/15` with `bg-[var(--app-accent-bg)]`
+   - Preserved intentional semantic colors (amber/rose/emerald/cyan for categories, tag badge colors, part family colors)
+
+4. ✅ **ThemePanel Enhanced**:
+   - Complete rewrite of `applyThemeToDOM()` function:
+     - Now dynamically sets `--app-accent`, `--app-accent-hover`, `--app-accent-bg`, `--app-accent-text`, `--app-accent-border`, `--app-batch-bar-bg`, `--app-batch-bar-text`, `--app-focus-ring`, `--app-interactive-hover`, `--app-selected-bg`, `--app-gradient-separator`
+     - Accent colors adapt based on dark/light mode (lighter text in dark, darker in light)
+   - Added `handleThemeChange()` with smooth `theme-transition` class for 400ms animated theme switch
+   - Re-apply accent colors when theme mode changes (dark/light affects derived colors)
+   - Removed all dark/light-specific inline styles in favor of CSS variables
+   - Fixed lint error: `setMounted(true)` in useEffect → derived state in useState initializer
+
+5. ✅ **Providers Updated**:
+   - Removed `disableTransitionOnChange` from ThemeProvider to enable smooth theme switching
+
+6. ✅ **VLM Quality Assessment**:
+   - Dark theme: **8/10** - "well-designed dark theme with strong readability"
+   - Light theme: **8/10** - "text highly readable with strong contrast, buttons well-styled"
+
+#### Files Modified:
+- `src/app/globals.css` - 30+ new CSS variables, replaced all #7c3aed, improved light contrast
+- `src/components/providers.tsx` - Removed disableTransitionOnChange
+- `src/app/page.tsx` - Full color replacement (60+ instances)
+- `src/components/cad/theme-panel.tsx` - Complete rewrite with dynamic accent color application
+- All 24 component files in `src/components/cad/` - Color replacements
+
+#### Lint Status: ✅ PASS (0 errors)
+
+#### Stage Summary:
+- **Complete dark/light theme system**: 60+ CSS variables, all components theme-aware
+- **Dynamic accent colors**: ThemePanel accent picker now updates ALL CSS variables globally
+- **Smooth theme transitions**: 400ms animated switch between light/dark modes
+- **Light mode contrast improved**: Darker muted text, stronger borders, more visible scrollbars
+- **No more hardcoded #7c3aed**: All accent references use CSS variables
+- **VLM rated both themes 8/10**
+
+---

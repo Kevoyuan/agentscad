@@ -72,7 +72,7 @@ export function JobTemplateCards({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase block">
+      <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase block">
         Templates
       </label>
       <div className="grid grid-cols-2 gap-2">

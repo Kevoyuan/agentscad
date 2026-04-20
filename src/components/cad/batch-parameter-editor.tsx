@@ -116,14 +116,14 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
     >
       <div className="border-t border-[color:var(--app-border)] bg-[var(--app-surface)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/40">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
           <div className="flex items-center gap-2">
-            <Sliders className="w-3 h-3 text-violet-400" />
-            <span className="text-[9px] font-mono tracking-widest text-violet-300 uppercase">Batch Edit</span>
-            <Badge variant="outline" className="text-[8px] h-3.5 bg-violet-600/10 text-violet-400 border-violet-500/30">
+            <Sliders className="w-3 h-3 text-[var(--app-accent-text)]" />
+            <span className="text-[9px] font-mono tracking-widest text-[var(--app-accent-text)] uppercase">Batch Edit</span>
+            <Badge variant="outline" className="text-[8px] h-3.5 bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border-[color:var(--app-accent-border)]">
               {selectedJobs.length} jobs
             </Badge>
-            <Badge variant="outline" className="text-[8px] h-3.5 bg-zinc-800/50 text-zinc-500 border-zinc-700/50">
+            <Badge variant="outline" className="text-[8px] h-3.5 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
               {commonParams.length} params
             </Badge>
           </div>
@@ -131,7 +131,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 text-[8px] gap-1 text-zinc-500 hover:text-zinc-300"
+              className="h-5 text-[8px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
               onClick={() => setEditValues({})}
               disabled={!hasEdits}
             >
@@ -141,14 +141,14 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
               size="sm"
               className={`h-5 text-[8px] gap-1 ${
                 hasEdits
-                  ? 'bg-violet-600 hover:bg-violet-500'
-                  : 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed'
+                  ? 'bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)]'
+                  : 'bg-[var(--app-surface-raised)] text-[var(--app-text-dim)] cursor-not-allowed'
               }`}
               onClick={handleApply}
               disabled={!hasEdits || isApplying}
             >
               {isApplying ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-2.5 h-2.5 border border-violet-300 border-t-transparent rounded-full" />
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-2.5 h-2.5 border border-[var(--app-accent-text)] border-t-transparent rounded-full" />
               ) : (
                 <ApplyTemplate className="w-2.5 h-2.5" />
               )}
@@ -169,17 +169,17 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
                 <div key={param.key} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-300">{param.label}</span>
-                      <span className="text-[8px] font-mono text-zinc-600">{param.key}</span>
-                      {param.unit && <span className="text-[8px] text-zinc-700">{param.unit}</span>}
+                      <span className="text-[10px] text-[var(--app-text-secondary)]">{param.label}</span>
+                      <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{param.key}</span>
+                      {param.unit && <span className="text-[8px] text-[var(--app-text-dim)]">{param.unit}</span>}
                     </div>
                     <div className="flex items-center gap-1.5">
                       {hasChange && (
-                        <span className="text-[8px] text-zinc-600">
+                        <span className="text-[8px] text-[var(--app-text-dim)]">
                           was {param.currentMin === param.currentMax ? param.currentMin : `${param.currentMin}–${param.currentMax}`}
                         </span>
                       )}
-                      <span className={`text-[10px] font-mono ${hasChange ? 'text-violet-300' : 'text-zinc-400'}`}>
+                      <span className={`text-[10px] font-mono ${hasChange ? 'text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)]'}`}>
                         {typeof displayValue === 'number' ? displayValue.toFixed(param.step < 1 ? 1 : 0) : displayValue}
                         {param.unit ? ` ${param.unit}` : ''}
                       </span>
@@ -196,7 +196,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
                       hasChange ? 'accent-violet-500' : 'accent-zinc-600'
                     }`}
                   />
-                  <div className="flex justify-between text-[7px] text-zinc-700 font-mono">
+                  <div className="flex justify-between text-[7px] text-[var(--app-text-dim)] font-mono">
                     <span>{param.min}</span>
                     <span>{param.max}</span>
                   </div>

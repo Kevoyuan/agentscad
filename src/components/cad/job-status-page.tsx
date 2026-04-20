@@ -131,7 +131,7 @@ function AnimatedStateIcon({ state }: { state: string }) {
       animate={{ rotate: 360 }}
       transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
     >
-      <Loader2 className={`${iconClass} text-violet-400`} />
+      <Loader2 className={`${iconClass} text-[var(--app-accent-text)]`} />
     </motion.div>
   )
 }
@@ -255,11 +255,11 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
             <h2 className={`text-2xl font-semibold tracking-tight ${
               isFailed ? 'text-rose-300' :
               isDelivered ? 'text-lime-300' :
-              'text-zinc-100'
+              'text-[var(--app-text-primary)]'
             }`}>
               {currentStepLabel}
             </h2>
-            <p className="text-sm text-zinc-500 mt-1 font-mono">
+            <p className="text-sm text-[var(--app-text-muted)] mt-1 font-mono">
               {state.replace(/_/g, ' ')}
             </p>
           </div>
@@ -267,7 +267,7 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
           {/* Progress Bar */}
           <div className="w-full space-y-2">
             <div className="flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-500">Pipeline Progress</span>
+              <span className="text-[var(--app-text-muted)]">Pipeline Progress</span>
               <span className={
                 isFailed ? 'text-rose-400' :
                 isDelivered ? 'text-lime-400' :
@@ -318,7 +318,7 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                       >
-                        <Loader2 className="w-4 h-4 text-violet-400" />
+                        <Loader2 className="w-4 h-4 text-[var(--app-accent-text)]" />
                       </motion.div>
                     ) : (
                       <div className="w-2 h-2 rounded-full bg-zinc-700" />
@@ -329,15 +329,15 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-medium ${
-                        isCompleted ? 'text-zinc-300' :
-                        isCurrent ? 'text-violet-300' :
+                        isCompleted ? 'text-[var(--app-text-secondary)]' :
+                        isCurrent ? 'text-[var(--app-accent-text)]' :
                         isFailedStep ? 'text-rose-300' :
-                        'text-zinc-600'
+                        'text-[var(--app-text-dim)]'
                       }`}>
                         {step.label}
                       </span>
                       {isCurrent && (
-                        <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                        <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
                           ACTIVE
                         </span>
                       )}
@@ -348,14 +348,14 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
                       )}
                     </div>
                     {duration !== undefined && (
-                      <span className="text-[9px] font-mono text-zinc-600">
+                      <span className="text-[9px] font-mono text-[var(--app-text-dim)]">
                         {formatDuration(duration)}
                       </span>
                     )}
                   </div>
 
                   {/* Step Duration / Estimate */}
-                  <div className="shrink-0 text-[9px] font-mono text-zinc-600">
+                  <div className="shrink-0 text-[9px] font-mono text-[var(--app-text-dim)]">
                     {isCurrent ? (
                       <span className="text-amber-400">Running...</span>
                     ) : isCompleted && duration ? (
@@ -370,7 +370,7 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
           </div>
 
           {/* Time & Metadata */}
-          <div className="w-full flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono text-zinc-600">
+          <div className="w-full flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono text-[var(--app-text-dim)]">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -412,7 +412,7 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs gap-1.5 border-zinc-700/50 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+              className="h-8 text-xs gap-1.5 border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] hover:border-[color:var(--app-border)]"
               onClick={onViewLogs}
             >
               <FileText className="w-3.5 h-3.5" />

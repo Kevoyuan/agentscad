@@ -138,8 +138,8 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
   }, [editSource, hasChanges, handleSave])
 
   if (!job.scadSource && !isEditing) return (
-    <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
+      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
         <FileCode className="w-6 h-6 opacity-30" />
       </div>
       <p className="text-sm">No SCAD source</p>
@@ -151,8 +151,8 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 shrink-0">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)] shrink-0">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
           <Code2 className="w-3 h-3" />
           SCAD Source
           {isEditing && (
@@ -166,19 +166,19 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
           )}
         </h3>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800/50 text-zinc-500 border-zinc-700/50">
+          <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {lineCount} lines
           </Badge>
           {!isEditing ? (
             <>
-              <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={handleCopy}>
+              <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleCopy}>
                 {copied ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                 {copied ? 'Copied!' : 'Copy'}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 text-[9px] gap-1 text-violet-400 hover:text-violet-300"
+                className="h-5 text-[9px] gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)]"
                 onClick={() => { setIsEditing(true); setEditSource(job.scadSource || '') }}
               >
                 <Edit3 className="w-3 h-3" />Edit
@@ -189,7 +189,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300"
+                className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
                 onClick={handleReset}
                 disabled={!hasChanges}
               >
@@ -198,7 +198,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-5 text-[9px] gap-1 ${hasChanges ? 'text-emerald-400 hover:text-emerald-300' : 'text-zinc-600'}`}
+                className={`h-5 text-[9px] gap-1 ${hasChanges ? 'text-emerald-400 hover:text-emerald-300' : 'text-[var(--app-text-dim)]'}`}
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
               >
@@ -220,7 +220,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
                 <span
                   key={idx}
                   className={`text-[10px] font-mono leading-[20px] ${
-                    changedLines.has(idx + 1) ? 'text-amber-400/60' : 'text-zinc-700'
+                    changedLines.has(idx + 1) ? 'text-amber-400/60' : 'text-[var(--app-text-dim)]'
                   }`}
                 >
                   {idx + 1}
@@ -233,7 +233,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
               value={editSource}
               onChange={e => setEditSource(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 p-4 text-xs font-mono leading-[20px] bg-[var(--app-bg)] text-zinc-200 resize-none outline-none border-none whitespace-pre overflow-auto"
+              className="flex-1 p-4 text-xs font-mono leading-[20px] bg-[var(--app-bg)] text-[var(--app-text-primary)] resize-none outline-none border-none whitespace-pre overflow-auto"
               spellCheck={false}
               autoFocus
             />
@@ -253,9 +253,9 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
           <ScrollArea className="h-full">
             <div className="flex">
               {/* Line numbers (view mode) */}
-              <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-zinc-800/30">
+              <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-[color:var(--app-border)]">
                 {displayLines.map((_, idx) => (
-                  <span key={idx} className="text-[10px] font-mono leading-[20px] text-zinc-700">
+                  <span key={idx} className="text-[10px] font-mono leading-[20px] text-[var(--app-text-dim)]">
                     {idx + 1}
                   </span>
                 ))}
@@ -271,7 +271,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] shrink-0 bg-[var(--app-surface)]">
-        <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-600">
+        <div className="flex items-center gap-3 text-[9px] font-mono text-[var(--app-text-dim)]">
           <span>{charCount} chars</span>
           <span>{lineCount} lines</span>
           {isEditing && hasChanges && (
@@ -284,7 +284,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
             </motion.span>
           )}
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-mono text-zinc-700">
+        <div className="flex items-center gap-2 text-[9px] font-mono text-[var(--app-text-dim)]">
           {isEditing && (
             <span>Tab: indent · Enter: auto-indent · Esc: cancel · ⌘S: save</span>
           )}

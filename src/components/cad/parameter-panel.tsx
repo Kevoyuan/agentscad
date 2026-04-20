@@ -62,13 +62,13 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
   }, [schema, job.id, onUpdate, toast])
 
   if (!schema) return (
-    <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-zinc-800/30 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
+      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
         <Wrench className="w-6 h-6 opacity-30" />
       </div>
       <div className="text-center">
         <p className="text-sm">No parameters available</p>
-        <p className="text-[10px] text-zinc-700 mt-1">Process a job to generate parameters</p>
+        <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Process a job to generate parameters</p>
       </div>
     </div>
   )
@@ -136,20 +136,20 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Parameters</h3>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Parameters</h3>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 text-[9px] gap-1 text-zinc-500 hover:text-violet-300"
+            className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)]"
             onClick={handleResetAll}
             disabled={isUpdating}
           >
             <RotateCcw className="w-2.5 h-2.5" />
             Reset All
           </Button>
-          <Badge variant="outline" className="text-[9px] h-4 bg-zinc-800/50 text-zinc-500 border-zinc-700/50">
+          <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {schema.parameters.length} params
           </Badge>
           {isUpdating && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
@@ -170,7 +170,7 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
               transition={staggerTransition}
               className={`rounded-lg border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3 ${groupIdx > 0 ? 'border-t-violet-500/10' : ''}`}
             >
-              <div className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-3 px-1 flex items-center gap-1.5">
+              <div className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-3 px-1 flex items-center gap-1.5">
                 <div className="w-1 h-1 rounded-full bg-violet-500/50" />
                 {group}
               </div>
@@ -197,14 +197,14 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300 group-hover/param:text-zinc-100 transition-colors">{param.label}</span>
-                          <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${sourceColor[param.source] || 'text-zinc-500'} bg-zinc-800/50`}>
+                          <span className="text-xs text-[var(--app-text-secondary)] group-hover/param:text-[var(--app-text-primary)] transition-colors">{param.label}</span>
+                          <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${sourceColor[param.source] || 'text-[var(--app-text-muted)]'} bg-[var(--app-surface-raised)]`}>
                             {param.source.replace('_', ' ')}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <motion.span
-                            className="text-xs font-mono text-zinc-200 tabular-nums"
+                            className="text-xs font-mono text-[var(--app-text-primary)] tabular-nums"
                             key={value}
                             initial={{ scale: 1.15, color: '#a78bfa' }}
                             animate={{ scale: 1, color: '#e4e4e7' }}
@@ -212,7 +212,7 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
                           >
                             {typeof localValues[param.key] === 'number' ? localValues[param.key].toFixed(step < 1 ? 1 : 0) : param.value?.toFixed(step < 1 ? 1 : 0) ?? '0'}
                           </motion.span>
-                          <span className="text-[9px] text-zinc-600">{param.unit}</span>
+                          <span className="text-[9px] text-[var(--app-text-dim)]">{param.unit}</span>
                           {/* Reset to default button - appears on hover */}
                           <AnimatePresence>
                             {isChanged && (
@@ -222,7 +222,7 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
                                 exit={{ opacity: 0, scale: 0.7 }}
                                 transition={{ duration: 0.15 }}
                                 onClick={() => handleResetParam(param.key, param.value)}
-                                className="ml-1 p-0.5 rounded hover:bg-zinc-700/50 text-zinc-500 hover:text-violet-400 transition-colors"
+                                className="ml-1 p-0.5 rounded hover:bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)] transition-colors"
                                 title="Reset to default"
                               >
                                 <RotateCcw className="w-2.5 h-2.5" />
@@ -251,13 +251,13 @@ export function ParameterPanel({ job, onUpdate }: { job: Job; onUpdate: () => vo
                           />
                         </div>
                       ) : null}
-                      <div className="flex justify-between text-[8px] text-zinc-700 font-mono">
+                      <div className="flex justify-between text-[8px] text-[var(--app-text-dim)] font-mono">
                         <span>{min}</span>
-                        <span className="text-[8px] font-mono text-zinc-600">{param.key}</span>
+                        <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{param.key}</span>
                         <span>{max} {param.unit}</span>
                       </div>
                       {param.description && (
-                        <p className="text-[10px] text-zinc-600 leading-relaxed hidden group-hover/param:block transition-all">{param.description}</p>
+                        <p className="text-[10px] text-[var(--app-text-dim)] leading-relaxed hidden group-hover/param:block transition-all">{param.description}</p>
                       )}
                     </motion.div>
                   )
@@ -282,7 +282,7 @@ export function SchemaInfoPanel({ schemaStr }: { schemaStr: string }) {
       schema = rawSchema as ParameterSchema
     }
   }
-  if (!schema) return <span className="text-zinc-600 text-xs">Invalid schema</span>
+  if (!schema) return <span className="text-[var(--app-text-dim)] text-xs">Invalid schema</span>
 
   const sourceCounts: Record<string, number> = {}
   for (const p of schema.parameters) {
@@ -300,20 +300,20 @@ export function SchemaInfoPanel({ schemaStr }: { schemaStr: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Badge variant="outline" className="text-[8px] h-4 bg-zinc-800/50 text-zinc-400 border-zinc-700/50">
+        <Badge variant="outline" className="text-[8px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
           {schema.part_family || 'unknown'}
         </Badge>
-        <Badge variant="outline" className="text-[8px] h-4 bg-zinc-800/50 text-zinc-400 border-zinc-700/50">
+        <Badge variant="outline" className="text-[8px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
           {schema.parameters.length} params
         </Badge>
         {Object.entries(sourceCounts).map(([source, count]) => (
-          <Badge key={source} variant="outline" className={`text-[8px] h-4 ${sourceColor[source] || 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50'}`}>
+          <Badge key={source} variant="outline" className={`text-[8px] h-4 ${sourceColor[source] || 'bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]'}`}>
             {count} {source.replace('_', ' ')}
           </Badge>
         ))}
       </div>
       {schema.design_summary && (
-        <p className="text-[10px] text-zinc-500 leading-relaxed">{schema.design_summary}</p>
+        <p className="text-[10px] text-[var(--app-text-muted)] leading-relaxed">{schema.design_summary}</p>
       )}
     </div>
   )

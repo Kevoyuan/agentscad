@@ -122,8 +122,8 @@ export function ViewerControls({
                 relative flex items-center justify-center w-7 h-7 rounded-lg linear-transition
                 ${
                   ctrl.active
-                    ? 'bg-violet-500/20 text-violet-400'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
+                    ? 'bg-violet-500/20 text-[var(--app-accent-text)]'
+                    : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:bg-white/[0.04]'
                 }
               `}
             >

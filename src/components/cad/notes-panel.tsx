@@ -58,20 +58,20 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
   // Simple markdown-like preview
   const renderPreview = (text: string) => {
     return text
-      .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-zinc-300 mt-2 mb-1">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-sm font-bold text-zinc-200 mt-3 mb-1">$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-[var(--app-text-secondary)] mt-2 mb-1">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-sm font-bold text-[var(--app-text-primary)] mt-3 mb-1">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold text-zinc-100 mt-3 mb-1">$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-zinc-200">$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em class="text-zinc-300">$1</em>')
-      .replace(/^- (.+)$/gm, '<li class="ml-3 text-zinc-400">• $1</li>')
-      .replace(/`(.+?)`/g, '<code class="bg-zinc-800/60 px-1 rounded text-violet-400 text-[10px]">$1</code>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--app-text-primary)]">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em class="text-[var(--app-text-secondary)]">$1</em>')
+      .replace(/^- (.+)$/gm, '<li class="ml-3 text-[var(--app-text-muted)]">• $1</li>')
+      .replace(/`(.+?)`/g, '<code class="bg-[var(--app-surface-hover)] px-1 rounded text-[var(--app-accent-text)] text-[10px]">$1</code>')
       .replace(/\n/g, '<br />')
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
-        <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
           <StickyNote className="w-3 h-3 text-amber-400" />Notes
         </h3>
         <div className="flex items-center gap-2">
@@ -94,13 +94,13 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 text-[9px] gap-1 text-zinc-500 hover:text-violet-300"
+            className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)]"
             onClick={() => setShowPreview(!showPreview)}
           >
             {showPreview ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             {showPreview ? 'Edit' : 'Preview'}
           </Button>
-          <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-zinc-500 hover:text-zinc-300" onClick={handleSave}>
+          <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleSave}>
             <Save className="w-3 h-3" />Save
           </Button>
         </div>
@@ -115,8 +115,8 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="text-[11px] text-zinc-400 leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] min-h-[200px]"
-                dangerouslySetInnerHTML={{ __html: notes ? renderPreview(notes) : '<span class="text-zinc-700 italic">No notes yet...</span>' }}
+                className="text-[11px] text-[var(--app-text-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] min-h-[200px]"
+                dangerouslySetInnerHTML={{ __html: notes ? renderPreview(notes) : '<span class="text-[var(--app-text-dim)] italic">No notes yet...</span>' }}
               />
             ) : (
               <motion.div
@@ -130,19 +130,19 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                   value={notes}
                   onChange={(e) => handleChange(e.target.value.slice(0, MAX_CHARS))}
                   placeholder="Add notes about this job...&#10;&#10;Supports **bold**, *italic*, `code`, and # headers."
-                  className="min-h-[200px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-xs text-zinc-300 placeholder:text-[var(--app-text-dim)] resize-y focus:border-amber-500/40"
+                  className="min-h-[200px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-xs text-[var(--app-text-secondary)] placeholder:text-[var(--app-text-dim)] resize-y focus:border-amber-500/40"
                 />
               </motion.div>
             )}
           </AnimatePresence>
           {!showPreview && notes.length > 0 && (
             <div className="mt-3 space-y-2">
-              <div className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase flex items-center justify-between">
+              <div className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase flex items-center justify-between">
                 <span>Preview</span>
-                <span className="text-[8px] text-zinc-700">Supports **bold**, *italic*, `code`</span>
+                <span className="text-[8px] text-[var(--app-text-dim)]">Supports **bold**, *italic*, `code`</span>
               </div>
               <div
-                className="text-[11px] text-zinc-400 leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] max-h-40 overflow-y-auto"
+                className="text-[11px] text-[var(--app-text-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] max-h-40 overflow-y-auto"
                 dangerouslySetInnerHTML={{ __html: renderPreview(notes) }}
               />
             </div>
