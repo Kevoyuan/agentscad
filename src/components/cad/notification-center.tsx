@@ -32,7 +32,7 @@ export interface Notification {
 const NOTIFICATION_CONFIG: Record<NotificationType, { icon: typeof CheckCircle2; color: string; bgColor: string }> = {
   job_completed: { icon: CheckCircle2, color: 'text-lime-400', bgColor: 'bg-lime-500/10' },
   job_failed: { icon: XCircle, color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
-  job_cancelled: { icon: Ban, color: 'text-zinc-400', bgColor: 'bg-zinc-500/10' },
+  job_cancelled: { icon: Ban, color: 'text-[var(--app-state-neutral-text)]', bgColor: 'bg-[var(--app-state-neutral-bg)]' },
   parameter_updated: { icon: Settings, color: 'text-violet-400', bgColor: 'bg-violet-500/10' },
   scad_updated: { icon: Code2, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
 }
@@ -68,7 +68,7 @@ function NotificationItem({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`flex items-start gap-2.5 px-3 py-2.5 cursor-pointer linear-transition hover:bg-white/[0.02] ${
+      className={`flex items-start gap-2.5 px-3 py-2.5 cursor-pointer linear-transition hover:bg-[var(--app-hover-subtle)] ${
         !notification.read ? 'border-l-2 border-l-violet-500/60' : 'border-l-2 border-l-transparent'
       }`}
       onClick={() => {

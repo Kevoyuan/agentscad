@@ -142,7 +142,7 @@ export function CommandPalette({
                 </CommandItem>
               ))}
             </CommandGroup>
-            <CommandSeparator className="bg-white/[0.04]" />
+            <CommandSeparator className="bg-[var(--app-border-separator)]" />
           </>
         )}
 
@@ -164,7 +164,7 @@ export function CommandPalette({
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandSeparator className="bg-white/[0.04]" />
+        <CommandSeparator className="bg-[var(--app-border-separator)]" />
 
         {/* Actions */}
         <CommandGroup heading="Actions" className="[&_[cmdk-group-heading]]:text-[var(--app-text-dim)] [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:tracking-widest">
@@ -185,7 +185,7 @@ export function CommandPalette({
       </CommandList>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/[0.04]">
+      <div className="flex items-center justify-between px-3 py-1.5 border-t border-[color:var(--app-border-separator)]">
         <span className="text-[9px] text-[var(--app-text-dim)] font-mono">↑↓ Navigate · ↵ Select · Esc Close</span>
         <span className="text-[9px] text-[var(--app-text-dim)] font-mono">⌘K</span>
       </div>

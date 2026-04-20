@@ -79,38 +79,38 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* AgentSCAD custom - Light */
-  --app-bg: #f0f1f3;
+  --app-bg: #f8f9fb;
   --app-surface: #ffffff;
-  --app-surface-raised: #f7f7f8;
+  --app-surface-raised: #f5f5f7;
   --app-surface-50: rgba(255, 255, 255, 0.5);
   --app-surface-hover: rgba(0, 0, 0, 0.04);
-  --app-surface-95: rgba(240, 241, 243, 0.95);
-  --app-border: rgba(0, 0, 0, 0.12);
-  --app-border-subtle: rgba(0, 0, 0, 0.08);
-  --app-border-strong: rgba(0, 0, 0, 0.2);
-  --app-text-primary: #1a1a1f;
-  --app-text-secondary: #4a4a55;
-  --app-text-muted: #5c5c6a;
-  --app-text-dim: #8a8a96;
+  --app-surface-95: rgba(248, 249, 251, 0.95);
+  --app-border: rgba(0, 0, 0, 0.16);
+  --app-border-subtle: rgba(0, 0, 0, 0.10);
+  --app-border-strong: rgba(0, 0, 0, 0.22);
+  --app-text-primary: #111116;
+  --app-text-secondary: #3d3d48;
+  --app-text-muted: #6e6e7a;
+  --app-text-dim: #94949e;
   --app-text-bright: #000000;
-  --app-scrollbar-thumb: #b8b8c0;
-  --app-scrollbar-thumb-hover: #8a8a96;
+  --app-scrollbar-thumb: #c0c0c8;
+  --app-scrollbar-thumb-hover: #909098;
   --app-scrollbar-track: transparent;
   --app-focus-ring: rgba(124, 58, 237, 0.2);
   --app-interactive-hover: rgba(124, 58, 237, 0.06);
   --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --app-keyboard-bg: #e8e9eb;
+  --app-keyboard-bg: #eaeaee;
   --app-keyboard-border: rgba(0, 0, 0, 0.12);
-  --app-keyboard-text: #5c5c6a;
+  --app-keyboard-text: #6e6e7a;
   --app-skeleton-bg: rgba(0, 0, 0, 0.06);
   --app-notification-hover: rgba(0, 0, 0, 0.04);
-  --app-footer-separator: rgba(0, 0, 0, 0.09);
+  --app-footer-separator: rgba(0, 0, 0, 0.10);
   --app-footer-tooltip-bg: #ffffff;
-  --app-footer-tooltip-border: rgba(0, 0, 0, 0.1);
-  --app-footer-tooltip-text: #4a4a55;
+  --app-footer-tooltip-border: rgba(0, 0, 0, 0.12);
+  --app-footer-tooltip-text: #3d3d48;
   --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.12), rgba(124, 58, 237, 0.04), transparent);
-  --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05);
   --app-pipeline-bg: rgba(0, 0, 0, 0.05);
   --app-activity-hover: rgba(0, 0, 0, 0.03);
   --app-selected-bg: rgba(124, 58, 237, 0.05);
@@ -120,8 +120,8 @@
   --app-accent-hover: #6d28d9;
   --app-accent-bg: rgba(124, 58, 237, 0.08);
   --app-accent-border: rgba(124, 58, 237, 0.25);
-  --app-accent-text: #7c3aed;
-  --app-accent-text-secondary: rgba(124, 58, 237, 0.7);
+  --app-accent-text: #6d28d9;
+  --app-accent-text-secondary: rgba(109, 40, 217, 0.7);
   --app-danger: #ef4444;
   --app-danger-bg: rgba(239, 68, 68, 0.08);
   --app-warning: #f59e0b;
@@ -130,22 +130,28 @@
   --app-success-bg: rgba(16, 185, 129, 0.08);
   --app-info: #3b82f6;
   --app-info-bg: rgba(59, 130, 246, 0.08);
-  --app-header-bg: rgba(255, 255, 255, 0.85);
+  --app-header-bg: rgba(255, 255, 255, 0.88);
   --app-dialog-overlay: rgba(0, 0, 0, 0.3);
   --app-dialog-bg: #ffffff;
-  --app-code-bg: #f6f8fa;
-  --app-code-border: rgba(0, 0, 0, 0.08);
+  --app-code-bg: #f5f7f9;
+  --app-code-border: rgba(0, 0, 0, 0.10);
   --app-tag-bg: rgba(0, 0, 0, 0.05);
-  --app-tag-border: rgba(0, 0, 0, 0.08);
+  --app-tag-border: rgba(0, 0, 0, 0.10);
   --app-batch-bar-bg: rgba(124, 58, 237, 0.06);
-  --app-batch-bar-text: #7c3aed;
+  --app-batch-bar-text: #6d28d9;
   --app-input-bg: #ffffff;
-  --app-input-border: rgba(0, 0, 0, 0.12);
+  --app-input-border: rgba(0, 0, 0, 0.14);
   --app-input-focus-border: rgba(124, 58, 237, 0.5);
   --app-priority-high: #ef4444;
   --app-priority-medium: #f59e0b;
   --app-priority-low: #6b7280;
   --app-priority-inactive: rgba(0, 0, 0, 0.08);
+  --app-hover-subtle: rgba(0, 0, 0, 0.04);
+  --app-border-separator: rgba(0, 0, 0, 0.08);
+  --app-state-neutral-bg: rgba(100, 100, 116, 0.12);
+  --app-state-neutral-text: #4a4a58;
+  --app-state-neutral-dot: #71717a;
+  --app-state-neutral-border: rgba(100, 100, 116, 0.2);
 }
 
 /* ─── Dark Theme Variables ──────────────────────────────────── */
@@ -183,38 +189,38 @@
   --sidebar-ring: oklch(0.556 0 0);
 
   /* AgentSCAD custom - Dark */
-  --app-bg: #0a0a0c;
-  --app-surface: #111113;
-  --app-surface-raised: #18181b;
-  --app-surface-50: rgba(17, 17, 19, 0.5);
+  --app-bg: #0c0c0e;
+  --app-surface: #151517;
+  --app-surface-raised: #1c1c1f;
+  --app-surface-50: rgba(21, 21, 23, 0.5);
   --app-surface-hover: rgba(255, 255, 255, 0.04);
-  --app-surface-95: rgba(10, 10, 12, 0.95);
-  --app-border: rgba(255, 255, 255, 0.07);
-  --app-border-subtle: rgba(255, 255, 255, 0.04);
-  --app-border-strong: rgba(255, 255, 255, 0.14);
-  --app-text-primary: #ededef;
-  --app-text-secondary: #a1a1aa;
-  --app-text-muted: #6e6e7a;
-  --app-text-dim: #3f3f46;
+  --app-surface-95: rgba(12, 12, 14, 0.95);
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-border-subtle: rgba(255, 255, 255, 0.08);
+  --app-border-strong: rgba(255, 255, 255, 0.18);
+  --app-text-primary: #f0f0f2;
+  --app-text-secondary: #b4b4be;
+  --app-text-muted: #78788a;
+  --app-text-dim: #55556a;
   --app-text-bright: #ffffff;
-  --app-scrollbar-thumb: #27272a;
-  --app-scrollbar-thumb-hover: #52525b;
+  --app-scrollbar-thumb: #333340;
+  --app-scrollbar-thumb-hover: #4e4e5e;
   --app-scrollbar-track: transparent;
   --app-focus-ring: rgba(124, 58, 237, 0.3);
   --app-interactive-hover: rgba(124, 58, 237, 0.08);
   --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --app-keyboard-bg: #1a1a1c;
-  --app-keyboard-border: rgba(255, 255, 255, 0.08);
-  --app-keyboard-text: #a1a1aa;
-  --app-skeleton-bg: rgba(39, 39, 42, 0.3);
+  --app-keyboard-bg: #1c1c1f;
+  --app-keyboard-border: rgba(255, 255, 255, 0.10);
+  --app-keyboard-text: #b4b4be;
+  --app-skeleton-bg: rgba(51, 51, 64, 0.3);
   --app-notification-hover: rgba(255, 255, 255, 0.04);
-  --app-footer-separator: rgba(255, 255, 255, 0.07);
-  --app-footer-tooltip-bg: #27272a;
-  --app-footer-tooltip-border: rgba(255, 255, 255, 0.08);
-  --app-footer-tooltip-text: #a1a1aa;
+  --app-footer-separator: rgba(255, 255, 255, 0.10);
+  --app-footer-tooltip-bg: #2a2a32;
+  --app-footer-tooltip-border: rgba(255, 255, 255, 0.10);
+  --app-footer-tooltip-text: #b4b4be;
   --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.25), rgba(124, 58, 237, 0.08), transparent);
-  --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --app-pipeline-bg: rgba(255, 255, 255, 0.06);
   --app-activity-hover: rgba(255, 255, 255, 0.03);
   --app-selected-bg: rgba(124, 58, 237, 0.08);
@@ -224,8 +230,8 @@
   --app-accent-hover: #8b5cf6;
   --app-accent-bg: rgba(124, 58, 237, 0.12);
   --app-accent-border: rgba(124, 58, 237, 0.3);
-  --app-accent-text: #a78bfa;
-  --app-accent-text-secondary: rgba(167, 139, 250, 0.7);
+  --app-accent-text: #b794f6;
+  --app-accent-text-secondary: rgba(183, 148, 246, 0.7);
   --app-danger: #f87171;
   --app-danger-bg: rgba(248, 113, 113, 0.1);
   --app-warning: #fbbf24;
@@ -234,22 +240,28 @@
   --app-success-bg: rgba(52, 211, 153, 0.1);
   --app-info: #60a5fa;
   --app-info-bg: rgba(96, 165, 250, 0.1);
-  --app-header-bg: rgba(17, 17, 19, 0.85);
+  --app-header-bg: rgba(21, 21, 23, 0.88);
   --app-dialog-overlay: rgba(0, 0, 0, 0.6);
-  --app-dialog-bg: #18181b;
-  --app-code-bg: #0f0f11;
-  --app-code-border: rgba(255, 255, 255, 0.06);
+  --app-dialog-bg: #1c1c1f;
+  --app-code-bg: #0e0e10;
+  --app-code-border: rgba(255, 255, 255, 0.08);
   --app-tag-bg: rgba(255, 255, 255, 0.06);
-  --app-tag-border: rgba(255, 255, 255, 0.08);
+  --app-tag-border: rgba(255, 255, 255, 0.10);
   --app-batch-bar-bg: rgba(124, 58, 237, 0.08);
   --app-batch-bar-text: #c4b5fd;
-  --app-input-bg: #0f0f11;
-  --app-input-border: rgba(255, 255, 255, 0.1);
+  --app-input-bg: #0e0e10;
+  --app-input-border: rgba(255, 255, 255, 0.12);
   --app-input-focus-border: rgba(124, 58, 237, 0.5);
   --app-priority-high: #f87171;
   --app-priority-medium: #fbbf24;
   --app-priority-low: #6b7280;
   --app-priority-inactive: rgba(255, 255, 255, 0.06);
+  --app-hover-subtle: rgba(255, 255, 255, 0.04);
+  --app-border-separator: rgba(255, 255, 255, 0.06);
+  --app-state-neutral-bg: rgba(113, 113, 122, 0.15);
+  --app-state-neutral-text: #a1a1aa;
+  --app-state-neutral-dot: #71717a;
+  --app-state-neutral-border: rgba(113, 113, 122, 0.25);
 }
 
 @layer base {
@@ -663,7 +675,7 @@ pre:hover .code-copy-btn { opacity: 1; }
 .linear-border { border: 1px solid var(--app-border); }
 .linear-focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--app-focus-ring); }
 .linear-selected { border-left: 2px solid var(--app-accent); background: var(--app-selected-bg); }
-.linear-transition { transition: all 0.15s ease; }
+.linear-transition { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease; }
 .linear-shadow-sm { box-shadow: var(--app-shadow-sm); }
 .linear-shadow-md { box-shadow: var(--app-shadow-md); }
 

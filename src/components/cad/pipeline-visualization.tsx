@@ -125,7 +125,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                   <TooltipTrigger asChild>
                     <motion.div
                       className={`flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-md transition-all duration-300 ${
-                        isClickable ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-default'
+                        isClickable ? 'cursor-pointer hover:bg-[var(--app-hover-subtle)]' : 'cursor-default'
                       } ${
                         isFailedStep ? 'text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20' :
                         isCurrent && !isFailed ? 'text-amber-300 bg-amber-500/10 ring-1 ring-amber-500/20' :

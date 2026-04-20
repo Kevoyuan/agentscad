@@ -13,7 +13,7 @@ const FAILED_STATES = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED']
 
 // Map states to solid background colors with subtle opacity
 const STATE_BG_CLASS: Record<string, string> = {
-  NEW: 'bg-slate-500/15',
+  NEW: 'bg-[var(--app-state-neutral-bg)]',
   SCAD_GENERATED: 'bg-amber-500/15',
   RENDERED: 'bg-cyan-500/15',
   VALIDATED: 'bg-emerald-500/15',
@@ -24,7 +24,7 @@ const STATE_BG_CLASS: Record<string, string> = {
   DEBUGGING: 'bg-orange-500/15',
   REPAIRING: 'bg-orange-500/15',
   HUMAN_REVIEW: 'bg-yellow-500/15',
-  CANCELLED: 'bg-zinc-500/15',
+  CANCELLED: 'bg-[var(--app-state-neutral-bg)]',
 }
 
 export function StateBadge({ state, size = 'sm', timestamp }: { state: string; size?: 'sm' | 'md'; timestamp?: string }) {
@@ -33,7 +33,7 @@ export function StateBadge({ state, size = 'sm', timestamp }: { state: string; s
   const isFailed = FAILED_STATES.includes(state)
   const isDelivered = state === 'DELIVERED'
   const isProcessing = ACTIVE_STATES.includes(state)
-  const bgClass = STATE_BG_CLASS[state] || 'bg-zinc-500/15'
+  const bgClass = STATE_BG_CLASS[state] || 'bg-[var(--app-state-neutral-bg)]'
 
   const formatTimestamp = (ts: string) => {
     try {

@@ -98,12 +98,12 @@ export function SortableJobCard({
   // Priority key for re-rendering badge (no animation, just update text)
   const priorityKey = job.priority
 
-  // Live elapsed time updater - update every 30s to reduce re-renders and card jumping
+  // Live elapsed time updater - update every 60s to reduce re-renders and card jumping
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.createdAt))
   useEffect(() => {
     const update = () => setElapsed(formatElapsed(job.createdAt))
     update() // Initial calculation
-    const interval = setInterval(update, 30000) // 30s to minimize re-renders
+    const interval = setInterval(update, 60000) // 60s to minimize re-renders
     return () => clearInterval(interval)
   }, [job.createdAt])
 
@@ -114,13 +114,13 @@ export function SortableJobCard({
     ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
     : job.priority >= 4
     ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-zinc-500/20 text-[var(--app-text-muted)] border-zinc-500/30 font-normal'
+    : 'bg-[var(--app-state-neutral-bg)] text-[var(--app-text-muted)] border-[color:var(--app-state-neutral-border)] font-normal'
 
   return (
     <div
       ref={setNodeRef}
       style={{ ...style, '--border-color': leftBorderColor } as CSSProperties}
-      className={`group/card relative rounded-lg p-2.5 cursor-pointer linear-transition overflow-hidden job-card-left-border job-card-hover ${
+      className={`group/card relative rounded-lg p-2.5 cursor-pointer overflow-hidden job-card-left-border job-card-hover ${
         isDragging || isSortableDragging
           ? 'shadow-xl ring-2 ring-violet-500/20 scale-[1.02] z-50'
           : ''
@@ -162,7 +162,7 @@ export function SortableJobCard({
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
             <span
               key={priorityKey}
-              className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual} linear-transition`}
+              className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual}`}
             >
               P{job.priority}
             </span>
@@ -179,37 +179,20 @@ export function SortableJobCard({
           <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{elapsed} elapsed</span>
         </div>
 
-        {/* Mini progress indicator for pipeline states */}
-        {isProcessing && (
-          <div className="pipeline-mini-progress mt-1.5">
-            <div
-              className="pipeline-mini-progress-fill"
-              style={{ width: `${progressPercent}%`, backgroundColor: progressColor }}
-            />
-          </div>
-        )}
-        {/* Completed progress bar */}
-        {job.state === 'DELIVERED' && (
-          <div className="pipeline-mini-progress mt-1.5">
-            <div
-              className="pipeline-mini-progress-fill"
-              style={{ width: '100%', backgroundColor: '#a3e635' }}
-            />
-          </div>
-        )}
-        {/* Failed progress bar */}
-        {(job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') && (
-          <div className="pipeline-mini-progress mt-1.5">
-            <div
-              className="pipeline-mini-progress-fill"
-              style={{ width: `${progressPercent}%`, backgroundColor: '#fb7185' }}
-            />
-          </div>
-        )}
+        {/* Mini progress indicator - always rendered to prevent layout shift */}
+        <div className="pipeline-mini-progress mt-1.5" style={{ visibility: isProcessing || job.state === 'DELIVERED' || job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED' ? 'visible' : 'hidden' }}>
+          <div
+            className="pipeline-mini-progress-fill"
+            style={{
+              width: `${job.state === 'DELIVERED' ? 100 : progressPercent}%`,
+              backgroundColor: job.state === 'DELIVERED' ? '#a3e635' : (job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') ? '#fb7185' : progressColor
+            }}
+          />
+        </div>
 
         <TagBadges customerId={job.customerId} maxDisplay={3} />
-        {/* Action Buttons - Individual hover colors */}
-        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-all duration-300 translate-y-1 group-hover/card:translate-y-0" onClick={e => e.stopPropagation()}>
+        {/* Action Buttons - Individual hover colors, opacity-only to prevent layout shift */}
+        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200" onClick={e => e.stopPropagation()}>
           {job.state === 'NEW' && (
             <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
               <Play className="w-2.5 h-2.5" />Process
@@ -247,7 +230,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
     ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
     : job.priority >= 4
     ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-zinc-500/20 text-[var(--app-text-muted)] border-zinc-500/30'
+    : 'bg-[var(--app-state-neutral-bg)] text-[var(--app-text-muted)] border-[color:var(--app-state-neutral-border)]'
 
   return (
     <div

@@ -283,7 +283,7 @@ function StateDistributionBar({ jobsByState }: { jobsByState: Record<string, num
       state,
       count: jobsByState[state] || 0,
       pct: ((jobsByState[state] || 0) / total) * 100,
-      color: STATE_COLORS[state]?.dot || 'bg-zinc-500',
+      color: STATE_COLORS[state]?.dot || 'bg-[var(--app-state-neutral-dot)]',
     }))
 
   return (
@@ -302,8 +302,9 @@ function StateDistributionBar({ jobsByState }: { jobsByState: Record<string, num
             'red-400': '#f87171',
             'yellow-400': '#facc15',
             'zinc-500': '#71717a',
+            '[var(--app-state-neutral-dot)]': 'var(--app-state-neutral-dot)',
           }
-          const hex = colorMap[colorClass] || '#71717a'
+          const hex = colorMap[colorClass] || 'var(--app-state-neutral-dot)'
           return (
             <motion.div
               key={seg.state}
@@ -331,8 +332,9 @@ function StateDistributionBar({ jobsByState }: { jobsByState: Record<string, num
             'red-400': '#f87171',
             'yellow-400': '#facc15',
             'zinc-500': '#71717a',
+            '[var(--app-state-neutral-dot)]': 'var(--app-state-neutral-dot)',
           }
-          const hex = colorMap[colorClass] || '#71717a'
+          const hex = colorMap[colorClass] || 'var(--app-state-neutral-dot)'
           return (
             <div key={seg.state} className="flex items-center gap-1">
               <span
@@ -394,7 +396,7 @@ interface TimelineEvent {
 function getActionInfo(state: string): { action: string; icon: React.ElementType; iconColor: string } {
   switch (state) {
     case 'NEW':
-      return { action: 'Created', icon: Plus, iconColor: 'text-slate-400' }
+      return { action: 'Created', icon: Plus, iconColor: 'text-[var(--app-state-neutral-text)]' }
     case 'SCAD_GENERATED':
       return { action: 'SCAD Generated', icon: Zap, iconColor: 'text-amber-400' }
     case 'RENDERED':
@@ -428,7 +430,7 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
         state: job.state,
         action: 'Created',
         icon: Plus,
-        iconColor: 'text-slate-400',
+        iconColor: 'text-[var(--app-state-neutral-text)]',
         timestamp: job.createdAt,
       })
 
@@ -531,7 +533,7 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
                   key={event.id}
                   variants={staggerChild}
                   custom={eventIndex}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] linear-transition"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--app-hover-subtle)] linear-transition"
                 >
                   <div className={`shrink-0 ${event.iconColor}`}>
                     <IconComp className="w-3 h-3" />
@@ -542,7 +544,7 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
                         {event.jobName.slice(0, 50)}
                       </p>
                       <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${
-                        STATE_COLORS[event.state]?.bg || 'bg-zinc-500/20'
+                        STATE_COLORS[event.state]?.bg || 'bg-[var(--app-state-neutral-bg)]'
                       } ${
                         STATE_COLORS[event.state]?.text || 'text-[var(--app-text-muted)]'
                       }`}>

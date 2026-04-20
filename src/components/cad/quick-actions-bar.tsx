@@ -183,7 +183,7 @@ function getActionsForState(
 const VARIANT_CLASSES: Record<string, { button: string; hover: string }> = {
   default: {
     button: 'text-[var(--app-text-muted)]',
-    hover: 'hover:text-[var(--app-text-primary)] hover:bg-white/[0.06]',
+    hover: 'hover:text-[var(--app-text-primary)] hover:bg-[var(--app-hover-subtle)]',
   },
   success: {
     button: 'text-emerald-400',

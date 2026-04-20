@@ -76,7 +76,7 @@ export interface Job {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 export const STATE_COLORS: Record<string, { bg: string; text: string; dot: string; border: string }> = {
-  NEW: { bg: 'bg-slate-500/20', text: 'text-slate-300', dot: 'bg-slate-400', border: 'border-slate-500/30' },
+  NEW: { bg: 'bg-[var(--app-state-neutral-bg)]', text: 'text-[var(--app-state-neutral-text)]', dot: 'bg-[var(--app-state-neutral-dot)]', border: 'border-[color:var(--app-state-neutral-border)]' },
   SCAD_GENERATED: { bg: 'bg-amber-500/20', text: 'text-amber-300', dot: 'bg-amber-400', border: 'border-amber-500/30' },
   RENDERED: { bg: 'bg-cyan-500/20', text: 'text-cyan-300', dot: 'bg-cyan-400', border: 'border-cyan-500/30' },
   VALIDATED: { bg: 'bg-emerald-500/20', text: 'text-emerald-300', dot: 'bg-emerald-400', border: 'border-emerald-500/30' },
@@ -87,7 +87,7 @@ export const STATE_COLORS: Record<string, { bg: string; text: string; dot: strin
   GEOMETRY_FAILED: { bg: 'bg-red-500/20', text: 'text-red-300', dot: 'bg-red-400', border: 'border-red-500/30' },
   RENDER_FAILED: { bg: 'bg-red-500/20', text: 'text-red-300', dot: 'bg-red-400', border: 'border-red-500/30' },
   HUMAN_REVIEW: { bg: 'bg-yellow-500/20', text: 'text-yellow-300', dot: 'bg-yellow-400', border: 'border-yellow-500/30' },
-  CANCELLED: { bg: 'bg-[var(--app-empty-bg)]', text: 'text-[var(--app-text-muted)]', dot: 'bg-zinc-500', border: 'border-zinc-500/30' },
+  CANCELLED: { bg: 'bg-[var(--app-state-neutral-bg)]', text: 'text-[var(--app-state-neutral-text)]', dot: 'bg-[var(--app-state-neutral-dot)]', border: 'border-[color:var(--app-state-neutral-border)]' },
 }
 
 export function InboxIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -121,8 +121,8 @@ export const FILTER_STATES = [
 export const CANCELABLE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
 
 export const PRIORITY_COLORS: Record<number, string> = {
-  1: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
-  2: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+  1: 'bg-[var(--app-state-neutral-bg)] text-[var(--app-state-neutral-text)] border-[color:var(--app-state-neutral-border)]',
+  2: 'bg-[var(--app-state-neutral-bg)] text-[var(--app-state-neutral-text)] border-[color:var(--app-state-neutral-border)]',
   3: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
   4: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
   5: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
@@ -157,7 +157,7 @@ export function timeAgo(iso: string) {
 }
 
 export function getStateInfo(state: string) {
-  return STATE_COLORS[state] || { bg: 'bg-[var(--app-empty-bg)]', text: 'text-[var(--app-text-secondary)]', dot: 'bg-zinc-400', border: 'border-zinc-500/30' }
+  return STATE_COLORS[state] || { bg: 'bg-[var(--app-state-neutral-bg)]', text: 'text-[var(--app-state-neutral-text)]', dot: 'bg-[var(--app-state-neutral-dot)]', border: 'border-[color:var(--app-state-neutral-border)]' }
 }
 
 export function parseJSON<T>(str: string | null, fallback: T): T {

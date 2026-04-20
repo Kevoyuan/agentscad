@@ -266,9 +266,9 @@ export function ChatPanel({ job }: { job: Job }) {
               <ChevronDown className="w-2.5 h-2.5" />
             </button>
             {showModelPicker && (
-              <div className="absolute right-0 top-full mt-1 w-72 bg-[#1a1a1a] border border-white/[0.08] rounded-lg shadow-xl z-50 py-1 max-h-[400px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#27272a #1a1a1a' }}>
+              <div className="absolute right-0 top-full mt-1 w-72 bg-[var(--app-surface)] border border-[color:var(--app-border)] rounded-lg shadow-xl z-50 py-1 max-h-[400px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) var(--app-surface)' }}>
                 {/* Provider filter tabs */}
-                <div className="flex gap-0.5 px-2 py-1.5 border-b border-white/[0.06] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                <div className="flex gap-0.5 px-2 py-1.5 border-b border-[color:var(--app-border-separator)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                   <button
                     className={`text-[8px] font-mono px-1.5 py-0.5 rounded shrink-0 transition-colors ${!providerFilter ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
                     onClick={() => setProviderFilter(null)}
@@ -298,7 +298,7 @@ export function ChatPanel({ job }: { job: Job }) {
                         <button
                           key={model.id}
                           className={`w-full text-left px-3 py-1.5 text-[10px] flex items-center gap-2 transition-colors ${
-                            selectedModel === model.id ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] hover:bg-white/[0.04]'
+                            selectedModel === model.id ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] hover:bg-[var(--app-hover-subtle)]'
                           }`}
                           onClick={() => { setSelectedModel(model.id); setShowModelPicker(false) }}
                         >
@@ -425,7 +425,7 @@ export function ChatPanel({ job }: { job: Job }) {
           <div className="flex gap-1.5 mb-2 flex-wrap">
             {pendingImages.map((img, i) => (
               <div key={i} className="relative group">
-                <img src={img} alt={`Upload ${i + 1}`} className="w-10 h-10 rounded object-cover border border-white/[0.08]" />
+                <img src={img} alt={`Upload ${i + 1}`} className="w-10 h-10 rounded object-cover border border-[color:var(--app-border)]" />
                 <button
                   className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => removeImage(i)}

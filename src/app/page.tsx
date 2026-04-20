@@ -289,14 +289,27 @@ export default function Home() {
   const loadJobs = useCallback(async () => {
     try {
       const data = await fetchJobs()
-      setAllJobs(data.jobs)
+      // Only update state if data actually changed to prevent card jumping
+      setAllJobs(prev => {
+        if (prev.length === data.jobs.length && prev.every((j, i) => j.id === data.jobs[i].id && j.state === data.jobs[i].state && j.priority === data.jobs[i].priority && j.updatedAt === data.jobs[i].updatedAt)) {
+          return prev // No change, return same reference to skip re-render
+        }
+        return data.jobs
+      })
       const filtered = applyFilters(data.jobs, filterState)
-      setJobs(filtered)
+      setJobs(prev => {
+        if (prev.length === filtered.length && prev.every((j, i) => j.id === filtered[i].id && j.state === filtered[i].state)) {
+          return prev
+        }
+        return filtered
+      })
       // Update selected job if it exists (using ref to avoid dep)
       const currentSelected = selectedJobRef.current
       if (currentSelected) {
         const updated = data.jobs.find(j => j.id === currentSelected.id)
-        if (updated) setSelectedJob(updated)
+        if (updated && (updated.state !== currentSelected.state || updated.updatedAt !== currentSelected.updatedAt)) {
+          setSelectedJob(updated)
+        }
       }
     } catch (err) {
       console.error('Failed to load jobs:', err)
@@ -310,7 +323,7 @@ export default function Home() {
 
   const startPolling = useCallback(() => {
     if (pollingRef.current) return
-    pollingRef.current = setInterval(loadJobs, 5000)
+    pollingRef.current = setInterval(loadJobs, 15000) // 15s to reduce card jumping
   }, [loadJobs])
 
   const stopPolling = useCallback(() => {

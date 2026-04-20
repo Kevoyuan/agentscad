@@ -304,7 +304,7 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                     isCurrent ? 'bg-violet-500/10 ring-1 ring-violet-500/20' :
                     isFailedStep ? 'bg-rose-500/10 ring-1 ring-rose-500/20' :
-                    'hover:bg-white/[0.02]'
+                    'hover:bg-[var(--app-hover-subtle)]'
                   }`}
                 >
                   {/* Step Status Icon */}
@@ -321,7 +321,7 @@ export function JobStatusPage({ job, onViewLogs, onCancel, isCancelable }: JobSt
                         <Loader2 className="w-4 h-4 text-[var(--app-accent-text)]" />
                       </motion.div>
                     ) : (
-                      <div className="w-2 h-2 rounded-full bg-zinc-700" />
+                      <div className="w-2 h-2 rounded-full bg-[var(--app-state-neutral-dot)]" />
                     )}
                   </div>
 

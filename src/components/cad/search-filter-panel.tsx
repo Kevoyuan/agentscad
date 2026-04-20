@@ -293,7 +293,7 @@ export function SearchFilterPanel({
       </div>
 
       {/* State Pills - Always visible */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-t border-white/[0.04] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex items-center gap-1 px-3 py-1.5 border-t border-[color:var(--app-border-separator)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {FILTER_STATES.map(f => {
           const count = f.key === 'ALL' ? allJobs.length :
             f.key === 'FAILED' ? (stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0) :
@@ -331,7 +331,7 @@ export function SearchFilterPanel({
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="px-3 py-2.5 space-y-3 border-t border-white/[0.04] bg-[#0e0e11]">
+            <div className="px-3 py-2.5 space-y-3 border-t border-[color:var(--app-border-separator)] bg-[var(--app-code-bg)]">
               {/* Row 1: Priority Range + Date Range */}
               <div className="flex items-start gap-4">
                 {/* Priority Range */}
@@ -500,7 +500,7 @@ export function SearchFilterPanel({
 
               {/* Clear All */}
               {activeCount > 0 && (
-                <div className="flex items-center justify-between pt-1 border-t border-white/[0.04]">
+                <div className="flex items-center justify-between pt-1 border-t border-[color:var(--app-border-separator)]">
                   <span className="text-[9px] text-[var(--app-text-dim)]">
                     {activeCount} active filter{activeCount !== 1 ? 's' : ''}
                   </span>

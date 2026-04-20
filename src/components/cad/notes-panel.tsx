@@ -60,7 +60,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
     return text
       .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-[var(--app-text-secondary)] mt-2 mb-1">$1</h3>')
       .replace(/^## (.+)$/gm, '<h2 class="text-sm font-bold text-[var(--app-text-primary)] mt-3 mb-1">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold text-zinc-100 mt-3 mb-1">$1</h1>')
+      .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold text-[var(--app-text-primary)] mt-3 mb-1">$1</h1>')
       .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--app-text-primary)]">$1</strong>')
       .replace(/\*(.+?)\*/g, '<em class="text-[var(--app-text-secondary)]">$1</em>')
       .replace(/^- (.+)$/gm, '<li class="ml-3 text-[var(--app-text-muted)]">• $1</li>')

@@ -75,7 +75,7 @@ export function JobContextMenu({
 
         {/* Duplicate */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={() => onDuplicate(job)}
         >
           <Copy className="w-3.5 h-3.5" />
@@ -126,7 +126,7 @@ export function JobContextMenu({
 
         {/* Link to Parent */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={() => onLinkParent(job)}
         >
           <Link2 className="w-3.5 h-3.5" />
@@ -137,7 +137,7 @@ export function JobContextMenu({
 
         {/* Copy Job ID */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={handleCopyId}
         >
           <Clipboard className="w-3.5 h-3.5" />
@@ -147,7 +147,7 @@ export function JobContextMenu({
 
         {/* Open in New Tab (copies URL) */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-zinc-500/10"
+          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={handleOpenInNewTab}
         >
           <ExternalLink className="w-3.5 h-3.5" />

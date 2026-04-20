@@ -153,7 +153,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                       {availableParents.map(candidate => (
                         <motion.button
                           key={candidate.id}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-white/[0.04] linear-transition group"
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-[var(--app-hover-subtle)] linear-transition group"
                           onClick={() => handleLink(candidate.id)}
                           disabled={isSaving}
                           whileHover={{ x: 2 }}

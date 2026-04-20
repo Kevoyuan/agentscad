@@ -97,7 +97,7 @@ function ParamRow({
         {diff !== 'equal' ? (
           <ArrowLeftRight className="w-3 h-3 text-[var(--app-text-dim)]" />
         ) : (
-          <span className="w-3 h-px bg-zinc-700" />
+          <span className="w-3 h-px bg-[var(--app-border)]" />
         )}
       </span>
       <span

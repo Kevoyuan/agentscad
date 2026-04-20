@@ -123,7 +123,7 @@ export function ViewerControls({
                 ${
                   ctrl.active
                     ? 'bg-violet-500/20 text-[var(--app-accent-text)]'
-                    : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:bg-white/[0.04]'
+                    : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:bg-[var(--app-hover-subtle)]'
                 }
               `}
             >
