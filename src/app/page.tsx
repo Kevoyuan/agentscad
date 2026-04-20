@@ -1373,26 +1373,26 @@ export default function Home() {
 
       {/* Job Composer */}
       <Dialog open={showComposer} onOpenChange={setShowComposer}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-lg dialog-enter">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border-[color:var(--app-border)] max-w-lg dialog-enter">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Plus className="w-4 h-4 text-[var(--app-accent-text)]" />New CAD Job
             </DialogTitle>
           </DialogHeader>
-          <div className="gradient-divider" />
+          <Separator />
           <div className="space-y-4">
             {/* Recent Requests */}
             {recentRequests.length > 0 && (
               <div>
-                <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase mb-1.5 block">Recent Requests</label>
-                <div className="flex flex-col gap-1 max-h-20 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+                <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-1.5 block">Recent Requests</label>
+                <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                   {recentRequests.map((req, i) => (
                     <button
                       key={i}
-                      className="recent-request-item text-left text-[10px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] px-2 py-1 rounded border border-[color:var(--app-border)] truncate"
+                      className="recent-request-item text-left text-[10px] text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)] px-2.5 py-1.5 rounded border border-[color:var(--app-border)] hover:border-[color:var(--app-accent-border)] hover:bg-[var(--app-surface-raised)] truncate transition-colors"
                       onClick={() => setNewJobText(req)}
                     >
-                      {req.slice(0, 80)}{req.length > 80 ? '...' : ''}
+                      {req.slice(0, 80)}{req.length > 80 ? '…' : ''}
                     </button>
                   ))}
                 </div>
@@ -1401,7 +1401,7 @@ export default function Home() {
             <JobTemplateCards onSelect={(template) => setNewJobText(template)} />
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Request</label>
+                <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase">Request</label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1421,9 +1421,9 @@ export default function Home() {
                 className="min-h-[100px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-sm placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent-border)]"
                 maxLength={5000}
               />
-              <div className="flex justify-between mt-1">
-                <span className="text-[9px] text-[var(--app-text-dim)]">{newJobText.length}/5000</span>
-                <span className="text-[9px] text-[var(--app-text-dim)]">⌘+Enter</span>
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px] text-[var(--app-text-muted)]">{newJobText.length}/5000</span>
+                <span className="text-[10px] text-[var(--app-text-muted)]">⌘+Enter</span>
               </div>
               {/* Case Memory - Similar Past Jobs */}
               <CaseMemory
@@ -1438,7 +1438,7 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase mb-2 block">Priority</label>
+              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 block">Priority</label>
               <div className="flex items-center gap-2">
                 <input
                   type="range"
@@ -1452,20 +1452,20 @@ export default function Home() {
                   P{newJobPriority}
                 </span>
               </div>
-              <div className="flex justify-between text-[8px] text-[var(--app-text-dim)] mt-1">
+              <div className="flex justify-between text-[9px] text-[var(--app-text-muted)] mt-1">
                 <span>Low</span>
                 <span>Critical</span>
               </div>
             </div>
             {/* Tags Input */}
             <div>
-              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase mb-2 flex items-center gap-1.5">
+              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
                 <Tag className="w-2.5 h-2.5" />Tags
               </label>
               <Input
                 value={newJobTags}
                 onChange={e => setNewJobTags(e.target.value)}
-                placeholder="e.g. enclosure, prototype, urgent (comma-separated)"
+                placeholder="enclosure, prototype, urgent"
                 className="h-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent-border)]"
               />
               {newJobTags.trim() && (
@@ -1475,7 +1475,7 @@ export default function Home() {
               )}
             </div>
             <Button
-              className="w-full bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] btn-press"
+              className="w-full bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-medium btn-press"
               onClick={handleCreate}
               disabled={!newJobText.trim() || isCreating}
             >

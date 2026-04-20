@@ -72,10 +72,10 @@ export function JobTemplateCards({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase block">
+      <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase block">
         Templates
       </label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         {JOB_TEMPLATES.map((t) => {
           const Icon = t.icon
           return (
@@ -83,13 +83,13 @@ export function JobTemplateCards({
               key={t.id}
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.98 }}
-              className={`flex items-start gap-2 p-2.5 rounded-lg border text-left linear-transition ${t.color} hover:brightness-125`}
+              className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-left linear-transition ${t.color} hover:brightness-125`}
               onClick={() => onSelect(t.template)}
             >
               <Icon className="w-4 h-4 shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-[10px] font-medium leading-tight">{t.name}</p>
-                <p className="text-[8px] opacity-60 mt-0.5 leading-tight line-clamp-2">{t.description}</p>
+                <p className="text-[9px] opacity-70 mt-0.5 leading-tight line-clamp-2">{t.description}</p>
               </div>
             </motion.button>
           )

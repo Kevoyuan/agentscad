@@ -1591,3 +1591,91 @@ Stage Summary:
   5. Opacity-only hover transitions
 - Scheduled QA cron job created for continuous development
 ---
+
+## Task 5: Fix New CAD Job Dialog UI Issues
+
+**Date:** 2025-03-05
+**Status:** ✅ Completed
+
+### Issues Fixed
+
+1. **Low contrast text** — Changed `text-[var(--app-text-dim)]` and `text-[var(--app-text-muted)]` on section labels to `text-[var(--app-text-secondary)]` for better readability, especially in light mode.
+
+2. **Recent Requests section** — Improved with:
+   - Label color: `text-[var(--app-text-muted)]` → `text-[var(--app-text-secondary)]`
+   - Item text: `text-[var(--app-text-muted)]` → `text-[var(--app-text-secondary)]`
+   - Added hover states: `hover:text-[var(--app-text-primary)]`, `hover:border-[color:var(--app-accent-border)]`, `hover:bg-[var(--app-surface-raised)]`
+   - Increased max height: `max-h-20` → `max-h-32`
+   - Better spacing: `gap-1` → `gap-1.5`, `px-2 py-1` → `px-2.5 py-1.5`
+   - Added `transition-colors` for smooth hover effect
+   - Used proper ellipsis character `…` instead of `...`
+
+3. **Template cards** — Fixed in `job-templates.tsx`:
+   - Description opacity: `opacity-60` → `opacity-70`
+   - Description font size: `text-[8px]` → `text-[9px]`
+   - Consistent gap: `gap-2` → `gap-2.5` (grid and items)
+   - Label color: `text-[var(--app-text-muted)]` → `text-[var(--app-text-secondary)]`
+
+4. **Request textarea section** — Counter and hint text improved:
+   - Font size: `text-[9px]` → `text-[10px]`
+   - Color: `text-[var(--app-text-dim)]` → `text-[var(--app-text-muted)]`
+   - Better spacing: `mt-1` → `mt-1.5`
+
+5. **Priority slider** — Labels improved:
+   - Font size: `text-[8px]` → `text-[9px]`
+   - Color: `text-[var(--app-text-dim)]` → `text-[var(--app-text-muted)]`
+
+6. **Tags section** — Placeholder shortened:
+   - `"e.g. enclosure, prototype, urgent (comma-separated)"` → `"enclosure, prototype, urgent"`
+   - Label color: `text-[var(--app-text-muted)]` → `text-[var(--app-text-secondary)]`
+
+7. **Create Job button** — Better visual prominence:
+   - Added `text-white` explicitly
+   - Added `font-medium`
+
+8. **Dialog background** — Fixed semi-transparent background:
+   - `bg-[var(--app-surface-95)]` → `bg-[var(--app-dialog-bg)]`
+
+9. **Section labels** — All made consistent at `text-[10px]` with `text-[var(--app-text-secondary)]`:
+   - Recent Requests, Request, Priority, Tags labels all updated
+
+10. **Gradient separator** — Removed `gradient-divider` div, replaced with `<Separator />` component
+
+### Files Modified
+- `/home/z/my-project/src/app/page.tsx` — Dialog code (lines ~1375-1487)
+- `/home/z/my-project/src/components/cad/job-templates.tsx` — Template cards
+
+### Verification
+- `bun run lint` passed with no errors
+- Dev server running successfully on port 3000
+---
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Fix New CAD Job dialog and overall UI contrast issues
+
+Work Log:
+- Used VLM to analyze uploaded screenshot of "New CAD Job" dialog
+- VLM identified: low contrast text, inconsistent spacing, truncated text, misaligned elements, poor visual hierarchy
+- Fixed all 10 issues in the composer dialog:
+  1. Dialog background: surface-95 (semi-transparent) -> dialog-bg (proper opaque)
+  2. Gradient separator -> Separator component
+  3. Section labels: unified to 10px + text-secondary for better readability
+  4. Recent Requests: text-secondary, better hover states, max-h-32
+  5. Textarea counter/hint: 10px + text-muted (was 9px + text-dim)
+  6. Priority labels: 9px + text-muted (was 8px + text-dim)
+  7. Tags placeholder: shortened for readability
+  8. Create Job button: added text-white + font-medium
+  9. Template label: text-secondary
+  10. Template description: 9px opacity-70 (was 8px opacity-60)
+- Also improved light mode --app-text-dim from #94949e to #8888a0 for better contrast
+- Added @source "../" in globals.css to restrict Tailwind content scanning to src/ directory only
+- Added allowedDevOrigins in next.config.ts for cross-origin preview support
+- Lint passes with 0 errors
+
+Stage Summary:
+- "New CAD Job" dialog significantly improved: better contrast, spacing, alignment, readability
+- Light mode text-dim color improved for better accessibility
+- Tailwind content scanning properly restricted to prevent CSS build errors from .md files
+---
