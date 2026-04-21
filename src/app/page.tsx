@@ -62,17 +62,21 @@ import { StateBadge } from '@/components/cad/state-badge'
 import { PipelineVisualization } from '@/components/cad/pipeline-visualization'
 import { ParameterPanel, SchemaInfoPanel } from '@/components/cad/parameter-panel'
 import { ValidationPanel } from '@/components/cad/validation-panel'
-import { ScadViewer } from '@/components/cad/scad-viewer'
+import dynamic from 'next/dynamic'
 import { ScadEditor } from '@/components/cad/scad-editor'
 import { JobDependencies } from '@/components/cad/job-dependencies'
 import { ThemePanel } from '@/components/cad/theme-panel'
-import { ThreeDViewer } from '@/components/cad/three-d-viewer'
-import { TimelinePanel } from '@/components/cad/timeline-panel'
-import { ResearchPanel } from '@/components/cad/research-panel'
-import { ChatPanel } from '@/components/cad/chat-panel'
-import { NotesPanel } from '@/components/cad/notes-panel'
-import { StatsDashboard } from '@/components/cad/stats-dashboard'
-import { JobCompare } from '@/components/cad/job-compare'
+
+// Heavy components - lazy loaded to reduce initial bundle size
+const ThreeDViewer = dynamic(() => import('@/components/cad/three-d-viewer').then(m => ({ default: m.ThreeDViewer })), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
+const ScadViewer = dynamic(() => import('@/components/cad/scad-viewer').then(m => ({ default: m.ScadViewer })), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
+const ChatPanel = dynamic(() => import('@/components/cad/chat-panel').then(m => ({ default: m.ChatPanel })), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
+const StatsDashboard = dynamic(() => import('@/components/cad/stats-dashboard').then(m => ({ default: m.StatsDashboard })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
+const JobCompare = dynamic(() => import('@/components/cad/job-compare').then(m => ({ default: m.JobCompare })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
+const JobStatusPage = dynamic(() => import('@/components/cad/job-status-page').then(m => ({ default: m.JobStatusPage })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
+const ResearchPanel = dynamic(() => import('@/components/cad/research-panel').then(m => ({ default: m.ResearchPanel })), { ssr: false, loading: () => <div className="p-4 text-[var(--app-text-dim)] text-xs">Loading...</div> })
+const TimelinePanel = dynamic(() => import('@/components/cad/timeline-panel').then(m => ({ default: m.TimelinePanel })), { ssr: false, loading: () => <div className="p-4 text-[var(--app-text-dim)] text-xs">Loading...</div> })
+const NotesPanel = dynamic(() => import('@/components/cad/notes-panel').then(m => ({ default: m.NotesPanel })), { ssr: false, loading: () => <div className="p-4 text-[var(--app-text-dim)] text-xs">Loading...</div> })
 import { PartFamilyIcon, getPartFamilyLabel, getPartFamilyColor } from '@/components/cad/part-family-icon'
 import { JobTemplateCards } from '@/components/cad/job-templates'
 import { CaseMemory } from '@/components/cad/case-memory'
@@ -87,7 +91,6 @@ import { SearchFilterPanel, FilterState, DEFAULT_FILTER_STATE, applyFilters, cou
 import { QuickActionsBar } from '@/components/cad/quick-actions-bar'
 import { Footer } from '@/components/cad/footer'
 import { JobActivityFeed, ActivityEvent, ActivityEventType } from '@/components/cad/job-activity-feed'
-import { JobStatusPage } from '@/components/cad/job-status-page'
 import { BreadcrumbNav } from '@/components/cad/breadcrumb-nav'
 
 
