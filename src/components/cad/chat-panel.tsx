@@ -113,7 +113,15 @@ export function ChatPanel({
   job: Job
   onApplyScad: (job: Job, scadSource: string) => Promise<void>
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const stored = localStorage.getItem(`chat-${job.id}`)
+      if (!stored) return []
+      const parsed = JSON.parse(stored) as Array<{ role: string; content: string; timestamp: string }>
+      return parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) })) as ChatMessage[]
+    } catch { return [] }
+  })
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
@@ -127,6 +135,14 @@ export function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelPickerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+
+  // Persist chat messages to localStorage per job
+  useEffect(() => {
+    if (messages.length === 0) return
+    try {
+      localStorage.setItem(`chat-${job.id}`, JSON.stringify(messages))
+    } catch { /* quota exceeded, ignore */ }
+  }, [messages, job.id])
 
   // Load available models
   useEffect(() => {
@@ -383,7 +399,7 @@ export function ChatPanel({
             )}
           </div>
           {messages.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-4 text-[8px] text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)]" onClick={() => { setMessages([]); setStreamingContent('') }}>
+            <Button variant="ghost" size="sm" className="h-4 text-[8px] text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)]" onClick={() => { setMessages([]); setStreamingContent(''); localStorage.removeItem(`chat-${job.id}`) }}>
               Clear
             </Button>
           )}
