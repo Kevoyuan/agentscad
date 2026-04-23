@@ -4,7 +4,7 @@ import { CSSProperties, useState, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Clock } from 'lucide-react'
-import { Job, CANCELABLE_STATES, timeAgo, getPriorityColor, getStateInfo, getPipelineProgress } from './types'
+import { Job, CANCELABLE_STATES, timeAgo, getPriorityColor, getStateInfo, getPipelineProgress, getStateHex } from './types'
 import { StateBadge } from './state-badge'
 import { PartFamilyIcon } from './part-family-icon'
 import { TagBadges } from './tag-badges'
@@ -30,22 +30,6 @@ interface SortableJobCardProps {
 
 // Processing states that should show the pulse ring animation
 const PROCESSING_STATES = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW']
-
-// Map state colors for left border
-const BORDER_COLOR_MAP: Record<string, string> = {
-  NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
-  VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
-  REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
-  RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
-}
-
-// Map state colors for progress indicator fill
-const PROGRESS_COLOR_MAP: Record<string, string> = {
-  NEW: '#94a3b8', SCAD_GENERATED: '#fbbf24', RENDERED: '#22d3ee',
-  VALIDATED: '#34d399', DELIVERED: '#a3e635', DEBUGGING: '#fb923c',
-  REPAIRING: '#fb923c', VALIDATION_FAILED: '#fb7185', GEOMETRY_FAILED: '#f87171',
-  RENDER_FAILED: '#f87171', HUMAN_REVIEW: '#facc15', CANCELLED: '#71717a',
-}
 
 // ─── Elapsed Time Helper ──────────────────────────────────────────────────
 
@@ -89,11 +73,12 @@ export function SortableJobCard({
     opacity: isSortableDragging ? 0.4 : 1,
   }
 
-  const leftBorderColor = BORDER_COLOR_MAP[job.state] || '#71717a'
+  const stateHex = getStateHex(job.state)
+  const leftBorderColor = stateHex
   const isCancelable = CANCELABLE_STATES.includes(job.state)
   const isProcessing = PROCESSING_STATES.includes(job.state)
   const progressPercent = getPipelineProgress(job.state)
-  const progressColor = PROGRESS_COLOR_MAP[job.state] || '#71717a'
+  const progressColor = stateHex
 
   // Priority key for re-rendering badge (no animation, just update text)
   const priorityKey = job.priority
@@ -230,9 +215,10 @@ export function SortableJobCard({
 // ─── Drag Overlay Card (rendered while dragging) ────────────────────────────
 
 export function DragOverlayCard({ job }: { job: Job }) {
-  const leftBorderColor = BORDER_COLOR_MAP[job.state] || '#71717a'
+  const stateHex = getStateHex(job.state)
+  const leftBorderColor = stateHex
   const progressPercent = getPipelineProgress(job.state)
-  const progressColor = PROGRESS_COLOR_MAP[job.state] || '#71717a'
+  const progressColor = stateHex
   const isProcessing = PROCESSING_STATES.includes(job.state)
 
   // Priority visual for overlay

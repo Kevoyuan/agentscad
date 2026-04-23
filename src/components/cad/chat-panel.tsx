@@ -389,7 +389,7 @@ export function ChatPanel({
           )}
         </div>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#27272a #09090b' }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) var(--app-scrollbar-track)' }}>
         {messages.length === 0 && !isStreaming && (
           <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--app-accent-bg)] flex items-center justify-center">

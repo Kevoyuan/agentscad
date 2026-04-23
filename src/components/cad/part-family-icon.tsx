@@ -17,10 +17,12 @@ export type PartFamilyKey =
 
 interface PartFamilyIconProps {
   family: string | null
-  size?: number
+  size?: number | 'xs' | 'sm' | 'md' | 'lg'
   className?: string
   animate?: boolean
 }
+
+const SIZE_MAP: Record<string, number> = { xs: 12, sm: 16, md: 24, lg: 32 }
 
 // ─── Gear Icon (with rotation animation) ────────────────────────────────────
 
@@ -231,10 +233,11 @@ export function PartFamilyIcon({
 }: PartFamilyIconProps) {
   const key = (family?.toLowerCase() as PartFamilyKey) || 'unknown'
   const Icon = ICON_MAP[key] || ICON_MAP.unknown
+  const resolvedSize = typeof size === 'string' ? (SIZE_MAP[size] ?? 24) : size
 
   return (
     <span className={`inline-flex items-center justify-center text-[var(--app-text-muted)] ${className}`}>
-      <Icon size={size} animate={animate} />
+      <Icon size={resolvedSize} animate={animate} />
     </span>
   )
 }
