@@ -1,4 +1,8 @@
 #!/bin/bash
-cd /home/z/my-project/mini-services/ws-service
-exec bun index.ts
 
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+exec bun index.ts

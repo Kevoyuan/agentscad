@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { broadcastWs } from "@/lib/ws-broadcast";
+import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -516,12 +524,6 @@ async function generateRealScadCode(
   inputRequest: string,
   parameterValues: Record<string, unknown>
 ): Promise<LLMGenerationResult> {
-  // Dynamically import so that a missing SDK never crashes at module level
-  const ZAIModule = await import("z-ai-web-dev-sdk");
-  const ZAI = ZAIModule.default;
-
-  const zai = await ZAI.create();
-
   const partFamily = detectPartFamily(inputRequest);
   const paramSchema = getParameterSchema(partFamily, parameterValues);
 
@@ -550,7 +552,8 @@ IMPORTANT RULES for the scad_source:
 2. Use ONLY built-in OpenSCAD primitives (cube, cylinder, difference, union, translate, rotate, hull, minkowski, etc.)
 3. The code must be valid, self-contained OpenSCAD that compiles without errors.
 4. Use meaningful variable names matching the parameter keys.
-5. Add a header comment with the part family name and generation timestamp.`;
+5. Add a header comment with the part family name and generation timestamp.
+6. NEVER use OpenSCAD reserved keywords as variable names, especially: module, function, if, else, for, let, use, include.`;
 
   const userPrompt = `Generate OpenSCAD code for the following request:
 
@@ -566,19 +569,40 @@ ${JSON.stringify(parameterValues, null, 2)}
 
 Return the JSON object with summary, parameters, and scad_source.`;
 
-  // Use chat.completions.create (the actual LLM API of the SDK)
-  const result = await zai.chat.completions.create({
-    messages: [
-      { role: "user", content: userPrompt },
-    ],
-    stream: false,
-  });
+  let rawContent = "";
 
-  // Extract the text content from the LLM response
-  const rawContent: string =
-    result?.choices?.[0]?.message?.content ??
-    result?.data?.content ??
-    (typeof result === "string" ? result : JSON.stringify(result));
+  if (getMimoConfig().enabled) {
+    const mimoResponse = await createMimoChatCompletion({
+      model: process.env.MIMO_MODEL || MIMO_DEFAULT_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      stream: false,
+    });
+
+    const result = await mimoResponse.json();
+    rawContent =
+      result?.choices?.[0]?.message?.content ??
+      JSON.stringify(result);
+  } else {
+    // Dynamically import so that a missing SDK never crashes at module level
+    const ZAIModule = await import("z-ai-web-dev-sdk");
+    const ZAI = ZAIModule.default;
+    const zai = await ZAI.create();
+
+    const result = await zai.chat.completions.create({
+      messages: [
+        { role: "user", content: userPrompt },
+      ],
+      stream: false,
+    });
+
+    rawContent =
+      result?.choices?.[0]?.message?.content ??
+      result?.data?.content ??
+      (typeof result === "string" ? result : JSON.stringify(result));
+  }
 
   // Strip markdown code fences if the LLM wrapped them
   const cleaned = rawContent
@@ -599,11 +623,36 @@ Return the JSON object with summary, parameters, and scad_source.`;
     parsed.summary = `Generated ${partFamily} part`;
   }
 
+  const sanitizedScadSource = sanitizeGeneratedScadSource(parsed.scad_source);
+  await validateGeneratedScadSource(sanitizedScadSource);
+
   return {
     summary: parsed.summary,
     parameters: parsed.parameters,
-    scad_source: parsed.scad_source,
+    scad_source: sanitizedScadSource,
   };
+}
+
+function sanitizeGeneratedScadSource(scadSource: string) {
+  return scadSource
+    .replace(/(^|\n)(\s*)module(\s*=)/g, "$1$2tooth_module$3")
+    .replace(/\bmodule\b(?!\s+[A-Za-z_][A-Za-z0-9_]*\s*\()/g, "tooth_module");
+}
+
+async function validateGeneratedScadSource(scadSource: string) {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "cadcad-scad-"));
+  const tempScadPath = path.join(tmpDir, "validate.scad");
+  const tempStlPath = path.join(tmpDir, "validate.stl");
+
+  try {
+    await fs.writeFile(tempScadPath, scadSource, "utf8");
+    await execAsync(`openscad -o "${tempStlPath}" "${tempScadPath}"`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown OpenSCAD validation error";
+    throw new Error(`Generated SCAD failed OpenSCAD validation: ${message}`);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -644,9 +693,9 @@ function generateMockScadCode(
 ${assignments}
 
 module spur_gear(teeth, outer_diameter, bore_diameter, thickness, pressure_angle) {
-  module = outer_diameter / teeth;
-  pitch_diameter = outer_diameter - 2 * module;
-  tooth_depth = module * 2.2;
+  tooth_module = outer_diameter / teeth;
+  pitch_diameter = outer_diameter - 2 * tooth_module;
+  tooth_depth = tooth_module * 2.2;
 
   difference() {
     union() {
@@ -654,7 +703,7 @@ module spur_gear(teeth, outer_diameter, bore_diameter, thickness, pressure_angle
       for (i = [0:teeth-1]) {
         rotate([0, 0, i * 360 / teeth])
           translate([pitch_diameter/2, 0, 0])
-            cube([tooth_depth, module, thickness], center=true);
+            cube([tooth_depth, tooth_module, thickness], center=true);
       }
     }
     cylinder(h=thickness+2, d=bore_diameter, $fn=64, center=true);
@@ -865,7 +914,7 @@ function generateMockValidationResults(wallThickness: number) {
   ];
 }
 
-function appendLog(existingLogs: string | null, event: string, message: string): string {
+function appendLog(existingLogs: string | null | undefined, event: string, message: string): string {
   let logs: Array<{ timestamp: string; event: string; message: string }> = [];
   if (existingLogs) {
     try {
@@ -880,6 +929,13 @@ function appendLog(existingLogs: string | null, event: string, message: string):
     message,
   });
   return JSON.stringify(logs);
+}
+
+function parameterDefsToValues(parameters: ParameterDef[]) {
+  return parameters.reduce<Record<string, number>>((acc, parameter) => {
+    acc[parameter.key] = parameter.value;
+    return acc;
+  }, {});
 }
 
 function delay(ms: number): Promise<void> {
@@ -984,10 +1040,12 @@ export async function POST(
             where: { id },
             data: {
               state: "SCAD_GENERATED",
+              partFamily,
               scadSource: scadCode,
               builderName,
               generationPath,
               parameterSchema: JSON.stringify(generationResult.parameters),
+              parameterValues: JSON.stringify(parameterDefsToValues(generationResult.parameters)),
               researchResult: JSON.stringify({
                 part_family: partFamily,
                 generation_method: usedLLM ? "llm" : "template",
@@ -1029,31 +1087,91 @@ export async function POST(
           sendEvent({
             state: "SCAD_GENERATED",
             step: "rendering",
-            message: "Rendering STL and preview image...",
+            message: "Rendering STL and preview image with OpenSCAD...",
           });
-          await delay(1500);
 
-          const mockStlPath = `/artifacts/${id}/stl`;
-          const mockPngPath = `/artifacts/${id}/png`;
+          const artifactsDir = path.join(process.cwd(), "public", "artifacts", id);
+          await fs.mkdir(artifactsDir, { recursive: true });
+
+          const scadFilePath = path.join(artifactsDir, "model.scad");
+          const stlFilePath = path.join(artifactsDir, "model.stl");
+          const pngFilePath = path.join(artifactsDir, "preview.png");
+
+          await fs.writeFile(scadFilePath, scadCode);
+
+          let stlPath = "";
+          let pngPath = "";
+          let renderTime = 0;
+          let warnings: string[] = [];
+
+          try {
+            const startTime = Date.now();
+
+            sendEvent({ state: "SCAD_GENERATED", step: "rendering", message: "Generating STL..." });
+            await execAsync(`openscad -o "${stlFilePath}" "${scadFilePath}"`);
+
+            sendEvent({ state: "SCAD_GENERATED", step: "rendering", message: "Generating PNG preview..." });
+            await execAsync(`openscad -o "${pngFilePath}" --colorscheme=Tomorrow "${scadFilePath}"`);
+
+            renderTime = Date.now() - startTime;
+            stlPath = `/artifacts/${id}/model.stl`;
+            pngPath = `/artifacts/${id}/preview.png`;
+          } catch (execError) {
+            const renderError =
+              execError instanceof Error ? execError.message : "Unknown OpenSCAD render error";
+            warnings.push(`OpenSCAD rendering failed: ${renderError}`);
+
+            console.warn("OpenSCAD rendering failed:", execError);
+
+            await db.job.update({
+              where: { id },
+              data: {
+                state: "GEOMETRY_FAILED",
+                renderLog: JSON.stringify({
+                  openscad_version: "error",
+                  render_time_ms: renderTime,
+                  stl_triangles: 0,
+                  stl_vertices: 0,
+                  png_resolution: null,
+                  warnings,
+                }),
+                executionLogs: appendLog(
+                  (await db.job.findUnique({ where: { id } }))?.executionLogs,
+                  "GEOMETRY_FAILED",
+                  `OpenSCAD render failed: ${renderError}`
+                ),
+              },
+            });
+
+            sendEvent({
+              state: "GEOMETRY_FAILED",
+              step: "render_failed",
+              message: "OpenSCAD render failed. Real STL/PNG artifacts were not generated.",
+              error: renderError,
+            });
+            broadcastWs("job:update", { jobId: id, state: "GEOMETRY_FAILED", action: "render_failed" }).catch(() => {});
+            controller.close();
+            return;
+          }
 
           await db.job.update({
             where: { id },
             data: {
               state: "RENDERED",
-              stlPath: mockStlPath,
-              pngPath: mockPngPath,
+              stlPath,
+              pngPath,
               renderLog: JSON.stringify({
-                openscad_version: "2021.01",
-                render_time_ms: 342,
-                stl_triangles: 12,
-                stl_vertices: 8,
+                openscad_version: "real",
+                render_time_ms: renderTime,
+                stl_triangles: 0,
+                stl_vertices: 0,
                 png_resolution: "800x600",
-                warnings: [],
+                warnings,
               }),
               executionLogs: appendLog(
                 (await db.job.findUnique({ where: { id } }))?.executionLogs,
                 "RENDERED",
-                "STL and PNG rendered successfully (342ms render time)"
+                `STL and PNG rendered successfully (${renderTime}ms)`
               ),
             },
           });
@@ -1062,8 +1180,8 @@ export async function POST(
             state: "RENDERED",
             step: "rendered",
             message: "STL and PNG rendered successfully",
-            stlPath: mockStlPath,
-            pngPath: mockPngPath,
+            stlPath,
+            pngPath,
           });
           broadcastWs("job:update", { jobId: id, state: "RENDERED", action: "rendered" }).catch(() => {});
           await delay(1000);

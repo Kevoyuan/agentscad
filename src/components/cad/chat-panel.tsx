@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Sparkles, MessageSquare, Send, Square, Clock, Copy, Check, ChevronDown, ImagePlus, X, Eye, Brain, Zap, Code2, Star } from 'lucide-react'
+import { Sparkles, MessageSquare, Send, Square, Clock, Copy, Check, ChevronDown, ImagePlus, X, Eye, Brain, Zap, Code2, Star, Wand2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
 import { ChatMessage, Job } from './types'
 import { sendChatMessageStream, fetchModels, ModelInfo } from './api'
 
@@ -52,6 +53,36 @@ function CodeCopyButton({ text }: { text: string }) {
   )
 }
 
+function ScadApplyButton({
+  text,
+  onApply,
+}: {
+  text: string
+  onApply: (source: string) => Promise<void>
+}) {
+  const [isApplying, setIsApplying] = useState(false)
+
+  const handleApply = useCallback(async () => {
+    setIsApplying(true)
+    try {
+      await onApply(text)
+    } finally {
+      setIsApplying(false)
+    }
+  }, [onApply, text])
+
+  return (
+    <button
+      onClick={handleApply}
+      disabled={isApplying}
+      className="text-[9px] font-mono text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] px-1.5 py-0.5 rounded flex items-center gap-1 disabled:opacity-60 disabled:cursor-wait"
+    >
+      <Wand2 className="w-2.5 h-2.5" />
+      {isApplying ? 'Applying...' : 'Apply to SCAD'}
+    </button>
+  )
+}
+
 // Category badge colors
 const CATEGORY_STYLES: Record<string, { icon: React.ReactNode; color: string }> = {
   flagship: { icon: <Star className="w-2.5 h-2.5" />, color: 'text-amber-400' },
@@ -63,6 +94,7 @@ const CATEGORY_STYLES: Record<string, { icon: React.ReactNode; color: string }> 
 
 // Provider display colors
 const PROVIDER_COLORS: Record<string, string> = {
+  mimo: '#ff6a00',
   openai: '#10a37f',
   anthropic: '#d97706',
   google: '#4285f4',
@@ -72,12 +104,20 @@ const PROVIDER_COLORS: Record<string, string> = {
   mistral: '#f97316',
 }
 
-export function ChatPanel({ job }: { job: Job }) {
+const DEFAULT_CHAT_MODEL = 'mimo-v2.5-pro'
+
+export function ChatPanel({
+  job,
+  onApplyScad,
+}: {
+  job: Job
+  onApplyScad: (job: Job, scadSource: string) => Promise<void>
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
-  const [selectedModel, setSelectedModel] = useState('gpt-4o')
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL)
   const [models, setModels] = useState<ModelInfo[]>([])
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [pendingImages, setPendingImages] = useState<string[]>([])
@@ -86,11 +126,15 @@ export function ChatPanel({ job }: { job: Job }) {
   const abortRef = useRef<(() => void) | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelPickerRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   // Load available models
   useEffect(() => {
     fetchModels().then(data => setModels(data.models)).catch(() => {
       setModels([
+        { id: 'mimo-v2.5', name: 'MiMo-V2.5', description: 'Xiaomi MiMo 多模态模型', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
+        { id: 'mimo-v2.5-pro', name: 'MiMo-V2.5-Pro', description: 'Xiaomi MiMo 默认模型', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: false, reasoning: false, category: 'flagship' },
+        { id: 'mimo-v2-omni', name: 'MiMo-V2-Omni', description: 'Xiaomi MiMo 全模态模型', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
         { id: 'gpt-4o', name: 'GPT-4o', description: 'OpenAI旗舰多模态模型', provider: 'openai', providerName: 'OpenAI', multimodal: true, reasoning: false, category: 'flagship' },
         { id: 'glm-4', name: 'GLM-4', description: '智谱GLM-4高性能文本模型', provider: 'zhipu', providerName: '智谱AI', multimodal: false, reasoning: false, category: 'flagship' },
         { id: 'glm-4v', name: 'GLM-4V', description: '智谱GLM-4V多模态模型', provider: 'zhipu', providerName: '智谱AI', multimodal: true, reasoning: false, category: 'vision' },
@@ -208,28 +252,46 @@ export function ChatPanel({ job }: { job: Job }) {
         setPendingImages([])
         abortRef.current = null
       },
-      selectedModel !== 'gpt-4o' ? selectedModel : undefined,
+      selectedModel !== DEFAULT_CHAT_MODEL ? selectedModel : undefined,
       pendingImages.length > 0 ? pendingImages : undefined,
     )
     abortRef.current = abort
   }
 
-  // Shared markdown components with copy button support
-  const markdownComponents = useMemo(() => ({
+  const handleApplyScad = useCallback(async (scadSource: string) => {
+    try {
+      await onApplyScad(job, scadSource)
+    } catch (err) {
+      console.error('Failed to apply AI SCAD:', err)
+      toast({
+        title: 'Apply failed',
+        description: err instanceof Error ? err.message : 'Failed to apply SCAD to the current job',
+        variant: 'destructive',
+        duration: 3500,
+      })
+    }
+  }, [job, onApplyScad, toast])
+
+  const createMarkdownComponents = useCallback((enableScadApply: boolean) => ({
     code({ className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '')
       const isInline = !match
       const codeStr = String(children).replace(/\n$/, '')
+      const language = match?.[1]?.toLowerCase()
+      const canApplyScad = enableScadApply && (language === 'openscad' || language === 'scad')
       return isInline ? (
         <code className="bg-[var(--app-surface-raised)] px-1 py-0.5 rounded text-[10px] text-[var(--app-accent-text)]" {...props}>
           {children}
         </code>
       ) : (
         <div className="relative">
-          <CodeCopyButton text={codeStr} />
+          <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+            {canApplyScad && <ScadApplyButton text={codeStr} onApply={handleApplyScad} />}
+            <CodeCopyButton text={codeStr} />
+          </div>
           <SyntaxHighlighter
             style={oneDark}
-            language={match[1]}
+            language={match?.[1] || 'text'}
             PreTag="div"
             customStyle={{
               fontSize: '10px',
@@ -243,7 +305,10 @@ export function ChatPanel({ job }: { job: Job }) {
         </div>
       )
     },
-  }), [])
+  }), [handleApplyScad])
+
+  const assistantMarkdownComponents = useMemo(() => createMarkdownComponents(true), [createMarkdownComponents])
+  const streamingMarkdownComponents = useMemo(() => createMarkdownComponents(false), [createMarkdownComponents])
 
   const proseClasses = "prose prose-invert prose-xs max-w-none [&_pre]:rounded-md [&_pre]:bg-[var(--app-bg)] [&_pre]:border [&_pre]:border-[color:var(--app-border)] [&_pre]:p-2 [&_pre]:text-[10px] [&_pre]:leading-relaxed [&_code]:text-[var(--app-accent-text)] [&_code]:before:content-none [&_code]:after:content-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-[11px] [&_strong]:text-[var(--app-text-primary)] [&_a]:text-[var(--app-accent-text)]"
 
@@ -260,7 +325,7 @@ export function ChatPanel({ job }: { job: Job }) {
               className="flex items-center gap-1 text-[9px] font-mono text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] px-1.5 py-0.5 rounded transition-colors linear-surface-hover"
               onClick={() => setShowModelPicker(!showModelPicker)}
             >
-              {currentModel?.name || 'GPT-4o'}
+              {currentModel?.name || 'MiMo-V2.5-Pro'}
               {isMultimodal && <Eye className="w-2.5 h-2.5 text-[var(--app-accent-text)]" />}
               {currentModel?.reasoning && <Brain className="w-2.5 h-2.5 text-[var(--app-accent-text)]" />}
               <ChevronDown className="w-2.5 h-2.5" />
@@ -332,7 +397,7 @@ export function ChatPanel({ job }: { job: Job }) {
             </div>
             <div className="text-center">
               <p className="text-xs">Ask about this CAD job</p>
-              <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Using {currentModel?.name || 'GPT-4o'} by {currentModel?.providerName || 'OpenAI'}</p>
+              <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Using {currentModel?.name || 'MiMo-V2.5-Pro'} by {currentModel?.providerName || 'Xiaomi MiMo'}</p>
             </div>
             <div className="flex flex-wrap gap-1 justify-center mt-1 max-w-[280px]">
               {suggestions.map(q => (
@@ -375,7 +440,7 @@ export function ChatPanel({ job }: { job: Job }) {
               )}
               {msg.role === 'assistant' ? (
                 <div className={proseClasses}>
-                  <ReactMarkdown components={markdownComponents}>
+                  <ReactMarkdown components={assistantMarkdownComponents}>
                     {msg.content}
                   </ReactMarkdown>
                 </div>
@@ -395,7 +460,7 @@ export function ChatPanel({ job }: { job: Job }) {
                 <span className="text-[8px] font-mono text-[var(--app-accent-text)] animate-pulse">generating...</span>
               </div>
               <div className={proseClasses}>
-                <ReactMarkdown components={markdownComponents}>
+                <ReactMarkdown components={streamingMarkdownComponents}>
                   {streamingContent}
                 </ReactMarkdown>
               </div>

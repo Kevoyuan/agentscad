@@ -54,7 +54,20 @@ export async function updateParameters(id: string, parameterValues: Record<strin
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ parameterValues }),
   })
-  if (!res.ok) throw new Error('Failed to update parameters')
+  if (!res.ok) {
+    let message = 'Failed to update parameters'
+    try {
+      const errorData = await res.json()
+      if (errorData?.error) {
+        message = errorData.validationErrors?.length
+          ? `${errorData.error}: ${errorData.validationErrors.join(', ')}`
+          : errorData.error
+      }
+    } catch {
+      // Keep the generic message when the response body is unavailable.
+    }
+    throw new Error(message)
+  }
   const data = await res.json()
   return data.job
 }
@@ -220,6 +233,43 @@ export async function updateScadSource(id: string, scadSource: string): Promise<
   if (!res.ok) throw new Error('Failed to update SCAD source')
   const data = await res.json()
   return data.job
+}
+
+export async function applyScadSource(
+  id: string,
+  scadSource: string,
+  onEvent: (data: Record<string, unknown>) => void
+): Promise<void> {
+  const res = await fetch(`/api/jobs/${id}/scad/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scadSource }),
+  })
+  if (!res.ok) throw new Error('Failed to apply SCAD source')
+
+  const reader = res.body?.getReader()
+  if (!reader) return
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      try {
+        const data = JSON.parse(line.slice(6))
+        onEvent(data)
+      } catch {
+        // Ignore malformed SSE frames and keep reading.
+      }
+    }
+  }
 }
 
 export async function batchOperation(action: 'delete' | 'cancel' | 'reprocess', jobIds: string[]): Promise<{ results: { success: string[]; failed: string[] } }> {

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
 
 type ContentPart =
   | { type: "text"; text: string }
@@ -37,6 +38,8 @@ export async function POST(request: NextRequest) {
 
 Be concise, technical, and helpful. When discussing code, use code blocks with the appropriate language tag.`;
 
+    systemPrompt += `\nWhen proposing a full replacement SCAD file or an editable SCAD patch, wrap the code in a single \`\`\`openscad code block so it can be applied directly.`;
+
     if (jobId) {
       const job = await db.job.findUnique({ where: { id: jobId } });
       if (job) {
@@ -73,8 +76,13 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       { role: "system", content: systemPrompt },
     ];
 
+    const requestedModel = model || process.env.MIMO_MODEL || MIMO_DEFAULT_MODEL;
+
     // Check if the model supports multimodal input
     const multimodalModels = [
+      // Xiaomi MiMo
+      "mimo-v2.5",
+      "mimo-v2-omni",
       // OpenAI
       "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini", "gpt-4o", "o4-mini",
       // Anthropic
@@ -86,7 +94,7 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       // Qwen
       "qwen3.5-plus", "qwen3-vl",
     ];
-    const isMultimodal = multimodalModels.includes(model || "");
+    const isMultimodal = multimodalModels.includes(requestedModel);
 
     for (const msg of messages) {
       if (
@@ -112,6 +120,99 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       }
     }
 
+    const mimoConfig = getMimoConfig();
+
+    // Try Xiaomi MiMo first when configured or explicitly selected
+    try {
+      const shouldUseMimo = mimoConfig.enabled || requestedModel.startsWith("mimo-");
+
+      if (shouldUseMimo) {
+        const mimoResponse = await createMimoChatCompletion({
+          messages: formattedMessages,
+          model: requestedModel,
+          stream: true,
+        });
+
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+
+        const stream = new ReadableStream({
+          async start(controller) {
+            const reader = mimoResponse.body?.getReader();
+
+            if (!reader) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "error", message: "MiMo response body unavailable" })}\n\n`)
+              );
+              controller.close();
+              return;
+            }
+
+            let buffer = "";
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const rawLine of lines) {
+                  const line = rawLine.trim();
+                  if (!line.startsWith("data:")) continue;
+
+                  const payload = line.slice(5).trim();
+                  if (!payload) continue;
+
+                  if (payload === "[DONE]") {
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+                    );
+                    controller.close();
+                    return;
+                  }
+
+                  try {
+                    const chunk = JSON.parse(payload);
+                    const content = chunk?.choices?.[0]?.delta?.content ?? "";
+                    if (content) {
+                      controller.enqueue(
+                        encoder.encode(`data: ${JSON.stringify({ type: "token", content })}\n\n`)
+                      );
+                    }
+                  } catch {
+                    // Ignore malformed provider SSE lines
+                  }
+                }
+              }
+
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+              );
+              controller.close();
+            } catch (streamErr) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "error", message: streamErr instanceof Error ? streamErr.message : "MiMo stream interrupted" })}\n\n`)
+              );
+              controller.close();
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      }
+    } catch (mimoError) {
+      console.warn("MiMo chat request failed, falling back:", mimoError);
+    }
+
     // Try LLM via z-ai-web-dev-sdk with streaming
     try {
       const ZAIModule = await import("z-ai-web-dev-sdk");
@@ -119,14 +220,21 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       const zai = await ZAI.create();
 
       // Build the create options - pass model if specified
-      const createOptions: Record<string, unknown> = {
-        messages: formattedMessages,
-        stream: true,
-      };
+      const fallbackMessages = formattedMessages.map((msg) => ({
+        role: msg.role as "system" | "user" | "assistant",
+        content:
+          typeof msg.content === "string"
+            ? msg.content
+            : msg.content
+                .map((part) => (part.type === "text" ? part.text : "[image]"))
+                .join("\n"),
+      }));
 
-      if (model) {
-        createOptions.model = model;
-      }
+      const createOptions = {
+        messages: fallbackMessages,
+        stream: true,
+        ...(model ? { model } : {}),
+      };
 
       const result = await zai.chat.completions.create(createOptions);
 

@@ -168,6 +168,18 @@ export function SortableJobCard({
             </span>
           </div>
         </div>
+
+        {/* Preview thumbnail */}
+        {job.pngPath && job.state !== 'NEW' && job.state !== 'SCAD_GENERATED' && (
+          <div className="mt-1.5 rounded-md overflow-hidden border border-[color:var(--app-border)] bg-[var(--app-empty-bg)] h-16">
+            <img
+              src={job.pngPath}
+              alt="Preview"
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
         <div className="flex items-center gap-1.5 mt-1.5">
           <StateBadge state={job.state} />
           <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{timeAgo(job.createdAt)}</span>

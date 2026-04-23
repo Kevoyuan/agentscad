@@ -19,6 +19,41 @@ export interface ModelInfo {
 //          api-docs.deepseek.com, bigmodel.cn, alibabacloud.com
 
 const AVAILABLE_MODELS: ModelInfo[] = [
+  // ─── Xiaomi MiMo ─────────────────────────────────────────────────────────
+  {
+    id: "mimo-v2.5",
+    name: "MiMo-V2.5",
+    description: "Xiaomi MiMo native multimodal model for fast general agent tasks.",
+    provider: "mimo",
+    providerName: "Xiaomi MiMo",
+    multimodal: true,
+    reasoning: true,
+    category: "vision",
+    released: "2026-04",
+  },
+  {
+    id: "mimo-v2.5-pro",
+    name: "MiMo-V2.5-Pro",
+    description: "Xiaomi MiMo OpenAI-compatible default model.",
+    provider: "mimo",
+    providerName: "Xiaomi MiMo",
+    multimodal: false,
+    reasoning: true,
+    category: "flagship",
+    released: "2026-04",
+  },
+  {
+    id: "mimo-v2-omni",
+    name: "MiMo-V2-Omni",
+    description: "Xiaomi MiMo legacy full-modal model for image, audio, and video turns.",
+    provider: "mimo",
+    providerName: "Xiaomi MiMo",
+    multimodal: true,
+    reasoning: true,
+    category: "vision",
+    released: "2025-12",
+  },
+
   // ─── OpenAI ──────────────────────────────────────────────────────────────
   {
     id: "gpt-4.1",

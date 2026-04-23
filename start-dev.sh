@@ -1,57 +1,73 @@
 #!/bin/bash
-# AgentSCAD Dev Server Startup Script
-# Starts the Next.js dev server and pre-compiles all routes/chunks
 
-cd /home/z/my-project
+set -euo pipefail
 
-# Kill any existing server
-fuser -k 3000/tcp 2>/dev/null
-sleep 2
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$SCRIPT_DIR"
+LOG_FILE="${TMPDIR:-/tmp}/agentscad-next-dev.log"
 
-# Clear stale cache if needed
-# rm -rf .next
+cd "$PROJECT_DIR"
 
-# Start the dev server with process isolation
-NODE_OPTIONS="--max-old-space-size=4096" setsid npx next dev -p 3000 &>/tmp/next-dev-server.log &
+if ! command -v bun >/dev/null 2>&1; then
+  echo "ERROR: bun is not installed or not in PATH"
+  exit 1
+fi
 
-# Wait for server to be ready
-echo "Waiting for server to start..."
-for i in $(seq 1 30); do
-  if ss -tlnp | grep -q 3000; then
-    echo "Server is listening!"
+echo "Installing dependencies if needed..."
+bun install >/dev/null
+
+echo "Ensuring database schema is applied..."
+bun run db:push >/dev/null
+
+echo "Stopping anything already bound to :3000..."
+if command -v lsof >/dev/null 2>&1; then
+  lsof -ti tcp:3000 | xargs -r kill
+fi
+sleep 1
+
+echo "Starting Next.js dev server..."
+NODE_OPTIONS="--max-old-space-size=4096" setsid bun run dev >"$LOG_FILE" 2>&1 &
+DEV_PID=$!
+
+cleanup() {
+  if kill -0 "$DEV_PID" >/dev/null 2>&1; then
+    kill "$DEV_PID" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT INT TERM
+
+echo "Waiting for server to be ready..."
+for _ in $(seq 1 60); do
+  if curl -fsS http://127.0.0.1:3000 >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 
-if ! ss -tlnp | grep -q 3000; then
-  echo "ERROR: Server failed to start!"
+if ! curl -fsS http://127.0.0.1:3000 >/dev/null 2>&1; then
+  echo "ERROR: Server failed to start. See log: $LOG_FILE"
   exit 1
 fi
 
-# Pre-compile the page
-echo "Pre-compiling page..."
-PAGE_HTML=$(curl -m 120 -s http://127.0.0.1:3000/ 2>/dev/null)
-if [ -z "$PAGE_HTML" ]; then
-  echo "WARNING: Page compilation may have failed"
+echo "Warming main page and API route..."
+PAGE_HTML=$(curl -m 120 -s http://127.0.0.1:3000/ || true)
+curl -m 60 -s http://127.0.0.1:3000/api/jobs?limit=1 >/dev/null 2>&1 || true
+
+if [ -n "$PAGE_HTML" ]; then
+  CHUNKS=$(echo "$PAGE_HTML" | grep -oE '/_next/static/chunks/[^"]+\.js' | sort -u || true)
+  CHUNK_COUNT=$(printf "%s\n" "$CHUNKS" | sed '/^$/d' | wc -l | tr -d ' ')
+  echo "Warming $CHUNK_COUNT JS chunks..."
+  if [ -n "$CHUNKS" ]; then
+    while IFS= read -r chunk; do
+      [ -n "$chunk" ] || continue
+      curl -m 60 -s -o /dev/null "http://127.0.0.1:3000$chunk" || true
+    done <<EOF
+$CHUNKS
+EOF
+  fi
 fi
-sleep 5
 
-# Pre-compile API routes
-echo "Pre-compiling API routes..."
-curl -m 60 -s http://127.0.0.1:3000/api/jobs?limit=1 > /dev/null 2>&1
-sleep 3
-
-# Pre-compile all JS chunks sequentially
-CHUNKS=$(echo "$PAGE_HTML" | grep -oP '/_next/static/chunks/[^"]+' | grep -E '\.js' | sort -u)
-CHUNK_COUNT=$(echo "$CHUNKS" | wc -l)
-echo "Pre-compiling $CHUNK_COUNT JS chunks..."
-
-for chunk in $CHUNKS; do
-  curl -m 60 -s -o /dev/null "http://127.0.0.1:3000$chunk" 2>&1
-  sleep 1
-done
-
-echo "Pre-compilation complete!"
 echo "Server is ready at http://localhost:3000"
-ss -tlnp | grep 3000 && echo "Server is running" || echo "Server may have crashed"
+echo "Log file: $LOG_FILE"
+wait "$DEV_PID"

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job } from './types'
-import { updateScadSource } from './api'
+import { applyScadSource } from './api'
 import { highlightScad } from '@/lib/scad-highlight'
 
 // ─── SCAD Editor Component ────────────────────────────────────────────────
@@ -15,9 +15,10 @@ import { highlightScad } from '@/lib/scad-highlight'
 interface ScadEditorProps {
   job: Job
   onUpdate: () => void
+  onApply?: (job: Job, scadSource: string) => Promise<void>
 }
 
-export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
+export function ScadEditor({ job, onUpdate, onApply }: ScadEditorProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editSource, setEditSource] = useState(job.scadSource || '')
   const [isSaving, setIsSaving] = useState(false)
@@ -70,9 +71,13 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
     if (!hasChanges) return
     setIsSaving(true)
     try {
-      await updateScadSource(job.id, editSource)
+      if (onApply) {
+        await onApply(job, editSource)
+      } else {
+        await applyScadSource(job.id, editSource, () => {})
+        onUpdate()
+      }
       setIsEditing(false)
-      onUpdate()
     } catch (err) {
       console.error('Failed to save SCAD:', err)
     } finally {
@@ -203,7 +208,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
                 disabled={!hasChanges || isSaving}
               >
                 {isSaving ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-3 h-3 border border-emerald-400 border-t-transparent rounded-full" /> : <Save className="w-3 h-3" />}
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? (onApply ? 'Applying...' : 'Saving...') : (onApply ? 'Apply' : 'Save')}
               </Button>
             </>
           )}
@@ -286,7 +291,7 @@ export function ScadEditor({ job, onUpdate }: ScadEditorProps) {
         </div>
         <div className="flex items-center gap-2 text-[9px] font-mono text-[var(--app-text-dim)]">
           {isEditing && (
-            <span>Tab: indent · Enter: auto-indent · Esc: cancel · ⌘S: save</span>
+            <span>Tab: indent · Enter: auto-indent · Esc: cancel · ⌘S: {onApply ? 'apply' : 'save'}</span>
           )}
         </div>
       </div>

@@ -18,7 +18,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { parameters } = body;
+    const parameters = body.parameters ?? body.parameterValues;
 
     if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
       return NextResponse.json(

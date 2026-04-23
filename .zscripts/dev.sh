@@ -50,6 +50,11 @@ start_mini_services() {
 		service_name=$(basename "$service_dir")
 		echo "Checking service: $service_name"
 
+		if [ "$service_name" = "next-dev" ]; then
+			echo "[$service_name] Skipping wrapper service because root dev server is already managed here..."
+			continue
+		fi
+
 		if [ ! -f "$service_dir/package.json" ]; then
 			echo "[$service_name] No package.json found, skipping..."
 			continue
@@ -66,7 +71,7 @@ start_mini_services() {
 			echo "[$service_name] Installing dependencies..."
 			bun install
 			echo "[$service_name] Running bun run dev..."
-			exec bun run dev
+			exec nohup bun run dev </dev/null
 		) >"$PROJECT_DIR/.zscripts/mini-service-${service_name}.log" 2>&1 &
 
 		local service_pid=$!
@@ -132,7 +137,8 @@ log_step_end "bun run db:push"
 
 log_step_start "Starting Next.js dev server"
 echo "[BUN] Starting development server..."
-bun run dev &
+mkdir -p "$PROJECT_DIR/.zscripts"
+nohup bun run dev >"$PROJECT_DIR/.zscripts/next-dev.log" 2>&1 </dev/null &
 DEV_PID=$!
 log_step_end "Starting Next.js dev server"
 
@@ -150,5 +156,6 @@ start_mini_services
 
 echo "Next.js dev server is running in background (PID: $DEV_PID)."
 echo "Use 'kill $DEV_PID' to stop it."
+trap - EXIT INT TERM
 disown "$DEV_PID" 2>/dev/null || true
 unset DEV_PID
