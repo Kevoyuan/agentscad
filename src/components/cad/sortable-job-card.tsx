@@ -10,7 +10,7 @@ import { PartFamilyIcon } from './part-family-icon'
 import { TagBadges } from './tag-badges'
 import { Button } from '@/components/ui/button'
 import {
-  Play, Ban, Repeat, Trash2, CheckSquare, Square,
+  Play, Ban, Repeat, Trash2, CheckSquare, Square, RefreshCw,
 } from 'lucide-react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -30,6 +30,9 @@ interface SortableJobCardProps {
 
 // Processing states that should show the pulse ring animation
 const PROCESSING_STATES = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW']
+
+// Failed states that should show retry action
+const FAILED_STATES = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED']
 
 // ─── Elapsed Time Helper ──────────────────────────────────────────────────
 
@@ -120,23 +123,25 @@ export function SortableJobCard({
     >
       {/* Drag Handle */}
       <div
-        className="absolute top-2 right-1 z-10 cursor-grab active:cursor-grabbing text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors"
+        className="absolute top-1 right-0 z-10 cursor-grab active:cursor-grabbing text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center"
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
+        aria-label="Drag to reorder"
       >
         <GripVertical className="w-3.5 h-3.5" />
       </div>
 
       {/* Select checkbox */}
-      <div className="absolute top-2 left-1 z-10" onClick={e => e.stopPropagation()}>
+      <div className="absolute top-1 left-0 z-10" onClick={e => e.stopPropagation()}>
         <button
-          className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-colors ${
+          className={`w-6 h-6 rounded flex items-center justify-center transition-colors min-w-[28px] min-h-[28px] ${
             isChecked ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-surface-hover)] text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)]'
           }`}
           onClick={() => onToggleSelect(job.id)}
+          aria-label={isChecked ? 'Deselect job' : 'Select job'}
         >
-          {isChecked ? <CheckSquare className="w-2.5 h-2.5" /> : <Square className="w-2.5 h-2.5" />}
+          {isChecked ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
         </button>
       </div>
 
@@ -191,20 +196,25 @@ export function SortableJobCard({
         {/* Action Buttons - Individual hover colors, opacity-only to prevent layout shift */}
         <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200" onClick={e => e.stopPropagation()}>
           {job.state === 'NEW' && (
-            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
-              <Play className="w-2.5 h-2.5" />Process
+            <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
+              <Play className="w-3 h-3" />Process
+            </Button>
+          )}
+          {FAILED_STATES.includes(job.state) && (
+            <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10" onClick={() => onProcess(job)}>
+              <RefreshCw className="w-3 h-3" />Retry
             </Button>
           )}
           {isCancelable && (
-            <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
-              <Ban className="w-2.5 h-2.5" />Cancel
+            <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
+              <Ban className="w-3 h-3" />Cancel
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onDuplicate(job)}>
-            <Repeat className="w-2.5 h-2.5" />Duplicate
+          <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-[var(--app-text-muted)] hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onDuplicate(job)}>
+            <Repeat className="w-3 h-3" />Duplicate
           </Button>
-          <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-rose-300 hover:bg-rose-500/10" onClick={() => onDelete(job.id)}>
-            <Trash2 className="w-2.5 h-2.5" />Delete
+          <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-[var(--app-text-muted)] hover:text-rose-300 hover:bg-rose-500/10" onClick={() => onDelete(job.id)}>
+            <Trash2 className="w-3 h-3" />Delete
           </Button>
         </div>
       </div>

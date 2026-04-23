@@ -11,7 +11,7 @@ import { getStateInfo } from './types'
 const ACTIVE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
 const FAILED_STATES = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED']
 
-export function StateBadge({ state, size = 'sm', timestamp }: { state: string; size?: 'sm' | 'md'; timestamp?: string }) {
+export function StateBadge({ state, size = 'sm', timestamp }: { state: string; size?: 'xs' | 'sm' | 'md'; timestamp?: string }) {
   const info = getStateInfo(state)
   const label = state.replace(/_/g, ' ')
   const isFailed = FAILED_STATES.includes(state)
@@ -44,12 +44,12 @@ export function StateBadge({ state, size = 'sm', timestamp }: { state: string; s
       <TooltipTrigger asChild>
         <motion.span
           key={state}
-          className={`inline-flex items-center gap-1.5 rounded-md font-mono relative ${size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} ${info.bg} ${info.text} ${info.border} border linear-transition ${isFailed ? 'badge-shake' : ''}`}
+          className={`inline-flex items-center rounded-md font-mono relative ${size === 'xs' ? 'gap-1 text-[8px] px-1 py-0.5' : size === 'sm' ? 'gap-1.5 text-[10px] px-1.5 py-0.5' : 'gap-1.5 text-xs px-2 py-1'} ${info.bg} ${info.text} ${info.border} border linear-transition ${isFailed ? 'badge-shake' : ''}`}
           initial={{ scale: 1.15 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          <span className={`relative w-1.5 h-1.5 rounded-full ${info.dot} ${isProcessing || isDelivered ? 'status-pulse' : ''}`} />
+          <span className={`relative rounded-full ${info.dot} ${isProcessing || isDelivered ? 'status-pulse' : ''} ${size === 'xs' ? 'w-1 h-1' : 'w-1.5 h-1.5'}`} />
           <span className="relative">{label}</span>
         </motion.span>
       </TooltipTrigger>

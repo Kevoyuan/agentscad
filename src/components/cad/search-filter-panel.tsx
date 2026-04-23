@@ -304,7 +304,7 @@ export function SearchFilterPanel({
           return (
             <button
               key={f.key}
-              className={`shrink-0 text-[9px] font-mono px-2 py-1 rounded-md transition-colors ${
+              className={`shrink-0 text-[9px] font-mono px-2.5 py-1.5 rounded-md transition-colors min-h-[28px] ${
                 isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
               }`}
               onClick={() => {
@@ -314,6 +314,8 @@ export function SearchFilterPanel({
                   toggleState(f.key === 'FAILED' ? 'FAILED' : f.key)
                 }
               }}
+              aria-label={`Filter by ${f.label}`}
+              aria-pressed={isMultiActive}
             >
               {f.label} {count > 0 ? count : ''}
             </button>
@@ -371,7 +373,7 @@ export function SearchFilterPanel({
                     {DATE_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
-                        className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
+                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.dateRange === opt.key
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -411,7 +413,7 @@ export function SearchFilterPanel({
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
-                      className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
+                      className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                         !filters.partFamily
                           ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                           : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -423,7 +425,7 @@ export function SearchFilterPanel({
                     {partFamilies.map(pf => (
                       <button
                         key={pf}
-                        className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
+                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.partFamily === pf
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -443,7 +445,7 @@ export function SearchFilterPanel({
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
-                      className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
+                      className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                         !filters.builderName
                           ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                           : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -455,7 +457,7 @@ export function SearchFilterPanel({
                     {builderNames.map(bn => (
                       <button
                         key={bn}
-                        className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
+                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.builderName === bn
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -477,7 +479,7 @@ export function SearchFilterPanel({
                     {SORT_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
-                        className={`text-[9px] px-2 py-1 rounded-md transition-colors ${
+                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.sortBy === opt.key
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'

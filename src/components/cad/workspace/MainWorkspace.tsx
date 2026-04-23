@@ -905,7 +905,7 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowStats(true)}>
+                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowStats(true)} aria-label="Stats Dashboard">
                   <BarChart3 className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -915,7 +915,7 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowCompare(true)}>
+                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowCompare(true)} aria-label="Compare Jobs">
                   <GitCompare className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -933,8 +933,9 @@ export function MainWorkspace() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
+              className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
               onClick={() => setShowActivityFeed(!showActivityFeed)}
+              aria-label="Activity Feed"
             >
               <Activity className="w-3 h-3" />
               {activityEvents.length > 0 && (
@@ -975,10 +976,10 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => {
+                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => {
                   const next = (mounted && resolvedTheme === 'dark') ? 'light' : 'dark'
                   setTheme(next)
-                }}>
+                }} aria-label="Toggle theme">
                   {!mounted ? <div className="w-3 h-3" aria-hidden="true" /> : resolvedTheme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
                 </Button>
               </TooltipTrigger>
@@ -988,7 +989,7 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowSettings(true)}>
+                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowSettings(true)} aria-label="Theme & Settings">
                   <Palette className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -998,14 +999,14 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowShortcuts(true)}>
+                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => setShowShortcuts(true)} aria-label="Keyboard Shortcuts">
                   <Keyboard className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Shortcuts (?)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="h-6 text-[10px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition" onClick={() => setShowComposer(true)}>
+          <Button size="sm" className="h-8 text-[10px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition px-3" onClick={() => setShowComposer(true)}>
             <Plus className="w-3 h-3" />New Job
           </Button>
         </div>
@@ -1037,17 +1038,17 @@ export function MainWorkspace() {
                     <div className="flex items-center justify-between px-3 py-1.5">
                       <span className="text-[9px] font-mono text-[var(--app-batch-bar-text)]">{selectedIds.size} selected</span>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-1 text-amber-400 hover:text-amber-300" onClick={() => handleBatchAction('reprocess')}>
-                          <RotateCcw className="w-2.5 h-2.5" />Reprocess
+                        <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-amber-400 hover:text-amber-300" onClick={() => handleBatchAction('reprocess')}>
+                          <RotateCcw className="w-3 h-3" />Reprocess
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-1 text-orange-400 hover:text-orange-300" onClick={() => handleBatchAction('cancel')}>
-                          <Ban className="w-2.5 h-2.5" />Cancel
+                        <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-orange-400 hover:text-orange-300" onClick={() => handleBatchAction('cancel')}>
+                          <Ban className="w-3 h-3" />Cancel
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-5 text-[8px] gap-1 text-rose-400 hover:text-rose-300" onClick={() => handleBatchAction('delete')}>
-                          <Trash2 className="w-2.5 h-2.5" />Delete
+                        <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-rose-400 hover:text-rose-300" onClick={() => handleBatchAction('delete')}>
+                          <Trash2 className="w-3 h-3" />Delete
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-5 text-[8px] text-[var(--app-text-muted)]" onClick={() => setSelectedIds(new Set())}>
-                          <X className="w-2.5 h-2.5" />
+                        <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 text-[var(--app-text-muted)]" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
+                          <X className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
