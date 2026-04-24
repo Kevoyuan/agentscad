@@ -158,6 +158,89 @@ function buildProceduralPreview(THREE: any, mainGroup: any, values: Record<strin
   buildProceduralEnclosure(THREE, mainGroup, values, controlsState)
 }
 
+// ─── Bounding box dimension overlay ──────────────────────────────────────────
+
+function createDimensionOverlay(THREE: any, mainGroup: any) {
+  const box = new THREE.Box3().setFromObject(mainGroup)
+  const size = box.getSize(new THREE.Vector3())
+  const min = box.min
+  const max = box.max
+
+  // Bounding box wireframe
+  const bboxGeo = new THREE.BoxGeometry(size.x, size.y, size.z)
+  const bboxCenter = box.getCenter(new THREE.Vector3())
+  const bboxEdges = new THREE.EdgesGeometry(bboxGeo)
+  const bboxLine = new THREE.LineSegments(
+    bboxEdges,
+    new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.35 })
+  )
+  bboxLine.position.copy(bboxCenter)
+
+  // Origin axis arrows (small XYZ indicator)
+  const axisGroup = new THREE.Group()
+  const arrowLen = Math.max(size.x, size.y, size.z) * 0.15
+  const arrowHeadLen = arrowLen * 0.2
+  const arrowHeadWidth = arrowLen * 0.08
+
+  const xArrow = new THREE.ArrowHelper(
+    new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0),
+    arrowLen, 0xef4444, arrowHeadLen, arrowHeadWidth
+  )
+  const yArrow = new THREE.ArrowHelper(
+    new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0),
+    arrowLen, 0x22c55e, arrowHeadLen, arrowHeadWidth
+  )
+  const zArrow = new THREE.ArrowHelper(
+    new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0),
+    arrowLen, 0x3b82f6, arrowHeadLen, arrowHeadWidth
+  )
+  axisGroup.add(xArrow, yArrow, zArrow)
+
+  // Dimension lines along each axis
+  const dimMat = new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.6 })
+  const offset = Math.max(size.x, size.y, size.z) * 0.08
+
+  // Width line (along X, at bottom-front)
+  const wLine = createDimLine(THREE, dimMat,
+    new THREE.Vector3(min.x, min.y - offset, max.z + offset),
+    new THREE.Vector3(max.x, min.y - offset, max.z + offset)
+  )
+  // Depth line (along Z, at bottom-right)
+  const dLine = createDimLine(THREE, dimMat,
+    new THREE.Vector3(max.x + offset, min.y - offset, min.z),
+    new THREE.Vector3(max.x + offset, min.y - offset, max.z)
+  )
+  // Height line (along Y, at back-right)
+  const hLine = createDimLine(THREE, dimMat,
+    new THREE.Vector3(max.x + offset, min.y, max.z + offset),
+    new THREE.Vector3(max.x + offset, max.y, max.z + offset)
+  )
+
+  const dimGroup = new THREE.Group()
+  dimGroup.add(wLine, dLine, hLine)
+
+  return {
+    bboxLine,
+    axisGroup,
+    dimGroup,
+    sizes: {
+      w: size.x.toFixed(1),
+      d: size.z.toFixed(1),
+      h: size.y.toFixed(1),
+    },
+    positions: {
+      w: new THREE.Vector3(bboxCenter.x, min.y - offset * 1.8, max.z + offset),
+      d: new THREE.Vector3(max.x + offset, min.y - offset * 1.8, bboxCenter.z),
+      h: new THREE.Vector3(max.x + offset * 1.5, bboxCenter.y, max.z + offset),
+    },
+  }
+}
+
+function createDimLine(THREE: any, mat: any, start: any, end: any) {
+  const geo = new THREE.BufferGeometry().setFromPoints([start, end])
+  return new THREE.Line(geo, mat)
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ThreeDViewer({ job }: { job: Job }) {
@@ -174,6 +257,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
     showGrid: true,
     showAxes: true,
     darkBg: true,
+    showDimensions: true,
   })
 
   const threeModuleRef = useRef<any>(null)
@@ -184,6 +268,8 @@ export function ThreeDViewer({ job }: { job: Job }) {
   const cameraRef = useRef<any>(null)
   const rendererRef = useRef<any>(null)
   const mainGroupRef = useRef<any>(null)
+  const bboxOverlayRef = useRef<any>(null)
+  const dimensionLabelsRef = useRef<{ w: string; d: string; h: string }>({ w: '', d: '', h: '' })
 
   const values = parseJSON<Record<string, number>>(job.parameterValues, {})
   const partFamily = job.partFamily || 'unknown'
@@ -194,6 +280,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
     const dims = [width, depth, height].filter(v => typeof v === 'number')
     return dims.length ? dims.map(v => Number(v).toFixed(Number(v) % 1 === 0 ? 0 : 1)).join(' x ') : ''
   })()
+  const dimLabels = dimensionLabelsRef.current
 
   // Apply controls state changes to Three.js scene
   useEffect(() => {
@@ -212,6 +299,11 @@ export function ThreeDViewer({ job }: { job: Job }) {
     }
     if (axisHelperRef.current) {
       axisHelperRef.current.visible = controlsState.showAxes
+    }
+    if (bboxOverlayRef.current) {
+      bboxOverlayRef.current.bboxLine.visible = controlsState.showDimensions
+      bboxOverlayRef.current.axisGroup.visible = controlsState.showDimensions
+      bboxOverlayRef.current.dimGroup.visible = controlsState.showDimensions
     }
     if (sceneRef.current && threeModuleRef.current) {
       sceneRef.current.background = new threeModuleRef.current.Color(
@@ -375,6 +467,17 @@ export function ThreeDViewer({ job }: { job: Job }) {
         scene.add(mainGroup)
         mainGroupRef.current = mainGroup
 
+        // Add dimension overlay (bounding box + axis + dim lines)
+        const dimOverlay = createDimensionOverlay(THREE, mainGroup)
+        dimOverlay.bboxLine.visible = controlsState.showDimensions
+        dimOverlay.axisGroup.visible = controlsState.showDimensions
+        dimOverlay.dimGroup.visible = controlsState.showDimensions
+        scene.add(dimOverlay.bboxLine)
+        scene.add(dimOverlay.axisGroup)
+        scene.add(dimOverlay.dimGroup)
+        bboxOverlayRef.current = dimOverlay
+        dimensionLabelsRef.current = dimOverlay.sizes
+
         // Auto-fit camera to the loaded geometry
         fitCameraToObject(THREE, camera, controls, mainGroup)
 
@@ -490,6 +593,13 @@ export function ThreeDViewer({ job }: { job: Job }) {
       {dimensionSummary && (
         <div className="absolute top-9 right-3 z-[5] pointer-events-none">
           <span className="text-[8px] font-mono text-[var(--cad-measure)] tracking-widest cad-viewport-glass rounded px-2 py-1">{dimensionSummary} mm</span>
+        </div>
+      )}
+      {controlsState.showDimensions && dimLabels.w && (
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[5] pointer-events-none flex items-center gap-3">
+          <span className="text-[9px] font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">W {dimLabels.w}</span>
+          <span className="text-[9px] font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">D {dimLabels.d}</span>
+          <span className="text-[9px] font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">H {dimLabels.h}</span>
         </div>
       )}
       <div className="absolute bottom-2 left-2 z-[5] pointer-events-none">

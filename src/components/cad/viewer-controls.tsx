@@ -14,6 +14,7 @@ import {
   Axis3D,
   Sun,
   Moon,
+  Ruler,
 } from 'lucide-react'
 import { fadeInUp, fadeInUpTransition } from './motion-presets'
 
@@ -23,6 +24,7 @@ export interface ViewerControlsState {
   showGrid: boolean
   showAxes: boolean
   darkBg: boolean
+  showDimensions: boolean
 }
 
 interface ViewerControlsProps {
@@ -78,6 +80,12 @@ export function ViewerControls({
       label: 'Axes',
       active: state.showAxes,
       onClick: () => toggle('showAxes'),
+    },
+    {
+      icon: Ruler,
+      label: 'Dimensions',
+      active: state.showDimensions,
+      onClick: () => toggle('showDimensions'),
     },
     {
       icon: state.darkBg ? Moon : Sun,
@@ -154,6 +162,7 @@ export function useViewerControls(defaultState?: Partial<ViewerControlsState>) {
     showGrid: true,
     showAxes: true,
     darkBg: true,
+    showDimensions: true,
     ...defaultState,
   })
 
