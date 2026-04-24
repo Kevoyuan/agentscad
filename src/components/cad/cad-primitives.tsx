@@ -15,7 +15,7 @@ export function CadPanel({
   className?: string
 }) {
   return (
-    <section className={`cad-panel overflow-hidden ${className}`}>
+    <section className={`cad-panel ${className}`}>
       {(title || eyebrow) && (
         <div className="border-b border-[color:var(--cad-border)] px-3 py-2">
           {eyebrow && <p className="text-[8px] font-mono uppercase tracking-[0.18em] text-[var(--cad-text-muted)]">{eyebrow}</p>}
