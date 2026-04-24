@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Layers, Sliders, ApplyTemplate } from 'lucide-react'
+import { Layers, Sliders, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -150,7 +150,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
               {isApplying ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-2.5 h-2.5 border border-[var(--app-accent-text)] border-t-transparent rounded-full" />
               ) : (
-                <ApplyTemplate className="w-2.5 h-2.5" />
+                <ClipboardCheck className="w-2.5 h-2.5" />
               )}
               {isApplying ? 'Applying...' : `Apply to ${selectedJobs.length}`}
             </Button>

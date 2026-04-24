@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
+import { loadSkill } from "@/lib/skill-resolver";
 
 type ContentPart =
   | { type: "text"; text: string }
@@ -29,16 +30,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Build system prompt with optional job context
-    let systemPrompt = `You are AgentSCAD Assistant, an AI CAD engineer helper. You help users with:
+    // Try loading from skill file first, fall back to hardcoded default
+    const SKILL_FALLBACK = `You are AgentSCAD Assistant, an AI CAD engineer helper. You help users with:
 - Designing parametric CAD models
 - Understanding OpenSCAD code
 - Optimizing 3D printable parts
 - Answering questions about manufacturing constraints
 - Suggesting parameter values for specific use cases
 
-Be concise, technical, and helpful. When discussing code, use code blocks with the appropriate language tag.`;
+Be concise, technical, and helpful. When discussing code, use code blocks with the appropriate language tag.
 
-    systemPrompt += `\nWhen proposing a full replacement SCAD file or an editable SCAD patch, wrap the code in a single \`\`\`openscad code block so it can be applied directly.`;
+When proposing a full replacement SCAD file or an editable SCAD patch, wrap the code in a single \`\`\`openscad code block so it can be applied directly.`;
+
+    let systemPrompt = (await loadSkill("scad-chat")) || SKILL_FALLBACK;
 
     if (jobId) {
       const job = await db.job.findUnique({ where: { id: jobId } });

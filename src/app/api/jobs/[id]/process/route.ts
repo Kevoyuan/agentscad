@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { broadcastWs } from "@/lib/ws-broadcast";
 import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
+import { loadFamilySchema, buildScadPrompt, applyParameterOverrides } from "@/lib/skill-resolver";
+import { validateStl } from "@/lib/mesh-validator";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -88,425 +90,117 @@ interface ParameterDef {
   group: string;
 }
 
-function getParameterSchema(
+// Hardcoded fallback schemas (used when skill files are unavailable)
+const FALLBACK_SCHEMAS: Record<string, ParameterDef[]> = {
+  spur_gear: [
+    { key: "teeth", label: "Number of Teeth", kind: "integer", unit: "", value: 20, min: 8, max: 200, step: 1, source: "user", editable: true, description: "Total number of teeth on the gear", group: "geometry" },
+    { key: "outer_diameter", label: "Outer Diameter", kind: "float", unit: "mm", value: 50, min: 10, max: 500, step: 0.5, source: "user", editable: true, description: "Outer (tip) diameter of the gear", group: "geometry" },
+    { key: "bore_diameter", label: "Bore Diameter", kind: "float", unit: "mm", value: 8, min: 2, max: 100, step: 0.5, source: "user", editable: true, description: "Central bore hole diameter", group: "geometry" },
+    { key: "thickness", label: "Gear Thickness", kind: "float", unit: "mm", value: 8, min: 2, max: 100, step: 0.5, source: "user", editable: true, description: "Thickness (width) of the gear face", group: "geometry" },
+    { key: "pressure_angle", label: "Pressure Angle", kind: "float", unit: "deg", value: 20, min: 14.5, max: 25, step: 0.5, source: "engineering", editable: true, description: "Involute pressure angle in degrees", group: "engineering" },
+  ],
+  device_stand: [
+    { key: "device_width", label: "Device Width", kind: "float", unit: "mm", value: 75, min: 30, max: 400, step: 1, source: "user", editable: true, description: "Width of the device to hold", group: "device" },
+    { key: "device_depth", label: "Device Depth", kind: "float", unit: "mm", value: 12, min: 5, max: 50, step: 0.5, source: "user", editable: true, description: "Depth (thickness) of the device", group: "device" },
+    { key: "stand_height", label: "Stand Height", kind: "float", unit: "mm", value: 80, min: 30, max: 300, step: 1, source: "user", editable: true, description: "Total height of the stand", group: "geometry" },
+    { key: "lip_height", label: "Lip Height", kind: "float", unit: "mm", value: 10, min: 3, max: 40, step: 0.5, source: "user", editable: true, description: "Height of the front retaining lip", group: "geometry" },
+    { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 3, min: 1.2, max: 10, step: 0.2, source: "engineering", editable: true, description: "Wall thickness for structural integrity", group: "engineering" },
+    { key: "base_flare", label: "Base Flare", kind: "float", unit: "mm", value: 20, min: 0, max: 60, step: 1, source: "user", editable: true, description: "Extra width added to the base for stability", group: "geometry" },
+    { key: "arch_radius", label: "Arch Radius", kind: "float", unit: "mm", value: 30, min: 10, max: 100, step: 1, source: "engineering", editable: true, description: "Radius of the support arch", group: "geometry" },
+    { key: "arch_peak", label: "Arch Peak Offset", kind: "float", unit: "mm", value: 15, min: 0, max: 50, step: 1, source: "engineering", editable: true, description: "Forward offset of the arch peak", group: "geometry" },
+  ],
+  electronics_enclosure: [
+    { key: "width", label: "Enclosure Width", kind: "float", unit: "mm", value: 60, min: 20, max: 300, step: 1, source: "user", editable: true, description: "Internal width of the enclosure", group: "geometry" },
+    { key: "depth", label: "Enclosure Depth", kind: "float", unit: "mm", value: 40, min: 20, max: 300, step: 1, source: "user", editable: true, description: "Internal depth of the enclosure", group: "geometry" },
+    { key: "height", label: "Enclosure Height", kind: "float", unit: "mm", value: 25, min: 10, max: 200, step: 1, source: "user", editable: true, description: "Internal height of the enclosure", group: "geometry" },
+    { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 2, min: 1.2, max: 10, step: 0.2, source: "engineering", editable: true, description: "Uniform wall thickness", group: "engineering" },
+    { key: "corner_radius", label: "Corner Radius", kind: "float", unit: "mm", value: 3, min: 0, max: 20, step: 0.5, source: "user", editable: true, description: "Fillet radius on exterior corners", group: "geometry" },
+    { key: "clearance", label: "Fit Clearance", kind: "float", unit: "mm", value: 0.2, min: 0, max: 1, step: 0.05, source: "engineering", editable: true, description: "Clearance between lid and body", group: "engineering" },
+  ],
+  phone_case: [
+    { key: "body_length", label: "Body Length", kind: "float", unit: "mm", value: 158, min: 100, max: 200, step: 0.5, source: "user", editable: true, description: "Length of the phone body", group: "device" },
+    { key: "body_width", label: "Body Width", kind: "float", unit: "mm", value: 78, min: 50, max: 120, step: 0.5, source: "user", editable: true, description: "Width of the phone body", group: "device" },
+    { key: "body_depth", label: "Body Depth", kind: "float", unit: "mm", value: 8, min: 5, max: 15, step: 0.5, source: "user", editable: true, description: "Depth (thickness) of the phone body", group: "device" },
+    { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 1.5, min: 0.8, max: 4, step: 0.1, source: "engineering", editable: true, description: "Case wall thickness", group: "engineering" },
+    { key: "camera_clearance", label: "Camera Clearance", kind: "float", unit: "mm", value: 1, min: 0, max: 5, step: 0.25, source: "user", editable: true, description: "Extra clearance around camera bump", group: "geometry" },
+  ],
+};
+
+const UNKNOWN_FALLBACK: ParameterDef[] = [
+  { key: "width", label: "Width", kind: "float", unit: "mm", value: 40, min: 5, max: 500, step: 1, source: "user", editable: true, description: "Width of the part", group: "geometry" },
+  { key: "depth", label: "Depth", kind: "float", unit: "mm", value: 30, min: 5, max: 500, step: 1, source: "user", editable: true, description: "Depth of the part", group: "geometry" },
+  { key: "height", label: "Height", kind: "float", unit: "mm", value: 15, min: 5, max: 500, step: 1, source: "user", editable: true, description: "Height of the part", group: "geometry" },
+  { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 2, min: 0.8, max: 10, step: 0.2, source: "engineering", editable: true, description: "Wall thickness", group: "engineering" },
+];
+
+async function getParameterSchema(
   family: PartFamily,
   parameterValues: Record<string, unknown>
-): ParameterDef[] {
-  const v = parameterValues;
+): Promise<ParameterDef[]> {
+  // Try loading from skill files first, fall back to hardcoded schemas
+  const schemaFile = await loadFamilySchema(family);
+  const baseSchema = schemaFile?.parameters ?? (FALLBACK_SCHEMAS[family] ?? UNKNOWN_FALLBACK);
 
-  switch (family) {
-    case "spur_gear":
-      return [
-        {
-          key: "teeth",
-          label: "Number of Teeth",
-          kind: "integer",
-          unit: "",
-          value: (v.teeth as number) ?? 20,
-          min: 8,
-          max: 200,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Total number of teeth on the gear",
-          group: "geometry",
-        },
-        {
-          key: "outer_diameter",
-          label: "Outer Diameter",
-          kind: "float",
-          unit: "mm",
-          value: (v.outer_diameter as number) ?? 50,
-          min: 10,
-          max: 500,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Outer (tip) diameter of the gear",
-          group: "geometry",
-        },
-        {
-          key: "bore_diameter",
-          label: "Bore Diameter",
-          kind: "float",
-          unit: "mm",
-          value: (v.bore_diameter as number) ?? 8,
-          min: 2,
-          max: 100,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Central bore hole diameter",
-          group: "geometry",
-        },
-        {
-          key: "thickness",
-          label: "Gear Thickness",
-          kind: "float",
-          unit: "mm",
-          value: (v.thickness as number) ?? 8,
-          min: 2,
-          max: 100,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Thickness (width) of the gear face",
-          group: "geometry",
-        },
-        {
-          key: "pressure_angle",
-          label: "Pressure Angle",
-          kind: "float",
-          unit: "deg",
-          value: (v.pressure_angle as number) ?? 20,
-          min: 14.5,
-          max: 25,
-          step: 0.5,
-          source: "engineering",
-          editable: true,
-          description: "Involute pressure angle in degrees",
-          group: "engineering",
-        },
-      ];
+  // Apply user-provided value overrides
+  return applyParameterOverrides(baseSchema, parameterValues);
+}
 
-    case "device_stand":
-      return [
-        {
-          key: "device_width",
-          label: "Device Width",
-          kind: "float",
-          unit: "mm",
-          value: (v.device_width as number) ?? 75,
-          min: 30,
-          max: 400,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Width of the device to hold",
-          group: "device",
-        },
-        {
-          key: "device_depth",
-          label: "Device Depth",
-          kind: "float",
-          unit: "mm",
-          value: (v.device_depth as number) ?? 12,
-          min: 5,
-          max: 50,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Depth (thickness) of the device",
-          group: "device",
-        },
-        {
-          key: "stand_height",
-          label: "Stand Height",
-          kind: "float",
-          unit: "mm",
-          value: (v.stand_height as number) ?? 80,
-          min: 30,
-          max: 300,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Total height of the stand",
-          group: "geometry",
-        },
-        {
-          key: "lip_height",
-          label: "Lip Height",
-          kind: "float",
-          unit: "mm",
-          value: (v.lip_height as number) ?? 10,
-          min: 3,
-          max: 40,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Height of the front retaining lip",
-          group: "geometry",
-        },
-        {
-          key: "wall_thickness",
-          label: "Wall Thickness",
-          kind: "float",
-          unit: "mm",
-          value: (v.wall_thickness as number) ?? 3,
-          min: 1.2,
-          max: 10,
-          step: 0.2,
-          source: "engineering",
-          editable: true,
-          description: "Wall thickness for structural integrity",
-          group: "engineering",
-        },
-        {
-          key: "base_flare",
-          label: "Base Flare",
-          kind: "float",
-          unit: "mm",
-          value: (v.base_flare as number) ?? 20,
-          min: 0,
-          max: 60,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Extra width added to the base for stability",
-          group: "geometry",
-        },
-        {
-          key: "arch_radius",
-          label: "Arch Radius",
-          kind: "float",
-          unit: "mm",
-          value: (v.arch_radius as number) ?? 30,
-          min: 10,
-          max: 100,
-          step: 1,
-          source: "engineering",
-          editable: true,
-          description: "Radius of the support arch",
-          group: "geometry",
-        },
-        {
-          key: "arch_peak",
-          label: "Arch Peak Offset",
-          kind: "float",
-          unit: "mm",
-          value: (v.arch_peak as number) ?? 15,
-          min: 0,
-          max: 50,
-          step: 1,
-          source: "engineering",
-          editable: true,
-          description: "Forward offset of the arch peak",
-          group: "geometry",
-        },
-      ];
+// ---------------------------------------------------------------------------
+// Learned patterns integration
+// ---------------------------------------------------------------------------
 
-    case "electronics_enclosure":
-      return [
-        {
-          key: "width",
-          label: "Enclosure Width",
-          kind: "float",
-          unit: "mm",
-          value: (v.width as number) ?? 60,
-          min: 20,
-          max: 300,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Internal width of the enclosure",
-          group: "geometry",
-        },
-        {
-          key: "depth",
-          label: "Enclosure Depth",
-          kind: "float",
-          unit: "mm",
-          value: (v.depth as number) ?? 40,
-          min: 20,
-          max: 300,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Internal depth of the enclosure",
-          group: "geometry",
-        },
-        {
-          key: "height",
-          label: "Enclosure Height",
-          kind: "float",
-          unit: "mm",
-          value: (v.height as number) ?? 25,
-          min: 10,
-          max: 200,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Internal height of the enclosure",
-          group: "geometry",
-        },
-        {
-          key: "wall_thickness",
-          label: "Wall Thickness",
-          kind: "float",
-          unit: "mm",
-          value: (v.wall_thickness as number) ?? 2,
-          min: 1.2,
-          max: 10,
-          step: 0.2,
-          source: "engineering",
-          editable: true,
-          description: "Uniform wall thickness",
-          group: "engineering",
-        },
-        {
-          key: "corner_radius",
-          label: "Corner Radius",
-          kind: "float",
-          unit: "mm",
-          value: (v.corner_radius as number) ?? 3,
-          min: 0,
-          max: 20,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Fillet radius on exterior corners",
-          group: "geometry",
-        },
-        {
-          key: "clearance",
-          label: "Fit Clearance",
-          kind: "float",
-          unit: "mm",
-          value: (v.clearance as number) ?? 0.2,
-          min: 0,
-          max: 1,
-          step: 0.05,
-          source: "engineering",
-          editable: true,
-          description: "Clearance between lid and body",
-          group: "engineering",
-        },
-      ];
+interface LearnedPattern {
+  family: string;
+  insight: string;
+  frequency: number;
+  suggestedDefault: number | null;
+  parameter: string;
+}
 
-    case "phone_case":
-      return [
-        {
-          key: "body_length",
-          label: "Body Length",
-          kind: "float",
-          unit: "mm",
-          value: (v.body_length as number) ?? 158,
-          min: 100,
-          max: 200,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Length of the phone body",
-          group: "device",
-        },
-        {
-          key: "body_width",
-          label: "Body Width",
-          kind: "float",
-          unit: "mm",
-          value: (v.body_width as number) ?? 78,
-          min: 50,
-          max: 120,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Width of the phone body",
-          group: "device",
-        },
-        {
-          key: "body_depth",
-          label: "Body Depth",
-          kind: "float",
-          unit: "mm",
-          value: (v.body_depth as number) ?? 8,
-          min: 5,
-          max: 15,
-          step: 0.5,
-          source: "user",
-          editable: true,
-          description: "Depth (thickness) of the phone body",
-          group: "device",
-        },
-        {
-          key: "wall_thickness",
-          label: "Wall Thickness",
-          kind: "float",
-          unit: "mm",
-          value: (v.wall_thickness as number) ?? 1.5,
-          min: 0.8,
-          max: 4,
-          step: 0.1,
-          source: "engineering",
-          editable: true,
-          description: "Case wall thickness",
-          group: "engineering",
-        },
-        {
-          key: "camera_clearance",
-          label: "Camera Clearance",
-          kind: "float",
-          unit: "mm",
-          value: (v.camera_clearance as number) ?? 1,
-          min: 0,
-          max: 5,
-          step: 0.25,
-          source: "user",
-          editable: true,
-          description: "Extra clearance around camera bump",
-          group: "geometry",
-        },
-      ];
+const LEARNED_PATTERNS_PATH = path.join(
+  process.cwd(),
+  "skills",
+  "scad-generation",
+  "learned-patterns.json"
+);
 
-    default:
-      // unknown — generic box
-      return [
-        {
-          key: "width",
-          label: "Width",
-          kind: "float",
-          unit: "mm",
-          value: (v.width as number) ?? 40,
-          min: 5,
-          max: 500,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Width of the part",
-          group: "geometry",
-        },
-        {
-          key: "depth",
-          label: "Depth",
-          kind: "float",
-          unit: "mm",
-          value: (v.depth as number) ?? 30,
-          min: 5,
-          max: 500,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Depth of the part",
-          group: "geometry",
-        },
-        {
-          key: "height",
-          label: "Height",
-          kind: "float",
-          unit: "mm",
-          value: (v.height as number) ?? 15,
-          min: 5,
-          max: 500,
-          step: 1,
-          source: "user",
-          editable: true,
-          description: "Height of the part",
-          group: "geometry",
-        },
-        {
-          key: "wall_thickness",
-          label: "Wall Thickness",
-          kind: "float",
-          unit: "mm",
-          value: (v.wall_thickness as number) ?? 2,
-          min: 0.8,
-          max: 10,
-          step: 0.2,
-          source: "engineering",
-          editable: true,
-          description: "Wall thickness",
-          group: "engineering",
-        },
-      ];
+async function loadLearnedPatterns(
+  partFamily: PartFamily
+): Promise<string> {
+  try {
+    const raw = await fs.readFile(LEARNED_PATTERNS_PATH, "utf8");
+    const data: { patterns: LearnedPattern[] } = JSON.parse(raw);
+
+    if (!data.patterns || data.patterns.length === 0) {
+      return "";
+    }
+
+    // Filter patterns relevant to this part family
+    const relevant = data.patterns.filter(
+      (p) => p.family === partFamily || p.family === "unknown"
+    );
+
+    if (relevant.length === 0) {
+      return "";
+    }
+
+    // Sort by frequency (most common first), take top 5
+    const top = relevant
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 5);
+
+    const lines = top.map((p) => {
+      let line = `  - ${p.insight} (seen ${p.frequency} times)`;
+      if (p.suggestedDefault !== null) {
+        line += ` — suggested default: ${p.suggestedDefault}`;
+      }
+      return line;
+    });
+
+    return `\nCommon user adjustments for ${partFamily} parts:\n${lines.join("\n")}\n`;
+  } catch {
+    // File doesn't exist or can't be parsed — no patterns available
+    return "";
   }
 }
 
@@ -525,7 +219,7 @@ async function generateRealScadCode(
   parameterValues: Record<string, unknown>
 ): Promise<LLMGenerationResult> {
   const partFamily = detectPartFamily(inputRequest);
-  const paramSchema = getParameterSchema(partFamily, parameterValues);
+  const paramSchema = await getParameterSchema(partFamily, parameterValues);
 
   // Build a parameter summary for the prompt so the LLM knows what's available
   const paramSummary = paramSchema
@@ -535,7 +229,13 @@ async function generateRealScadCode(
     )
     .join("\n");
 
-  const systemPrompt = `You are an expert CAD engineer who writes OpenSCAD code. You MUST respond with ONLY a JSON object — no markdown fences, no commentary outside the JSON.
+  // Load learned patterns from the cron-analyzed user edit data
+  const learnedPatternsHint = await loadLearnedPatterns(partFamily);
+
+  // Try loading prompts from skill files, fall back to hardcoded defaults
+  const skillPrompt = await buildScadPrompt(inputRequest, partFamily, parameterValues);
+
+  const DEFAULT_SYSTEM_PROMPT = `You are an expert CAD engineer who writes OpenSCAD code. You MUST respond with ONLY a JSON object — no markdown fences, no commentary outside the JSON.
 
 The JSON object must have exactly these fields:
 {
@@ -555,7 +255,7 @@ IMPORTANT RULES for the scad_source:
 5. Add a header comment with the part family name and generation timestamp.
 6. NEVER use OpenSCAD reserved keywords as variable names, especially: module, function, if, else, for, let, use, include.`;
 
-  const userPrompt = `Generate OpenSCAD code for the following request:
+  const DEFAULT_USER_PROMPT = `Generate OpenSCAD code for the following request:
 
 "${inputRequest}"
 
@@ -566,8 +266,13 @@ ${paramSummary}
 
 Current parameter values:
 ${JSON.stringify(parameterValues, null, 2)}
-
+${learnedPatternsHint}
 Return the JSON object with summary, parameters, and scad_source.`;
+
+  const systemPrompt = skillPrompt?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+  const userPrompt = skillPrompt?.userPrompt
+    ? skillPrompt.userPrompt + learnedPatternsHint
+    : DEFAULT_USER_PROMPT;
 
   let rawContent = "";
 
@@ -659,12 +364,12 @@ async function validateGeneratedScadSource(scadSource: string) {
 // Mock SCAD code generator (fallback)
 // ---------------------------------------------------------------------------
 
-function generateMockScadCode(
+async function generateMockScadCode(
   inputRequest: string,
   parameterValues: Record<string, unknown>
-): LLMGenerationResult {
+): Promise<LLMGenerationResult> {
   const partFamily = detectPartFamily(inputRequest);
-  const paramSchema = getParameterSchema(partFamily, parameterValues);
+  const paramSchema = await getParameterSchema(partFamily, parameterValues);
   const ts = new Date().toISOString();
 
   // Build top-level parameter assignments for the SCAD source
@@ -1026,7 +731,7 @@ export async function POST(
               message: `LLM unavailable (${errMsg}), using template generation...`,
             });
             await delay(300);
-            generationResult = generateMockScadCode(inputRequest, paramValues);
+            generationResult = await generateMockScadCode(inputRequest, paramValues);
           }
 
           const partFamily = detectPartFamily(inputRequest);
@@ -1194,7 +899,7 @@ export async function POST(
           });
           await delay(1200);
 
-          const validationResults = generateMockValidationResults(wallThickness);
+          const validationResults = await validateStl(stlFilePath, wallThickness);
 
           await db.job.update({
             where: { id },
@@ -1205,7 +910,8 @@ export async function POST(
               executionLogs: appendLog(
                 (await db.job.findUnique({ where: { id } }))?.executionLogs,
                 "VALIDATED",
-                `Validation passed: ${validationResults.filter((r) => r.passed).length}/${validationResults.length} rules passed`
+                `Validation passed: ${validationResults.filter((r) => r.passed).length}/${validationResults.length} rules passed` +
+                  (validationResults.some((r) => r.message.includes("(mock")) ? " [mock fallback]" : " [real mesh analysis]")
               ),
             },
           });
