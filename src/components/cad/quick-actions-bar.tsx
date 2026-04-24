@@ -6,6 +6,7 @@ import {
   Play, Edit3, Trash2, Ban, RotateCcw, Download, Eye,
   Share2, AlertCircle, FileText, ArrowUp, ArrowDown,
   Settings2, Copy, ExternalLink,
+  Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -38,6 +39,7 @@ interface QuickActionsBarProps {
   onEditPriority: (job: Job) => void
   onViewLog: (job: Job) => void
   onShare: (job: Job) => void
+  onRepair: (job: Job) => void
   isProcessing: boolean
 }
 
@@ -150,6 +152,14 @@ function getActionsForState(
       // FAILED states
       if (isFailed) {
         return [
+          {
+            id: 'auto-repair',
+            label: 'Auto Repair',
+            icon: <Wrench className="w-3.5 h-3.5" />,
+            shortcut: '',
+            onClick: () => props.onRepair(job),
+            variant: 'success',
+          },
           {
             id: 'reprocess',
             label: 'Reprocess',

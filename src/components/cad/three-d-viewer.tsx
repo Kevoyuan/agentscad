@@ -59,7 +59,7 @@ function buildProceduralEnclosure(THREE: any, mainGroup: any, values: Record<str
     bevelSegments: 2,
   })
   const outerMat = new THREE.MeshPhongMaterial({
-    color: 0x6366f1,
+    color: 0x4aa3ff,
     transparent: true,
     opacity: 0.55,
     side: THREE.DoubleSide,
@@ -90,10 +90,72 @@ function buildProceduralEnclosure(THREE: any, mainGroup: any, values: Record<str
   mainGroup.add(innerMesh)
 
   const outerEdges = new THREE.EdgesGeometry(outerGeo, 15)
-  const outerLine = new THREE.LineSegments(outerEdges, new THREE.LineBasicMaterial({ color: 0x818cf8, transparent: true, opacity: 0.5 }))
+  const outerLine = new THREE.LineSegments(outerEdges, new THREE.LineBasicMaterial({ color: 0x9ccfff, transparent: true, opacity: 0.5 }))
   outerLine.rotation.x = -Math.PI / 2
   outerLine.position.y = height
   mainGroup.add(outerLine)
+}
+
+function buildProceduralGear(THREE: any, mainGroup: any, values: Record<string, number>, controlsState: any) {
+  const teeth = Math.max(8, Math.round(safeNum(values.teeth, 24)))
+  const outerDiameter = safeNum(values.outer_diameter, safeNum(values.diameter, 48))
+  const boreDiameter = safeNum(values.bore_diameter, safeNum(values.bore, 8))
+  const thickness = safeNum(values.thickness, safeNum(values.face_width, 8))
+  const rootRadius = Math.max(outerDiameter * 0.32, outerDiameter / 2 - Math.max(2, outerDiameter * 0.08))
+  const toothDepth = Math.max(1.2, outerDiameter / 2 - rootRadius)
+  const mat = new THREE.MeshPhongMaterial({
+    color: 0x4aa3ff,
+    transparent: true,
+    opacity: 0.78,
+    side: THREE.DoubleSide,
+    wireframe: controlsState.wireframe,
+    shininess: 85,
+  })
+
+  const bodyGeo = new THREE.CylinderGeometry(rootRadius, rootRadius, thickness, Math.max(48, teeth * 3))
+  const body = new THREE.Mesh(bodyGeo, mat)
+  body.castShadow = true
+  body.receiveShadow = true
+  mainGroup.add(body)
+
+  const toothWidth = Math.max(1.2, (Math.PI * rootRadius * 2) / teeth * 0.55)
+  const toothGeo = new THREE.BoxGeometry(toothWidth, thickness, toothDepth)
+  for (let i = 0; i < teeth; i += 1) {
+    const angle = (i / teeth) * Math.PI * 2
+    const tooth = new THREE.Mesh(toothGeo, mat.clone())
+    tooth.position.set(
+      Math.sin(angle) * (rootRadius + toothDepth / 2),
+      0,
+      Math.cos(angle) * (rootRadius + toothDepth / 2)
+    )
+    tooth.rotation.y = angle
+    tooth.castShadow = true
+    tooth.receiveShadow = true
+    mainGroup.add(tooth)
+  }
+
+  const boreGeo = new THREE.CylinderGeometry(Math.max(0.8, boreDiameter / 2), Math.max(0.8, boreDiameter / 2), thickness + 0.2, 48)
+  const boreMat = new THREE.MeshPhongMaterial({
+    color: 0x080b10,
+    transparent: true,
+    opacity: 0.82,
+    side: THREE.DoubleSide,
+  })
+  const bore = new THREE.Mesh(boreGeo, boreMat)
+  mainGroup.add(bore)
+
+  const edges = new THREE.EdgesGeometry(bodyGeo, 20)
+  const edgeLines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x9ccfff, transparent: true, opacity: 0.35 }))
+  mainGroup.add(edgeLines)
+}
+
+function buildProceduralPreview(THREE: any, mainGroup: any, values: Record<string, number>, partFamily: string, controlsState: any) {
+  if (partFamily === 'spur_gear') {
+    buildProceduralGear(THREE, mainGroup, values, controlsState)
+    return
+  }
+
+  buildProceduralEnclosure(THREE, mainGroup, values, controlsState)
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -125,6 +187,13 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
   const values = parseJSON<Record<string, number>>(job.parameterValues, {})
   const partFamily = job.partFamily || 'unknown'
+  const dimensionSummary = (() => {
+    const width = values.width ?? values.phone_width ?? values.outer_diameter ?? values.diameter
+    const depth = values.depth ?? values.phone_length ?? values.thickness
+    const height = values.height ?? values.phone_thickness
+    const dims = [width, depth, height].filter(v => typeof v === 'number')
+    return dims.length ? dims.map(v => Number(v).toFixed(Number(v) % 1 === 0 ? 0 : 1)).join(' x ') : ''
+  })()
 
   // Apply controls state changes to Three.js scene
   useEffect(() => {
@@ -146,7 +215,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
     }
     if (sceneRef.current && threeModuleRef.current) {
       sceneRef.current.background = new threeModuleRef.current.Color(
-        controlsState.darkBg ? 0x080810 : 0x050508
+        controlsState.darkBg ? 0x080b10 : 0x111827
       )
     }
   }, [controlsState])
@@ -212,8 +281,8 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
       try {
         const scene = new THREE.Scene()
-        scene.background = new THREE.Color(controlsState.darkBg ? 0x080810 : 0x050508)
-        scene.fog = new THREE.Fog(0x080810, 100, 200)
+        scene.background = new THREE.Color(controlsState.darkBg ? 0x080b10 : 0x111827)
+        scene.fog = new THREE.Fog(0x080b10, 100, 200)
         sceneRef.current = scene
 
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000)
@@ -238,7 +307,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
         controls.autoRotateSpeed = 0.5
         controlsObjRef.current = controls
 
-        const gridHelper = new THREE.GridHelper(120, 24, 0x1a1a3e, 0x0d0d1f)
+        const gridHelper = new THREE.GridHelper(120, 24, 0x24435f, 0x152434)
         gridHelper.visible = controlsState.showGrid
         scene.add(gridHelper)
         gridHelperRef.current = gridHelper
@@ -276,7 +345,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
             geometry.translate(-center.x, -center.y, -center.z)
 
             const material = new THREE.MeshPhongMaterial({
-              color: 0x6366f1,
+              color: 0x4aa3ff,
               transparent: true,
               opacity: 0.85,
               side: THREE.DoubleSide,
@@ -291,16 +360,16 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
             // Wireframe overlay
             const edges = new THREE.EdgesGeometry(geometry, 30)
-            const edgeMat = new THREE.LineBasicMaterial({ color: 0x818cf8, transparent: true, opacity: 0.4 })
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0x9ccfff, transparent: true, opacity: 0.4 })
             const edgeLines = new THREE.LineSegments(edges, edgeMat)
             mainGroup.add(edgeLines)
 
           } catch (stlErr) {
             console.warn('STL load failed, using procedural fallback:', stlErr)
-            buildProceduralEnclosure(THREE, mainGroup, values, controlsState)
+            buildProceduralPreview(THREE, mainGroup, values, partFamily, controlsState)
           }
         } else {
-          buildProceduralEnclosure(THREE, mainGroup, values, controlsState)
+          buildProceduralPreview(THREE, mainGroup, values, partFamily, controlsState)
         }
 
         scene.add(mainGroup)
@@ -316,7 +385,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
         dirLight.position.set(50, 80, 50)
         dirLight.castShadow = true
         scene.add(dirLight)
-        const pointLight1 = new THREE.PointLight(0x6366f1, 0.6, 200)
+        const pointLight1 = new THREE.PointLight(0x4aa3ff, 0.55, 200)
         pointLight1.position.set(-30, 40, -30)
         scene.add(pointLight1)
         const pointLight2 = new THREE.PointLight(0x22d3ee, 0.3, 150)
@@ -371,7 +440,6 @@ export function ThreeDViewer({ job }: { job: Job }) {
         }
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job.state, job.stlPath, job.parameterValues, partFamily])
 
   if (job.state === 'NEW' || job.state === 'SCAD_GENERATED') {
@@ -396,7 +464,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
   }
 
   return (
-    <div className="relative w-full h-full linear-border rounded-lg overflow-hidden">
+    <div className="relative w-full h-full cad-viewport-shell overflow-hidden">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 w-3/4 max-w-xs">
@@ -409,14 +477,23 @@ export function ThreeDViewer({ job }: { job: Job }) {
         </div>
       )}
       <div ref={mountRef} className="w-full h-full" />
-      <div className="absolute bottom-2 left-2 flex items-center gap-2 z-[5]">
-        <span className="text-[9px] font-mono text-[var(--app-text-dim)] bg-black/40 px-1.5 py-0.5 rounded">
+      <div className="absolute top-2 left-2 flex items-center gap-2 z-[5]">
+        <span className="cad-chip bg-black/35 text-[var(--cad-text-secondary)]">
           {partFamily}
           {job.stlPath ? ' (STL)' : ' (preview)'}
         </span>
+        <span className="hidden md:inline-flex cad-chip bg-black/35 text-[var(--cad-text-muted)]">mm units</span>
       </div>
-      <div className="absolute bottom-2 right-3 z-[5] pointer-events-none">
-        <span className="text-[8px] font-mono text-[var(--app-text-dim)] tracking-widest">AgentSCAD Preview</span>
+      <div className="absolute top-2 right-3 z-[5] pointer-events-none">
+        <span className="text-[8px] font-mono text-[var(--cad-text-muted)] tracking-widest cad-viewport-glass rounded px-2 py-1">ORTHO / GRID</span>
+      </div>
+      {dimensionSummary && (
+        <div className="absolute top-9 right-3 z-[5] pointer-events-none">
+          <span className="text-[8px] font-mono text-[var(--cad-measure)] tracking-widest cad-viewport-glass rounded px-2 py-1">{dimensionSummary} mm</span>
+        </div>
+      )}
+      <div className="absolute bottom-2 left-2 z-[5] pointer-events-none">
+        <span className="text-[8px] font-mono text-[var(--cad-text-muted)] tracking-widest cad-viewport-glass rounded px-2 py-1">AgentSCAD CAD Preview</span>
       </div>
       <ViewerControls
         state={controlsState}
