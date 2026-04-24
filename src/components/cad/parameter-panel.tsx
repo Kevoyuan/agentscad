@@ -256,9 +256,9 @@ export function ParameterPanel({
                         </div>
                       </div>
                       {param.kind === 'number' || param.kind === 'float' || param.kind === 'integer' ? (
-                        <div className="relative py-0.5">
+                        <div className="relative py-1">
                           {/* Custom colored fill indicator behind the slider */}
-                          <div className="absolute top-1/2 left-0 -translate-y-1/2 h-1.5 rounded-full pointer-events-none overflow-hidden w-full">
+                          <div className="absolute top-1/2 left-0 -translate-y-1/2 h-2 rounded-full pointer-events-none overflow-hidden w-full bg-[var(--cad-border)]">
                             <div
                               className="h-full bg-[var(--cad-accent-soft)] rounded-full transition-all duration-150"
                               style={{ width: `${fillPercent}%` }}
@@ -275,7 +275,7 @@ export function ParameterPanel({
                           />
                           <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-0 flex -translate-y-1/2 justify-between px-0.5">
                             {Array.from({ length: 5 }).map((_, idx) => (
-                              <span key={idx} className="h-2 w-px bg-[var(--cad-border-strong)] opacity-60" />
+                              <span key={idx} className="h-2.5 w-px bg-[var(--cad-border-strong)] opacity-60" />
                             ))}
                           </div>
                         </div>
