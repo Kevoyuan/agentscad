@@ -142,7 +142,7 @@ export function InspectorPanel({
                 { key: 'PARAMETERS', label: 'PARAMS', icon: Settings },
                 { key: 'MODEL', label: 'MODEL', icon: Activity },
                 { key: 'CODE', label: 'CODE', icon: FileCode },
-                { key: 'VALIDATION', label: 'VALIDATE', icon: Shield },
+                { key: 'VALIDATION', label: 'VALID', icon: Shield },
                 { key: 'HISTORY', label: 'HISTORY', icon: History },
               ].map(tab => (
                 <TabsTrigger
