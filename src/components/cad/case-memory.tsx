@@ -138,7 +138,7 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
               <motion.div
                 key={job.id}
                 variants={staggerChild}
-                className="group/suggestion relative rounded-lg linear-surface linear-border p-2.5 cursor-pointer hover:border-violet-500/30 hover:bg-violet-600/5 linear-transition"
+                className="group/suggestion relative rounded-lg linear-surface linear-border p-2.5 cursor-pointer hover:border-[color:var(--cad-accent)] hover:bg-[var(--cad-accent-soft)] linear-transition"
                 onClick={() => onSuggestionClick?.(job)}
               >
                 <div className="flex items-start gap-2">
@@ -160,7 +160,7 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
                     </div>
                   </div>
                   <button
-                    className="shrink-0 flex items-center gap-0.5 text-[8px] text-[var(--app-accent-text)] opacity-0 group-hover/suggestion:opacity-100 transition-opacity duration-200 hover:text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] px-1.5 py-1 rounded border border-violet-500/20"
+                    className="shrink-0 flex items-center gap-0.5 text-[8px] text-[var(--app-accent-text)] opacity-0 group-hover/suggestion:opacity-100 transition-opacity duration-200 hover:text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] px-1.5 py-1 rounded border border-[color:var(--cad-border)]"
                     onClick={(e) => {
                       e.stopPropagation()
                       onSuggestionClick?.(job)

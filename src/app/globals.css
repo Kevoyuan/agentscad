@@ -97,8 +97,8 @@
   --app-scrollbar-thumb: #c0c0c8;
   --app-scrollbar-thumb-hover: #909098;
   --app-scrollbar-track: transparent;
-  --app-focus-ring: rgba(124, 58, 237, 0.2);
-  --app-interactive-hover: rgba(124, 58, 237, 0.06);
+  --app-focus-ring: rgba(37, 99, 235, 0.22);
+  --app-interactive-hover: rgba(37, 99, 235, 0.06);
   --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --app-keyboard-bg: #eaeaee;
@@ -110,19 +110,19 @@
   --app-footer-tooltip-bg: #ffffff;
   --app-footer-tooltip-border: rgba(0, 0, 0, 0.12);
   --app-footer-tooltip-text: #3d3d48;
-  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.12), rgba(124, 58, 237, 0.04), transparent);
+  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.12), rgba(74, 163, 255, 0.04), transparent);
   --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05);
   --app-pipeline-bg: rgba(0, 0, 0, 0.05);
   --app-activity-hover: rgba(0, 0, 0, 0.03);
-  --app-selected-bg: rgba(124, 58, 237, 0.05);
+  --app-selected-bg: rgba(37, 99, 235, 0.06);
   --app-code-copy-hover: rgba(0, 0, 0, 0.06);
   --app-empty-bg: rgba(0, 0, 0, 0.03);
-  --app-accent: #7c3aed;
-  --app-accent-hover: #6d28d9;
-  --app-accent-bg: rgba(124, 58, 237, 0.08);
-  --app-accent-border: rgba(124, 58, 237, 0.25);
-  --app-accent-text: #6d28d9;
-  --app-accent-text-secondary: rgba(109, 40, 217, 0.7);
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+  --app-accent-bg: rgba(37, 99, 235, 0.08);
+  --app-accent-border: rgba(37, 99, 235, 0.26);
+  --app-accent-text: #1d4ed8;
+  --app-accent-text-secondary: rgba(29, 78, 216, 0.72);
   --app-danger: #ef4444;
   --app-danger-bg: rgba(239, 68, 68, 0.08);
   --app-warning: #f59e0b;
@@ -138,11 +138,11 @@
   --app-code-border: rgba(0, 0, 0, 0.10);
   --app-tag-bg: rgba(0, 0, 0, 0.05);
   --app-tag-border: rgba(0, 0, 0, 0.10);
-  --app-batch-bar-bg: rgba(124, 58, 237, 0.06);
-  --app-batch-bar-text: #6d28d9;
+  --app-batch-bar-bg: rgba(37, 99, 235, 0.06);
+  --app-batch-bar-text: #1d4ed8;
   --app-input-bg: #ffffff;
   --app-input-border: rgba(0, 0, 0, 0.14);
-  --app-input-focus-border: rgba(124, 58, 237, 0.5);
+  --app-input-focus-border: rgba(37, 99, 235, 0.45);
   --app-priority-high: #ef4444;
   --app-priority-medium: #f59e0b;
   --app-priority-low: #6b7280;
@@ -153,6 +153,21 @@
   --app-state-neutral-text: #4a4a58;
   --app-state-neutral-dot: #71717a;
   --app-state-neutral-border: rgba(100, 100, 116, 0.2);
+  --cad-bg: #f6f8fb;
+  --cad-surface: #ffffff;
+  --cad-surface-raised: #eef3f8;
+  --cad-border: rgba(15, 23, 42, 0.12);
+  --cad-border-strong: rgba(15, 23, 42, 0.2);
+  --cad-text: #111827;
+  --cad-text-secondary: #475569;
+  --cad-text-muted: #64748b;
+  --cad-accent: #2563eb;
+  --cad-accent-soft: rgba(37, 99, 235, 0.1);
+  --cad-grid: rgba(37, 99, 235, 0.08);
+  --cad-measure: #0ea5e9;
+  --cad-success: #0f9f6e;
+  --cad-warning: #b7791f;
+  --cad-danger: #dc2626;
 }
 
 /* ─── Dark Theme Variables ──────────────────────────────────── */
@@ -207,8 +222,8 @@
   --app-scrollbar-thumb: #333340;
   --app-scrollbar-thumb-hover: #4e4e5e;
   --app-scrollbar-track: transparent;
-  --app-focus-ring: rgba(124, 58, 237, 0.3);
-  --app-interactive-hover: rgba(124, 58, 237, 0.08);
+  --app-focus-ring: rgba(74, 163, 255, 0.28);
+  --app-interactive-hover: rgba(74, 163, 255, 0.08);
   --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --app-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --app-keyboard-bg: #1c1c1f;
@@ -220,19 +235,19 @@
   --app-footer-tooltip-bg: #2a2a32;
   --app-footer-tooltip-border: rgba(255, 255, 255, 0.10);
   --app-footer-tooltip-text: #b4b4be;
-  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.25), rgba(124, 58, 237, 0.08), transparent);
+  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(74, 163, 255, 0.2), rgba(74, 163, 255, 0.06), transparent);
   --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --app-pipeline-bg: rgba(255, 255, 255, 0.06);
   --app-activity-hover: rgba(255, 255, 255, 0.03);
-  --app-selected-bg: rgba(124, 58, 237, 0.08);
+  --app-selected-bg: rgba(74, 163, 255, 0.09);
   --app-code-copy-hover: rgba(255, 255, 255, 0.08);
   --app-empty-bg: rgba(255, 255, 255, 0.04);
-  --app-accent: #7c3aed;
-  --app-accent-hover: #8b5cf6;
-  --app-accent-bg: rgba(124, 58, 237, 0.12);
-  --app-accent-border: rgba(124, 58, 237, 0.3);
-  --app-accent-text: #b794f6;
-  --app-accent-text-secondary: rgba(183, 148, 246, 0.7);
+  --app-accent: #4aa3ff;
+  --app-accent-hover: #74b9ff;
+  --app-accent-bg: rgba(74, 163, 255, 0.12);
+  --app-accent-border: rgba(74, 163, 255, 0.3);
+  --app-accent-text: #9ccfff;
+  --app-accent-text-secondary: rgba(156, 207, 255, 0.72);
   --app-danger: #f87171;
   --app-danger-bg: rgba(248, 113, 113, 0.1);
   --app-warning: #fbbf24;
@@ -248,11 +263,11 @@
   --app-code-border: rgba(255, 255, 255, 0.08);
   --app-tag-bg: rgba(255, 255, 255, 0.06);
   --app-tag-border: rgba(255, 255, 255, 0.10);
-  --app-batch-bar-bg: rgba(124, 58, 237, 0.08);
-  --app-batch-bar-text: #c4b5fd;
+  --app-batch-bar-bg: rgba(74, 163, 255, 0.08);
+  --app-batch-bar-text: #9ccfff;
   --app-input-bg: #0e0e10;
   --app-input-border: rgba(255, 255, 255, 0.12);
-  --app-input-focus-border: rgba(124, 58, 237, 0.5);
+  --app-input-focus-border: rgba(74, 163, 255, 0.5);
   --app-priority-high: #f87171;
   --app-priority-medium: #fbbf24;
   --app-priority-low: #6b7280;
@@ -263,6 +278,21 @@
   --app-state-neutral-text: #a1a1aa;
   --app-state-neutral-dot: #71717a;
   --app-state-neutral-border: rgba(113, 113, 122, 0.25);
+  --cad-bg: #080b10;
+  --cad-surface: #0d1117;
+  --cad-surface-raised: #141a22;
+  --cad-border: rgba(214, 224, 235, 0.12);
+  --cad-border-strong: rgba(214, 224, 235, 0.22);
+  --cad-text: #eef3f8;
+  --cad-text-secondary: #aab5c0;
+  --cad-text-muted: #75808b;
+  --cad-accent: #4aa3ff;
+  --cad-accent-soft: rgba(74, 163, 255, 0.14);
+  --cad-grid: rgba(120, 150, 180, 0.16);
+  --cad-measure: #76d8ff;
+  --cad-success: #35c46f;
+  --cad-warning: #d99b2b;
+  --cad-danger: #f06464;
 }
 
 @layer base {
@@ -275,7 +305,7 @@
   }
 }
 
-/* ─── AgentSCAD Linear Design System ────────────────────── */
+/* ─── AgentSCAD CAD Design System ────────────────────── */
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -679,6 +709,81 @@ pre:hover .code-copy-btn { opacity: 1; }
 .linear-transition { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease; }
 .linear-shadow-sm { box-shadow: var(--app-shadow-sm); }
 .linear-shadow-md { box-shadow: var(--app-shadow-md); }
+
+.cad-surface {
+  background: var(--cad-surface);
+  border: 1px solid var(--cad-border);
+}
+
+.cad-panel {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cad-surface) 96%, white 4%), var(--cad-surface));
+  border: 1px solid var(--cad-border);
+  border-radius: 8px;
+}
+
+.cad-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 24px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--cad-border);
+  border-radius: 6px;
+  background: var(--cad-accent-soft);
+  color: var(--cad-text-secondary);
+  font-size: 10px;
+  font-family: var(--font-mono), monospace;
+  line-height: 1;
+}
+
+.cad-viewport-shell {
+  background:
+    linear-gradient(90deg, var(--cad-grid) 1px, transparent 1px),
+    linear-gradient(0deg, var(--cad-grid) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--cad-accent) 14%, transparent), transparent 34%),
+    var(--cad-bg);
+  background-size: 28px 28px, 28px 28px, 100% 100%, 100% 100%;
+  border: 1px solid var(--cad-border);
+  border-radius: 8px;
+}
+
+.cad-viewport-glass {
+  background: color-mix(in srgb, var(--cad-surface) 82%, transparent);
+  border: 1px solid var(--cad-border);
+  backdrop-filter: blur(12px);
+}
+
+.cad-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cad-accent);
+  box-shadow: 0 0 0 3px var(--cad-accent-soft);
+}
+
+@media (max-width: 1023px) {
+  .cad-left-panel {
+    display: none !important;
+  }
+
+  .cad-viewer-panel {
+    min-width: 58% !important;
+  }
+
+  .cad-inspector-panel {
+    min-width: 340px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .cad-inspector-panel {
+    display: none !important;
+  }
+
+  .cad-viewer-panel {
+    min-width: 100% !important;
+  }
+}
 
 /* ─── Breadcrumb fade-in ──────────────────────────────── */
 @keyframes breadcrumbFadeIn {

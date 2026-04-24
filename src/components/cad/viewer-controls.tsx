@@ -110,7 +110,7 @@ export function ViewerControls({
       exit="exit"
       transition={fadeInUpTransition}
     >
-      <div className="flex items-center gap-0.5 rounded-xl linear-surface linear-border px-1.5 py-1">
+      <div className="flex items-center gap-0.5 rounded-lg cad-viewport-glass px-1.5 py-1">
         {controls.map((ctrl) => {
           const Icon = ctrl.icon
           return (
@@ -122,7 +122,7 @@ export function ViewerControls({
                 relative flex items-center justify-center w-7 h-7 rounded-lg linear-transition
                 ${
                   ctrl.active
-                    ? 'bg-violet-500/20 text-[var(--app-accent-text)]'
+                    ? 'bg-[var(--cad-accent-soft)] text-[var(--cad-accent)]'
                     : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:bg-[var(--app-hover-subtle)]'
                 }
               `}
@@ -130,7 +130,7 @@ export function ViewerControls({
               <Icon className="w-3.5 h-3.5" />
               {ctrl.active && (
                 <motion.span
-                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-400"
+                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--cad-accent)]"
                   layoutId="viewer-control-active"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />

@@ -29,7 +29,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Standard involute gear profile',
     template: 'A spur gear with {teeth} teeth, {bore}mm bore diameter, and {faceWidth}mm face width',
     icon: Cog,
-    color: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+    color: 'text-[var(--cad-accent)] bg-[var(--cad-accent-soft)] border-[color:var(--cad-border)]',
   },
   {
     id: 'phone-stand',
