@@ -1,0 +1,694 @@
+'use client'
+
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { io, Socket } from 'socket.io-client'
+import {
+  useSensor, useSensors, PointerSensor, KeyboardSensor,
+  DragStartEvent, DragEndEvent,
+} from '@dnd-kit/core'
+import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable'
+import { useTheme } from 'next-themes'
+import { useToast } from '@/hooks/use-toast'
+
+import {
+  Job, CANCELABLE_STATES, timeAgo, getPriorityColor,
+} from '@/components/cad/types'
+import {
+  fetchJobs, createJob, deleteJob, processJob,
+  cancelJob, batchOperation, updatePriority, sendChatMessageStream,
+  applyScadSource,
+} from '@/components/cad/api'
+import {
+  FilterState, DEFAULT_FILTER_STATE, applyFilters,
+  filtersToUrlParams, urlParamsToFilters,
+} from '@/components/cad/search-filter-panel'
+import { buildCustomerId } from '@/components/cad/tag-badges'
+import { Notification, NotificationType } from '@/components/cad/notification-center'
+import { ActivityEvent, ActivityEventType } from '@/components/cad/job-activity-feed'
+
+export function useWorkspaceState() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [allJobs, setAllJobs] = useState<Job[]>([])
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [filterState, setFilterState] = useState<FilterState>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const urlFilters = urlParamsToFilters(params)
+      return { ...DEFAULT_FILTER_STATE, ...urlFilters }
+    }
+    return DEFAULT_FILTER_STATE
+  })
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [newJobText, setNewJobText] = useState('')
+  const [newJobPriority, setNewJobPriority] = useState(5)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [showComposer, setShowComposer] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [showCompare, setShowCompare] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<Job | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab] = useState('PARAMS')
+  const [prevTab, setPrevTab] = useState('PARAMS')
+  const [tabDirection, setTabDirection] = useState(1)
+  const [prevJobId, setPrevJobId] = useState<string | null>(null)
+  const [jobCountFlash, setJobCountFlash] = useState(false)
+  const [wsConnected, setWsConnected] = useState(false)
+  const [uptimeSeconds, setUptimeSeconds] = useState(0)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [dependencyCount, setDependencyCount] = useState(0)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [newJobTags, setNewJobTags] = useState('')
+  const [isAiEnhancing, setIsAiEnhancing] = useState(false)
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
+  const [showActivityFeed, setShowActivityFeed] = useState(false)
+  const [showThemePanel, setShowThemePanel] = useState(false)
+  const { toast } = useToast()
+  const startTimeRef = useRef(Date.now())
+  const activityFeedRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // ── Notification Helper ────────────────────────────────────────────────
+
+  const addNotification = useCallback((type: NotificationType, title: string, description: string) => {
+    const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    setNotifications(prev => {
+      const next = [{ id, type, title, description, timestamp: new Date(), read: false }, ...prev]
+      return next.slice(0, 50)
+    })
+  }, [])
+
+  const markNotificationRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+  }, [])
+
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  }, [])
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([])
+  }, [])
+
+  // ── Activity Feed Helper ─────────────────────────────────────────────
+
+  const addActivityEvent = useCallback((type: ActivityEventType, jobName: string, jobId: string, action: string) => {
+    const id = `activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    setActivityEvents(prev => {
+      const next = [{ id, type, jobName, jobId, action, timestamp: new Date() }, ...prev]
+      return next.slice(0, 50)
+    })
+  }, [])
+
+  const clearActivityEvents = useCallback(() => {
+    setActivityEvents([])
+  }, [])
+
+  // Close activity feed on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (activityFeedRef.current && !activityFeedRef.current.contains(e.target as Node)) {
+        setShowActivityFeed(false)
+      }
+    }
+    if (showActivityFeed) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showActivityFeed])
+
+  // ── Recent Requests (for composer) ────────────────────────────────────
+
+  const recentRequests = useMemo(() => {
+    const seen = new Set<string>()
+    const unique: string[] = []
+    for (const j of [...allJobs].reverse()) {
+      const req = j.inputRequest.trim()
+      if (req && !seen.has(req.toLowerCase())) {
+        seen.add(req.toLowerCase())
+        unique.push(req)
+        if (unique.length >= 5) break
+      }
+    }
+    return unique
+  }, [allJobs])
+
+  // ── DnD Sensors ─────────────────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string)
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveDragId(null)
+
+    if (!over || active.id === over.id) return
+
+    const sortedJobs = [...jobs].sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const oldIndex = sortedJobs.findIndex(j => j.id === active.id)
+    const newIndex = sortedJobs.findIndex(j => j.id === over.id)
+
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(sortedJobs, oldIndex, newIndex)
+
+    const maxPriority = Math.max(...allJobs.map(j => j.priority), 10)
+
+    const updatedJobs = reordered.map((job, idx) => ({
+      ...job,
+      priority: maxPriority - idx,
+    }))
+    setJobs(updatedJobs)
+
+    try {
+      const updates = updatedJobs.filter((uj) => {
+        const original = sortedJobs.find(j => j.id === uj.id)
+        return original && original.priority !== uj.priority
+      })
+
+      await Promise.all(
+        updates.map(uj => updatePriority(uj.id, uj.priority))
+      )
+    } catch (err) {
+      console.error('Failed to update priorities:', err)
+      toast({ title: 'Priority update failed', variant: 'destructive', duration: 2000 })
+      await loadJobs()
+    }
+  }
+
+  const handleDragCancel = () => {
+    setActiveDragId(null)
+  }
+
+  // ── Data Fetching ─────────────────────────────────────────────────────────
+
+  const selectedJobRef = useRef<Job | null>(null)
+  selectedJobRef.current = selectedJob
+
+  const loadJobs = useCallback(async () => {
+    try {
+      const data = await fetchJobs()
+      setAllJobs(prev => {
+        if (prev.length === data.jobs.length && prev.every((j, i) => j.id === data.jobs[i].id && j.state === data.jobs[i].state && j.priority === data.jobs[i].priority && j.updatedAt === data.jobs[i].updatedAt)) {
+          return prev
+        }
+        return data.jobs
+      })
+      const filtered = applyFilters(data.jobs, filterState)
+      setJobs(prev => {
+        if (prev.length === filtered.length && prev.every((j, i) => j.id === filtered[i].id && j.state === filtered[i].state)) {
+          return prev
+        }
+        return filtered
+      })
+      const currentSelected = selectedJobRef.current
+      if (currentSelected) {
+        const updated = data.jobs.find(j => j.id === currentSelected.id)
+        if (updated && (updated.state !== currentSelected.state || updated.updatedAt !== currentSelected.updatedAt)) {
+          setSelectedJob(updated)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load jobs:', err)
+    }
+  }, [filterState])
+
+  // ── WebSocket + Polling Fallback ─────────────────────────────────────────
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const socketRef = useRef<Socket | null>(null)
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return
+    pollingRef.current = setInterval(loadJobs, 15000)
+  }, [loadJobs])
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    loadJobs()
+
+    const socket = io('/?XTransformPort=3003', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 2000,
+    })
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      console.log('[WS] Connected to ws-service')
+      setWsConnected(true)
+      stopPolling()
+    })
+
+    socket.on('job:update', () => {
+      loadJobs()
+    })
+
+    socket.on('disconnect', () => {
+      console.log('[WS] Disconnected from ws-service, falling back to polling')
+      setWsConnected(false)
+      startPolling()
+    })
+
+    socket.on('connect_error', () => {
+      startPolling()
+    })
+
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+      stopPolling()
+    }
+  }, [loadJobs, startPolling, stopPolling])
+
+  // ── Job Actions ───────────────────────────────────────────────────────────
+
+  const handleCreate = async () => {
+    if (!newJobText.trim()) return
+    setIsCreating(true)
+    try {
+      const tagsCustomerId = newJobTags.trim() ? buildCustomerId(newJobTags.split(',').map(t => t.trim()).filter(t => t)) : undefined
+      const { job } = await createJob(newJobText.trim(), tagsCustomerId, newJobPriority)
+      toast({ title: 'Job created', description: `Priority ${newJobPriority}`, duration: 2000 })
+      addNotification('parameter_updated', 'Job created', newJobText.trim().slice(0, 60))
+      addActivityEvent('created', newJobText.trim().slice(0, 30), job.id.slice(0, 8), 'Created')
+      setNewJobText('')
+      setNewJobPriority(5)
+      setNewJobTags('')
+      setShowComposer(false)
+      await loadJobs()
+      setSelectedJob(job)
+    } catch {
+      toast({ title: 'Failed to create job', variant: 'destructive', duration: 3000 })
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const handleProcess = async (job: Job) => {
+    setIsProcessing(true)
+    setSelectedJob(job)
+    try {
+      await processJob(job.id, (data) => {
+        setSelectedJob(prev => {
+          if (!prev) return prev
+          if (data.job) return data.job as Job
+
+          const next = { ...prev }
+          if (data.state) next.state = data.state as string
+          if (data.scadSource) next.scadSource = data.scadSource as string
+          if (data.parameterSchema) next.parameterSchema = typeof data.parameterSchema === 'string' ? data.parameterSchema : JSON.stringify(data.parameterSchema)
+          if (data.parameterValues) next.parameterValues = typeof data.parameterValues === 'string' ? data.parameterValues : JSON.stringify(data.parameterValues)
+          if (data.partFamily) next.partFamily = data.partFamily as string
+          if (data.validationResults) next.validationResults = typeof data.validationResults === 'string' ? data.validationResults : JSON.stringify(data.validationResults)
+          if (data.stlPath) next.stlPath = data.stlPath as string
+          if (data.pngPath) next.pngPath = data.pngPath as string
+          if (data.researchResult) next.researchResult = typeof data.researchResult === 'string' ? data.researchResult : JSON.stringify(data.researchResult)
+          if (data.intentResult) next.intentResult = typeof data.intentResult === 'string' ? data.intentResult : JSON.stringify(data.intentResult)
+          if (data.designResult) next.designResult = typeof data.designResult === 'string' ? data.designResult : JSON.stringify(data.designResult)
+          if (data.renderLog) next.renderLog = typeof data.renderLog === 'string' ? data.renderLog : JSON.stringify(data.renderLog)
+          if (data.builderName) next.builderName = data.builderName as string
+          if (data.generationPath) next.generationPath = data.generationPath as string
+          return next
+        })
+        const step = data.step as string
+        if (step === 'scad_generated') {
+          toast({ title: 'SCAD Generated', description: 'Code generated successfully', duration: 1500 })
+          addNotification('scad_updated', 'SCAD Generated', `Job ${job.id.slice(0, 8)} - Code generated`)
+          addActivityEvent('processed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'SCAD Generated')
+        } else if (step === 'rendered') {
+          toast({ title: 'Rendered', description: '3D model rendered', duration: 1500 })
+        } else if (step === 'validated') {
+          toast({ title: 'Validated', description: 'Quality checks passed', duration: 1500 })
+        } else if (step === 'delivered') {
+          toast({ title: 'Delivered!', description: 'All deliverables ready', duration: 2000 })
+          addNotification('job_completed', 'Job Delivered', `Job ${job.id.slice(0, 8)} - All deliverables ready`)
+          addActivityEvent('delivered', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Delivered')
+        }
+      })
+      await loadJobs()
+    } catch {
+      toast({ title: 'Processing failed', variant: 'destructive', duration: 3000 })
+      addNotification('job_failed', 'Processing Failed', `Job ${job.id.slice(0, 8)} - An error occurred`)
+      addActivityEvent('failed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Processing Failed')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleApplyScad = useCallback(async (job: Job, scadSource: string) => {
+    setIsProcessing(true)
+    setSelectedJob(job)
+
+    try {
+      await applyScadSource(job.id, scadSource, (data) => {
+        setSelectedJob(prev => {
+          if (!prev) return prev
+          if (data.job) return data.job as Job
+
+          const next = { ...prev }
+          if (data.state) next.state = data.state as string
+          if (data.scadSource) next.scadSource = data.scadSource as string
+          if (data.parameterSchema) next.parameterSchema = typeof data.parameterSchema === 'string' ? data.parameterSchema : JSON.stringify(data.parameterSchema)
+          if (data.parameterValues) next.parameterValues = typeof data.parameterValues === 'string' ? data.parameterValues : JSON.stringify(data.parameterValues)
+          if (data.validationResults) next.validationResults = typeof data.validationResults === 'string' ? data.validationResults : JSON.stringify(data.validationResults)
+          if (data.renderLog) next.renderLog = typeof data.renderLog === 'string' ? data.renderLog : JSON.stringify(data.renderLog)
+          if (data.stlPath) next.stlPath = data.stlPath as string
+          if (data.pngPath) next.pngPath = data.pngPath as string
+          if (data.generationPath) next.generationPath = data.generationPath as string
+          return next
+        })
+
+        const step = data.step as string
+        if (step === 'scad_applied') {
+          toast({ title: 'SCAD applied', description: 'Rebuilding render and parameters...', duration: 1800 })
+        } else if (step === 'rendered') {
+          toast({ title: 'Rendered', description: 'Preview updated from applied SCAD', duration: 1500 })
+        } else if (step === 'validated') {
+          toast({ title: 'Validated', description: 'Applied SCAD checks passed', duration: 1500 })
+        } else if (step === 'delivered') {
+          toast({ title: 'Apply complete', description: 'SCAD, render, and parameters are now in sync', duration: 2000 })
+        } else if (step === 'render_failed') {
+          toast({ title: 'Render failed', description: String(data.error || 'Applied SCAD could not be rendered'), variant: 'destructive', duration: 3500 })
+        }
+      })
+
+      await loadJobs()
+    } catch (error) {
+      toast({
+        title: 'Apply failed',
+        description: error instanceof Error ? error.message : 'Failed to apply SCAD',
+        variant: 'destructive',
+        duration: 3500,
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [loadJobs, toast])
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteJob(id)
+      if (selectedJob?.id === id) setSelectedJob(null)
+      setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next })
+      toast({ title: 'Job deleted', duration: 1500 })
+      await loadJobs()
+    } catch {
+      toast({ title: 'Delete failed', variant: 'destructive', duration: 2000 })
+    }
+  }
+
+  const handleDuplicate = async (job: Job) => {
+    try {
+      const { job: newJob } = await createJob(job.inputRequest, job.customerId ?? undefined, job.priority)
+      toast({ title: 'Job duplicated', duration: 1500 })
+      await loadJobs()
+      setSelectedJob(newJob)
+    } catch {
+      toast({ title: 'Duplicate failed', variant: 'destructive', duration: 2000 })
+    }
+  }
+
+  const handleCancel = async (job: Job) => {
+    try {
+      await cancelJob(job.id)
+      toast({ title: 'Job cancelled', duration: 1500 })
+      addNotification('job_cancelled', 'Job Cancelled', `Job ${job.id.slice(0, 8)} - Cancelled by user`)
+      addActivityEvent('failed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Cancelled')
+      setCancelTarget(null)
+      await loadJobs()
+    } catch {
+      toast({ title: 'Cancel failed', variant: 'destructive', duration: 2000 })
+    }
+  }
+
+  const handleBatchAction = async (action: 'delete' | 'cancel' | 'reprocess') => {
+    try {
+      const ids = Array.from(selectedIds)
+      const { results } = await batchOperation(action, ids)
+      toast({
+        title: `Batch ${action}: ${results.success.length} succeeded${results.failed.length > 0 ? `, ${results.failed.length} failed` : ''}`,
+        duration: 3000
+      })
+      setSelectedIds(new Set())
+      await loadJobs()
+    } catch {
+      toast({ title: `Batch ${action} failed`, variant: 'destructive', duration: 2000 })
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSetPriority = useCallback(async (id: string, priority: number) => {
+    try {
+      await updatePriority(id, priority)
+      toast({ title: `Priority set to P${priority}`, duration: 1500 })
+      addNotification('parameter_updated', 'Priority updated', `Job ${id.slice(0, 8)} → P${priority}`)
+      await loadJobs()
+    } catch {
+      toast({ title: 'Failed to update priority', variant: 'destructive', duration: 2000 })
+    }
+  }, [toast, addNotification, loadJobs])
+
+  const handleLinkParent = useCallback((job: Job) => {
+    setSelectedJob(job)
+    setActiveTab('DEPS')
+  }, [])
+
+  // ── Filter State Handler ────────────────────────────────────────────────
+
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilterState(newFilters)
+    const params = filtersToUrlParams(newFilters)
+    const url = new URL(window.location.href)
+    for (const key of ['q', 'states', 'pmin', 'pmax', 'dr', 'df', 'dt', 'pf', 'bn', 'sort', 'order']) {
+      url.searchParams.delete(key)
+    }
+    params.forEach((value, key) => {
+      url.searchParams.set(key, value)
+    })
+    window.history.replaceState(null, '', url.pathname + (params.toString() ? '?' + params.toString() : ''))
+  }, [])
+
+  // ── Quick Action Handlers ──────────────────────────────────────────────
+
+  const handleQuickEditPriority = useCallback((job: Job) => {
+    const newPriority = Math.min(10, job.priority + 1)
+    updatePriority(job.id, newPriority).then(() => {
+      addNotification('parameter_updated', 'Priority updated', `Job ${job.id.slice(0, 8)} → P${newPriority}`)
+      loadJobs()
+    })
+  }, [addNotification, loadJobs])
+
+  const handleQuickViewLog = useCallback((job: Job) => {
+    setSelectedJob(job)
+    setActiveTab('LOG')
+  }, [])
+
+  const handleQuickView3D = useCallback(() => {
+    toast({ title: '3D viewer active', duration: 1000 })
+  }, [toast])
+
+  const handleQuickShare = useCallback((job: Job) => {
+    const url = `${window.location.origin}?job=${job.id}`
+    navigator.clipboard.writeText(url).then(() => {
+      toast({ title: 'Link copied to clipboard', description: `Share link for job ${job.id.slice(0, 8)}`, duration: 2000 })
+    }).catch(() => {
+      toast({ title: 'Failed to copy link', variant: 'destructive', duration: 2000 })
+    })
+  }, [toast])
+
+  // ── Computed Values ───────────────────────────────────────────────────────
+
+  const sortedJobs = useMemo(() => {
+    return [...jobs].sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }, [jobs])
+
+  const stateCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const j of allJobs) {
+      if (['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(j.state)) {
+        counts['FAILED'] = (counts['FAILED'] || 0) + 1
+      }
+      counts[j.state] = (counts[j.state] || 0) + 1
+    }
+    return counts
+  }, [allJobs])
+
+  const linkedJobCount = useMemo(() => {
+    return allJobs.filter(j => j.parentId).length
+  }, [allJobs])
+
+  // Uptime counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUptimeSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const uptime = uptimeSeconds
+
+  // ── Download Helpers ──────────────────────────────────────────────────
+
+  const downloadScad = (job: Job) => {
+    if (!job.scadSource) return
+    const blob = new Blob([job.scadSource], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${job.id.slice(0, 8)}-${job.partFamily || 'part'}.scad`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({ title: 'SCAD file downloaded', duration: 1500 })
+  }
+
+  const exportAllData = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      version: '0.9',
+      totalJobs: allJobs.length,
+      jobs: allJobs,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `agentscad-export-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({ title: 'Data exported', description: `${allJobs.length} jobs`, duration: 2000 })
+  }
+
+  const formatUptime = (s: number) => {
+    if (s < 60) return `${s}s`
+    if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`
+    return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`
+  }
+
+  const successRate = useMemo(() => {
+    const finished = allJobs.filter(j =>
+      ['DELIVERED', 'VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(j.state)
+    )
+    if (finished.length === 0) return 0
+    const succeeded = finished.filter(j => j.state === 'DELIVERED').length
+    return Math.round((succeeded / finished.length) * 100)
+  }, [allJobs])
+
+  // ── Job count flash effect ────────────────────────────────────────────────
+  const prevJobCountRef = useRef(allJobs.length)
+  useEffect(() => {
+    if (allJobs.length !== prevJobCountRef.current) {
+      prevJobCountRef.current = allJobs.length
+      setJobCountFlash(true)
+      const timer = setTimeout(() => setJobCountFlash(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [allJobs.length])
+
+  // ── AI Enhancement for Job Request ──────────────────────────────────────
+  const handleAiEnhance = useCallback(() => {
+    if (!newJobText.trim() || isAiEnhancing) return
+    setIsAiEnhancing(true)
+    let enhanced = ''
+    const abort = sendChatMessageStream(
+      [{ role: 'user', content: `Enhance this CAD request to be more specific and detailed for manufacturing. Add dimensions, tolerances, and material specifications where appropriate. Only return the enhanced request, nothing else:\n\n${newJobText}` }],
+      undefined,
+      (token) => { enhanced += token; setNewJobText(enhanced) },
+      () => { setIsAiEnhancing(false) },
+      () => { setIsAiEnhancing(false); toast({ title: 'AI enhancement failed', variant: 'destructive', duration: 2000 }) }
+    )
+    setTimeout(() => { if (isAiEnhancing) abort() }, 15000)
+  }, [newJobText, isAiEnhancing, toast])
+
+  // ── Return all state and handlers ─────────────────────────────────────
+  return {
+    // Theme
+    theme, setTheme, resolvedTheme, mounted,
+    // Job data
+    jobs, allJobs, selectedJob, setSelectedJob,
+    sortedJobs, stateCounts, linkedJobCount,
+    // Filter
+    filterState, handleFilterChange,
+    // UI state
+    showCommandPalette, setShowCommandPalette,
+    isCreating, newJobText, setNewJobText,
+    newJobPriority, setNewJobPriority,
+    isProcessing, showComposer, setShowComposer,
+    showShortcuts, setShowShortcuts,
+    showStats, setShowStats,
+    showCompare, setShowCompare,
+    showSettings, setShowSettings,
+    cancelTarget, setCancelTarget,
+    selectedIds, setSelectedIds,
+    activeTab, setActiveTab, prevTab, setPrevTab,
+    tabDirection, setTabDirection,
+    prevJobId, setPrevJobId,
+    jobCountFlash, wsConnected,
+    uptime, activeDragId,
+    notifications, newJobTags, setNewJobTags,
+    isAiEnhancing,
+    activityEvents, showActivityFeed, setShowActivityFeed,
+    showThemePanel, setShowThemePanel,
+    activityFeedRef,
+    // DnD
+    sensors, handleDragStart, handleDragEnd, handleDragCancel,
+    sortedJobsForDnd: sortedJobs,
+    // Job actions
+    handleCreate, handleProcess, handleApplyScad,
+    handleDelete, handleDuplicate, handleCancel,
+    handleBatchAction, toggleSelect,
+    handleSetPriority, handleLinkParent,
+    handleAiEnhance,
+    // Quick actions
+    handleQuickEditPriority, handleQuickViewLog,
+    handleQuickView3D, handleQuickShare,
+    // Notifications
+    addNotification, markNotificationRead,
+    markAllNotificationsRead, clearAllNotifications,
+    // Activity
+    addActivityEvent, clearActivityEvents,
+    // Downloads
+    downloadScad, exportAllData, formatUptime,
+    successRate,
+    // Misc
+    loadJobs, recentRequests,
+    CANCELABLE_STATES, timeAgo, getPriorityColor,
+  }
+}
