@@ -1,0 +1,75 @@
+{
+  "family": "spur_gear",
+  "parameters": [
+    {
+      "key": "teeth",
+      "label": "Number of Teeth",
+      "kind": "integer",
+      "unit": "",
+      "value": 20,
+      "min": 8,
+      "max": 200,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Total number of teeth on the gear",
+      "group": "geometry"
+    },
+    {
+      "key": "outer_diameter",
+      "label": "Outer Diameter",
+      "kind": "float",
+      "unit": "mm",
+      "value": 50,
+      "min": 10,
+      "max": 500,
+      "step": 0.5,
+      "source": "user",
+      "editable": true,
+      "description": "Outer (tip) diameter of the gear",
+      "group": "geometry"
+    },
+    {
+      "key": "bore_diameter",
+      "label": "Bore Diameter",
+      "kind": "float",
+      "unit": "mm",
+      "value": 8,
+      "min": 2,
+      "max": 100,
+      "step": 0.5,
+      "source": "user",
+      "editable": true,
+      "description": "Central bore hole diameter",
+      "group": "geometry"
+    },
+    {
+      "key": "thickness",
+      "label": "Gear Thickness",
+      "kind": "float",
+      "unit": "mm",
+      "value": 8,
+      "min": 2,
+      "max": 100,
+      "step": 0.5,
+      "source": "user",
+      "editable": true,
+      "description": "Thickness (width) of the gear face",
+      "group": "geometry"
+    },
+    {
+      "key": "pressure_angle",
+      "label": "Pressure Angle",
+      "kind": "float",
+      "unit": "deg",
+      "value": 20,
+      "min": 14.5,
+      "max": 25,
+      "step": 0.5,
+      "source": "engineering",
+      "editable": true,
+      "description": "Involute pressure angle in degrees",
+      "group": "engineering"
+    }
+  ]
+}

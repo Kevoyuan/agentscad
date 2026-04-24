@@ -1,0 +1,89 @@
+{
+  "family": "electronics_enclosure",
+  "parameters": [
+    {
+      "key": "width",
+      "label": "Enclosure Width",
+      "kind": "float",
+      "unit": "mm",
+      "value": 60,
+      "min": 20,
+      "max": 300,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Internal width of the enclosure",
+      "group": "geometry"
+    },
+    {
+      "key": "depth",
+      "label": "Enclosure Depth",
+      "kind": "float",
+      "unit": "mm",
+      "value": 40,
+      "min": 20,
+      "max": 300,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Internal depth of the enclosure",
+      "group": "geometry"
+    },
+    {
+      "key": "height",
+      "label": "Enclosure Height",
+      "kind": "float",
+      "unit": "mm",
+      "value": 25,
+      "min": 10,
+      "max": 200,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Internal height of the enclosure",
+      "group": "geometry"
+    },
+    {
+      "key": "wall_thickness",
+      "label": "Wall Thickness",
+      "kind": "float",
+      "unit": "mm",
+      "value": 2,
+      "min": 1.2,
+      "max": 10,
+      "step": 0.2,
+      "source": "engineering",
+      "editable": true,
+      "description": "Uniform wall thickness",
+      "group": "engineering"
+    },
+    {
+      "key": "corner_radius",
+      "label": "Corner Radius",
+      "kind": "float",
+      "unit": "mm",
+      "value": 3,
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "source": "user",
+      "editable": true,
+      "description": "Fillet radius on exterior corners",
+      "group": "geometry"
+    },
+    {
+      "key": "clearance",
+      "label": "Fit Clearance",
+      "kind": "float",
+      "unit": "mm",
+      "value": 0.2,
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "source": "engineering",
+      "editable": true,
+      "description": "Clearance between lid and body",
+      "group": "engineering"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "family": "unknown",
+  "parameters": [
+    {
+      "key": "width",
+      "label": "Width",
+      "kind": "float",
+      "unit": "mm",
+      "value": 40,
+      "min": 5,
+      "max": 500,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Width of the part",
+      "group": "geometry"
+    },
+    {
+      "key": "depth",
+      "label": "Depth",
+      "kind": "float",
+      "unit": "mm",
+      "value": 30,
+      "min": 5,
+      "max": 500,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Depth of the part",
+      "group": "geometry"
+    },
+    {
+      "key": "height",
+      "label": "Height",
+      "kind": "float",
+      "unit": "mm",
+      "value": 15,
+      "min": 5,
+      "max": 500,
+      "step": 1,
+      "source": "user",
+      "editable": true,
+      "description": "Height of the part",
+      "group": "geometry"
+    },
+    {
+      "key": "wall_thickness",
+      "label": "Wall Thickness",
+      "kind": "float",
+      "unit": "mm",
+      "value": 2,
+      "min": 0.8,
+      "max": 10,
+      "step": 0.2,
+      "source": "engineering",
+      "editable": true,
+      "description": "Wall thickness",
+      "group": "engineering"
+    }
+  ]
+}
