@@ -673,8 +673,9 @@ export async function POST(
       );
     }
 
-    // Only allow processing from NEW or failed states
-    const processableStates = ["NEW", "VALIDATION_FAILED", "GEOMETRY_FAILED", "RENDER_FAILED", "HUMAN_REVIEW"];
+    // Allow reprocessing delivered jobs as a rebuild flow, especially after
+    // parameter edits have invalidated the rendered STL/PNG artifacts.
+    const processableStates = ["NEW", "DELIVERED", "VALIDATION_FAILED", "GEOMETRY_FAILED", "RENDER_FAILED", "HUMAN_REVIEW"];
     if (!processableStates.includes(job.state)) {
       return NextResponse.json(
         { error: `Job cannot be processed in state: ${job.state}. Must be in one of: ${processableStates.join(", ")}` },
@@ -686,10 +687,22 @@ export async function POST(
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        let streamClosed = false;
         function sendEvent(data: Record<string, unknown>) {
+          if (streamClosed) return;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
           );
+        }
+        function closeStream() {
+          if (streamClosed) return;
+          streamClosed = true;
+          try {
+            controller.close();
+          } catch {
+            // Clients can disconnect after receiving the final event; that
+            // should not mutate a completed job into a failure.
+          }
         }
 
         try {
@@ -956,9 +969,21 @@ export async function POST(
           });
           broadcastWs("job:update", { jobId: id, state: "DELIVERED", action: "delivered" }).catch(() => {});
 
-          controller.close();
+          closeStream();
         } catch (error) {
           console.error("Error during job processing:", error);
+
+          const message = error instanceof Error ? error.message : "Unknown error";
+          const latestJob = await db.job.findUnique({ where: { id } });
+          const isStreamLifecycleError =
+            message.includes("Controller is already closed") ||
+            message.includes("ReadableStreamDefaultController");
+
+          if (isStreamLifecycleError && latestJob?.state === "DELIVERED") {
+            console.warn("Ignoring post-delivery stream lifecycle error:", message);
+            closeStream();
+            return;
+          }
 
           // Update job state to indicate failure
           await db.job.update({
@@ -968,7 +993,7 @@ export async function POST(
               executionLogs: appendLog(
                 (await db.job.findUnique({ where: { id } }))?.executionLogs,
                 "GEOMETRY_FAILED",
-                `Processing failed: ${error instanceof Error ? error.message : "Unknown error"}`
+                `Processing failed: ${message}`
               ),
             },
           });
@@ -976,11 +1001,11 @@ export async function POST(
           sendEvent({
             state: "GEOMETRY_FAILED",
             step: "error",
-            message: `Processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+            message: `Processing failed: ${message}`,
           });
           broadcastWs("job:update", { jobId: id, state: "GEOMETRY_FAILED", action: "error" }).catch(() => {});
 
-          controller.close();
+          closeStream();
         }
       },
     });

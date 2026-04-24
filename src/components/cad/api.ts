@@ -72,6 +72,21 @@ export async function updateParameters(id: string, parameterValues: Record<strin
   return data.job
 }
 
+export async function repairJob(id: string): Promise<{ job: Job; repaired: boolean; recommendation: string; reason: string }> {
+  const res = await fetch(`/api/jobs/${id}/repair`, { method: 'POST' })
+  if (!res.ok) {
+    let message = 'Failed to repair job'
+    try {
+      const errorData = await res.json()
+      if (errorData?.error) message = errorData.error
+    } catch {
+      // Keep generic message.
+    }
+    throw new Error(message)
+  }
+  return res.json()
+}
+
 /**
  * Send a chat message and receive a streaming response via SSE.
  * Calls onToken for each token received, onDone when complete, and onError on failure.

@@ -46,7 +46,7 @@ export async function PATCH(
       }
     }
 
-    let schemaObj: Record<string, unknown> = {};
+    let schemaObj: Record<string, unknown> | Array<Record<string, unknown>> = {};
     if (job.parameterSchema) {
       try {
         schemaObj = JSON.parse(job.parameterSchema);
@@ -56,7 +56,9 @@ export async function PATCH(
     }
 
     // Validate parameters against schema constraints
-    const schemaParams = (schemaObj.parameters as Array<Record<string, unknown>>) || [];
+    const schemaParams = Array.isArray(schemaObj)
+      ? schemaObj
+      : (schemaObj.parameters as Array<Record<string, unknown>>) || [];
     const validationErrors: string[] = [];
 
     for (const [key, value] of Object.entries(parameters)) {
@@ -70,7 +72,8 @@ export async function PATCH(
         }
 
         // Type and range validation for number parameters
-        if (schemaParam.kind === "number" && typeof value === "number") {
+        const numericKinds = new Set(["number", "float", "integer"]);
+        if (numericKinds.has(String(schemaParam.kind)) && typeof value === "number") {
           const min = schemaParam.min as number | undefined;
           const max = schemaParam.max as number | undefined;
           const step = schemaParam.step as number | undefined;
@@ -109,14 +112,15 @@ export async function PATCH(
       where: { id },
       data: {
         parameterValues: JSON.stringify(currentValues),
-        // If job was already processed, reset to SCAD_GENERATED to allow re-processing
-        ...(job.state !== "NEW" && job.state !== "CANCELLED" && job.state !== "DELIVERED"
-          ? {}
+        // Parameter edits invalidate rendered artifacts. Keep the state so the
+        // viewport can show an immediate procedural preview until reprocessing.
+        ...(job.state !== "NEW" && job.state !== "CANCELLED"
+          ? { stlPath: null, pngPath: null }
           : {}),
         executionLogs: appendLog(
           job.executionLogs,
           "PARAMETERS_UPDATED",
-          `Parameters updated: ${Object.keys(parameters).join(", ")}`
+          `Parameters updated: ${Object.keys(parameters).join(", ")}; render artifacts marked stale`
         ),
       },
     });
