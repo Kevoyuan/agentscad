@@ -2,12 +2,12 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Settings, Sparkles, Shield, Activity, Clock,
-  StickyNote, GitBranch, History, Zap, Plus,
+  Settings, Shield, Activity, Clock,
+  History, Plus, BoxSelect, FileCode,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ResizablePanel } from '@/components/ui/resizable'
 
 import { Job } from '@/components/cad/types'
@@ -17,6 +17,7 @@ import { ScadEditor } from '@/components/cad/scad-editor'
 import { JobDependencies } from '@/components/cad/job-dependencies'
 import { JobVersionHistory } from '@/components/cad/job-version-history'
 import { BreadcrumbNav } from '@/components/cad/breadcrumb-nav'
+import { SpecPanel } from '@/components/cad/spec-panel'
 
 const ResearchPanel = dynamic(() => import('@/components/cad/research-panel').then(m => ({ default: m.ResearchPanel })), { ssr: false, loading: () => <div className="p-4 text-[var(--app-text-dim)] text-xs">Loading...</div> })
 const TimelinePanel = dynamic(() => import('@/components/cad/timeline-panel').then(m => ({ default: m.TimelinePanel })), { ssr: false, loading: () => <div className="p-4 text-[var(--app-text-dim)] text-xs">Loading...</div> })
@@ -33,6 +34,8 @@ export function InspectorPanel({
   onSetTabDirection,
   onUpdate,
   onApplyScad,
+  onProcess,
+  onRepair,
   onNavigateToJob,
   onClearSelectedJob,
   onShowComposer,
@@ -46,27 +49,87 @@ export function InspectorPanel({
   onSetTabDirection: (dir: number) => void
   onUpdate: () => void
   onApplyScad: (job: Job, scadSource: string) => Promise<void>
+  onProcess: (job: Job) => void
+  onRepair: (job: Job) => void
   onNavigateToJob: (jobId: string) => void
   onClearSelectedJob: () => void
   onShowComposer: () => void
 }) {
+  const normalizeTab = (tab: string) => ({
+    PARAMS: 'PARAMETERS',
+    RESEARCH: 'MODEL',
+    DEPS: 'MODEL',
+    SCAD: 'CODE',
+    AI: 'CODE',
+    VALIDATE: 'VALIDATION',
+    LOG: 'HISTORY',
+    NOTES: 'HISTORY',
+  }[tab] || tab)
+
+  const normalizedActiveTab = normalizeTab(activeTab)
+
+  const renderActiveTab = () => {
+    if (!selectedJob) return null
+
+    switch (normalizedActiveTab) {
+      case 'SPEC':
+        return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} onNavigate={onSetActiveTab} />
+      case 'PARAMETERS':
+        return <ParameterPanel job={selectedJob} onUpdate={onUpdate} />
+      case 'MODEL':
+        return (
+          <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(180px,0.55fr)]">
+            <ResearchPanel job={selectedJob} />
+            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+              <JobDependencies job={selectedJob} allJobs={allJobs} onUpdate={onUpdate} onNavigateToJob={onNavigateToJob} />
+            </div>
+          </div>
+        )
+      case 'VALIDATION':
+        return <ValidationPanel job={selectedJob} />
+      case 'CODE':
+        return (
+          <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(160px,0.5fr)]">
+            <ScadEditor job={selectedJob} onUpdate={onUpdate} onApply={onApplyScad} />
+            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+              <ChatPanel key={selectedJob.id} job={selectedJob} onApplyScad={onApplyScad} />
+            </div>
+          </div>
+        )
+      case 'HISTORY':
+        return (
+          <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(160px,0.55fr)_minmax(140px,0.5fr)]">
+            <JobVersionHistory key={selectedJob.id} job={selectedJob} />
+            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+              <TimelinePanel job={selectedJob} />
+            </div>
+            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+              <NotesPanel job={selectedJob} onUpdate={onUpdate} />
+            </div>
+          </div>
+        )
+      default:
+        return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} onNavigate={onSetActiveTab} />
+    }
+  }
+
   return (
-    <ResizablePanel defaultSize={38} minSize={25} maxSize={50}>
+    <ResizablePanel defaultSize={30} minSize={24} maxSize={42} className="cad-inspector-panel">
       <div className="flex flex-col h-full bg-[var(--app-surface)]">
         {selectedJob ? (
-          <Tabs value={activeTab} onValueChange={(v) => {
-            const tabOrder = ['PARAMS', 'RESEARCH', 'VALIDATE', 'SCAD', 'LOG', 'NOTES', 'DEPS', 'HISTORY', 'AI']
+          <Tabs value={normalizedActiveTab} onValueChange={(v) => {
+            const tabOrder = ['SPEC', 'PARAMETERS', 'MODEL', 'CODE', 'VALIDATION', 'HISTORY']
             const newIdx = tabOrder.indexOf(v)
-            const oldIdx = tabOrder.indexOf(activeTab)
+            const oldIdx = tabOrder.indexOf(normalizedActiveTab)
             onSetTabDirection(newIdx > oldIdx ? 1 : -1)
-            onSetPrevTab(activeTab)
+            onSetPrevTab(normalizedActiveTab)
             onSetActiveTab(v)
           }} className="flex flex-col h-full">
             {/* Inspector Breadcrumb */}
             <div className="px-3 py-1 shrink-0 breadcrumb-fade-in">
               <BreadcrumbNav
                 jobId={selectedJob.id}
-                activeTab={activeTab}
+                activeTab={normalizedActiveTab}
                 onNavigateHome={onClearSelectedJob}
                 onNavigateJobs={onClearSelectedJob}
               />
@@ -75,15 +138,12 @@ export function InspectorPanel({
             <div className="gradient-separator" />
             <TabsList className="w-full justify-start px-2 py-1 bg-transparent border-b border-[color:var(--app-border)] h-auto rounded-none shrink-0">
               {[
-                { key: 'PARAMS', label: 'PARAMS', icon: Settings },
-                { key: 'RESEARCH', label: 'RESEARCH', icon: Sparkles },
-                { key: 'VALIDATE', label: 'VALIDATE', icon: Shield },
-                { key: 'SCAD', label: 'SCAD', icon: Activity },
-                { key: 'LOG', label: 'LOG', icon: Clock },
-                { key: 'NOTES', label: 'NOTES', icon: StickyNote },
-                { key: 'DEPS', label: 'DEPS', icon: GitBranch },
+                { key: 'SPEC', label: 'SPEC', icon: BoxSelect },
+                { key: 'PARAMETERS', label: 'PARAMS', icon: Settings },
+                { key: 'MODEL', label: 'MODEL', icon: Activity },
+                { key: 'CODE', label: 'CODE', icon: FileCode },
+                { key: 'VALIDATION', label: 'VALIDATE', icon: Shield },
                 { key: 'HISTORY', label: 'HISTORY', icon: History },
-                { key: 'AI', label: 'AI', icon: Zap },
               ].map(tab => (
                 <TabsTrigger
                   key={tab.key}
@@ -97,7 +157,7 @@ export function InspectorPanel({
             <div className="flex-1 overflow-hidden">
               <AnimatePresence mode="wait" custom={tabDirection}>
                 <motion.div
-                  key={activeTab}
+                  key={normalizedActiveTab}
                   custom={tabDirection}
                   initial={{ opacity: 0, x: tabDirection * 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -105,33 +165,7 @@ export function InspectorPanel({
                   transition={{ duration: 0.2, ease: 'easeOut' }}
                   className={`h-full ${tabDirection > 0 ? 'slide-in-right' : 'slide-in-left'}`}
                 >
-                  <TabsContent value="PARAMS" className="h-full m-0 data-[state=inactive]:hidden">
-                    <ParameterPanel job={selectedJob} onUpdate={onUpdate} />
-                  </TabsContent>
-                  <TabsContent value="RESEARCH" className="h-full m-0 data-[state=inactive]:hidden">
-                    <ResearchPanel job={selectedJob} />
-                  </TabsContent>
-                  <TabsContent value="VALIDATE" className="h-full m-0 data-[state=inactive]:hidden">
-                    <ValidationPanel job={selectedJob} />
-                  </TabsContent>
-                  <TabsContent value="SCAD" className="h-full m-0 data-[state=inactive]:hidden">
-                    <ScadEditor job={selectedJob} onUpdate={onUpdate} onApply={onApplyScad} />
-                  </TabsContent>
-                  <TabsContent value="LOG" className="h-full m-0 data-[state=inactive]:hidden">
-                    <TimelinePanel job={selectedJob} />
-                  </TabsContent>
-                  <TabsContent value="NOTES" className="h-full m-0 data-[state=inactive]:hidden">
-                    <NotesPanel job={selectedJob} onUpdate={onUpdate} />
-                  </TabsContent>
-                  <TabsContent value="DEPS" className="h-full m-0 data-[state=inactive]:hidden">
-                    <JobDependencies job={selectedJob} allJobs={allJobs} onUpdate={onUpdate} onNavigateToJob={onNavigateToJob} />
-                  </TabsContent>
-                  <TabsContent value="HISTORY" className="h-full m-0 data-[state=inactive]:hidden">
-                    <JobVersionHistory key={selectedJob.id} job={selectedJob} />
-                  </TabsContent>
-                  <TabsContent value="AI" className="h-full m-0 data-[state=inactive]:hidden">
-                    <ChatPanel key={selectedJob.id} job={selectedJob} onApplyScad={onApplyScad} />
-                  </TabsContent>
+                  {renderActiveTab()}
                 </motion.div>
               </AnimatePresence>
             </div>

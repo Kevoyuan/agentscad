@@ -12,6 +12,11 @@ interface BreadcrumbNavProps {
 
 const TAB_LABELS: Record<string, string> = {
   PARAMS: 'Parameters',
+  PARAMETERS: 'Parameters',
+  SPEC: 'Spec',
+  MODEL: 'Model',
+  CODE: 'Code',
+  VALIDATION: 'Validation',
   RESEARCH: 'Research',
   VALIDATE: 'Validation',
   SCAD: 'SCAD Code',

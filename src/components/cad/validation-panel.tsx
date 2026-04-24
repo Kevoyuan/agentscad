@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Shield } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job, ValidationResult, parseJSON } from './types'
+import { CadExportChecklist } from './cad-primitives'
 import { fadeInUp, fadeInUpTransition, staggerContainer, staggerChild, staggerTransition } from './motion-presets'
 
 export function ValidationPanel({ job }: { job: Job }) {
@@ -45,6 +46,7 @@ export function ValidationPanel({ job }: { job: Job }) {
           animate="animate"
           exit="exit"
         >
+          <CadExportChecklist job={job} />
           {results.map((r, i) => (
             <motion.div
               key={i}

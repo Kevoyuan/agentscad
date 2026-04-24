@@ -1,0 +1,103 @@
+'use client'
+
+import { AlertTriangle, BoxSelect, Cpu, FileCode, Hammer, RotateCcw, Ruler, Wrench } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Job, parseJSON } from './types'
+import { CadConstraintChip, CadExportChecklist, CadMetric, CadPanel, CadSectionHeader } from './cad-primitives'
+import { getPartFamilyLabel } from './part-family-icon'
+
+export function SpecPanel({
+  job,
+  onProcess,
+  onRepair,
+  onNavigate,
+}: {
+  job: Job
+  onProcess: (job: Job) => void
+  onRepair: (job: Job) => void
+  onNavigate: (tab: string) => void
+}) {
+  const values = parseJSON<Record<string, number>>(job.parameterValues, {})
+  const failed = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(job.state)
+  const stale = job.state === 'DELIVERED' && !job.stlPath
+  const dimensions = [
+    values.width ?? values.phone_width ?? values.outer_diameter ?? values.diameter,
+    values.depth ?? values.phone_length ?? values.thickness,
+    values.height ?? values.phone_thickness,
+  ].filter(v => typeof v === 'number')
+
+  const chips = [
+    job.partFamily ? getPartFamilyLabel(job.partFamily) : 'Part family pending',
+    job.generationPath?.replace(/_/g, ' ') || 'Generation path pending',
+    job.builderName || 'Builder pending',
+    dimensions.length ? `${dimensions.join(' x ')} mm` : 'Dimensions pending',
+  ]
+
+  return (
+    <div className="h-full overflow-y-auto p-3">
+      <div className="space-y-3">
+        <CadSectionHeader>Spec</CadSectionHeader>
+        <CadPanel>
+          <div className="space-y-3 p-3">
+            <p className="text-sm leading-relaxed text-[var(--cad-text)]">{job.inputRequest}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {chips.map(chip => <CadConstraintChip key={chip}>{chip}</CadConstraintChip>)}
+            </div>
+          </div>
+        </CadPanel>
+
+        {(failed || stale) && (
+          <CadPanel title={failed ? 'Diagnostic action' : 'Stale render'} eyebrow="repair">
+            <div className="space-y-3 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--cad-warning)]" />
+                <p className="text-[11px] leading-relaxed text-[var(--cad-text-secondary)]">
+                  {failed
+                    ? 'If artifacts already exist, Auto Repair will restore the run without regenerating geometry. Otherwise retry the pipeline.'
+                    : 'Parameters changed after render. Rebuild STL before export.'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {failed && (
+                  <Button size="sm" className="h-7 gap-1.5 bg-[var(--cad-accent)] text-[10px]" onClick={() => onRepair(job)}>
+                    <Wrench className="h-3 w-3" />
+                    Auto Repair
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-7 gap-1.5 border-[color:var(--cad-border)] text-[10px]" onClick={() => onProcess(job)}>
+                  <RotateCcw className="h-3 w-3" />
+                  {failed ? 'Retry Pipeline' : 'Rebuild STL'}
+                </Button>
+              </div>
+            </div>
+          </CadPanel>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <CadMetric label="State" value={job.state.replace(/_/g, ' ')} tone={failed ? 'danger' : job.state === 'DELIVERED' ? 'success' : 'accent'} />
+          <CadMetric label="Priority" value={`P${job.priority}`} tone={job.priority >= 8 ? 'warning' : 'neutral'} />
+          <CadMetric label="Params" value={Object.keys(values).length || '0'} />
+          <CadMetric label="Artifacts" value={job.stlPath ? 'STL' : 'preview'} tone={job.stlPath ? 'success' : 'warning'} />
+        </div>
+
+        <CadExportChecklist job={job} />
+
+        <CadPanel title="Shortcuts" eyebrow="inspect">
+          <div className="grid grid-cols-2 gap-2 p-3">
+            <button className="cad-chip justify-center" onClick={() => onNavigate('PARAMETERS')}><Ruler className="h-3 w-3" />Parameters</button>
+            <button className="cad-chip justify-center" onClick={() => onNavigate('MODEL')}><BoxSelect className="h-3 w-3" />Model</button>
+            <button className="cad-chip justify-center" onClick={() => onNavigate('CODE')}><FileCode className="h-3 w-3" />Code</button>
+            <button className="cad-chip justify-center" onClick={() => onNavigate('VALIDATION')}><Hammer className="h-3 w-3" />Validation</button>
+          </div>
+        </CadPanel>
+
+        {(job.builderName || job.generationPath) && (
+          <div className="flex items-center gap-2 px-1 text-[10px] font-mono text-[var(--cad-text-muted)]">
+            <Cpu className="h-3 w-3" />
+            {[job.builderName, job.generationPath].filter(Boolean).join(' / ')}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

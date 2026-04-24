@@ -291,6 +291,8 @@ export function MainWorkspace() {
           <ViewerPanel
             selectedJob={state.selectedJob}
             isProcessing={state.isProcessing}
+            processingJobId={state.processingJobId}
+            pipelineEvents={state.pipelineEvents}
             onProcess={state.handleProcess}
             onCancel={(j) => state.setCancelTarget(j)}
             onDelete={state.handleDelete}
@@ -299,6 +301,7 @@ export function MainWorkspace() {
             onEditPriority={state.handleQuickEditPriority}
             onViewLog={state.handleQuickViewLog}
             onShare={state.handleQuickShare}
+            onRepair={state.handleRepair}
             onSetActiveTab={state.setActiveTab}
             onShowComposer={() => state.setShowComposer(true)}
           />
@@ -315,6 +318,8 @@ export function MainWorkspace() {
             onSetTabDirection={state.setTabDirection}
             onUpdate={state.loadJobs}
             onApplyScad={state.handleApplyScad}
+            onProcess={state.handleProcess}
+            onRepair={state.handleRepair}
             onNavigateToJob={handleNavigateToJob}
             onClearSelectedJob={() => state.setSelectedJob(null)}
             onShowComposer={() => state.setShowComposer(true)}
@@ -391,7 +396,7 @@ export function MainWorkspace() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
                   { keys: ['?', ''], desc: 'Toggle shortcuts' },
-                  { keys: ['1', '-', '7'], desc: 'Switch inspector tab' },
+                  { keys: ['1', '-', '6'], desc: 'Switch inspector tab' },
                   { keys: ['E', ''], desc: 'Edit SCAD code' },
                   { keys: ['D', ''], desc: 'Show dependencies' },
                   { keys: ['H', ''], desc: 'Show history (LOG)' },
@@ -438,13 +443,12 @@ export function MainWorkspace() {
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
-                  { key: '1', tab: 'PARAMS' },
-                  { key: '2', tab: 'RESEARCH' },
-                  { key: '3', tab: 'VALIDATE' },
-                  { key: '4', tab: 'SCAD' },
-                  { key: '5', tab: 'LOG' },
-                  { key: '6', tab: 'NOTES' },
-                  { key: '7', tab: 'DEPS' },
+                  { key: '1', tab: 'SPEC' },
+                  { key: '2', tab: 'PARAMS' },
+                  { key: '3', tab: 'MODEL' },
+                  { key: '4', tab: 'CODE' },
+                  { key: '5', tab: 'VALIDATE' },
+                  { key: '6', tab: 'HISTORY' },
                 ].map((s) => (
                   <div key={s.tab} className="flex items-center justify-between gap-2">
                     <span className="text-[10px] text-[var(--app-text-muted)] font-mono">{s.tab}</span>

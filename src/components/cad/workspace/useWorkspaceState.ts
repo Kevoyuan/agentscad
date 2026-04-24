@@ -16,7 +16,7 @@ import {
 import {
   fetchJobs, createJob, deleteJob, processJob,
   cancelJob, batchOperation, updatePriority, sendChatMessageStream,
-  applyScadSource,
+  applyScadSource, repairJob,
 } from '@/components/cad/api'
 import {
   FilterState, DEFAULT_FILTER_STATE, applyFilters,
@@ -67,6 +67,8 @@ export function useWorkspaceState() {
   const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
   const [showActivityFeed, setShowActivityFeed] = useState(false)
   const [showThemePanel, setShowThemePanel] = useState(false)
+  const [processingJobId, setProcessingJobId] = useState<string | null>(null)
+  const [pipelineEvents, setPipelineEvents] = useState<Array<{ step: string; state: string; message: string; timestamp: string }>>([])
   const { toast } = useToast()
   const startTimeRef = useRef(Date.now())
   const activityFeedRef = useRef<HTMLDivElement>(null)
@@ -312,9 +314,30 @@ export function useWorkspaceState() {
 
   const handleProcess = async (job: Job) => {
     setIsProcessing(true)
+    setProcessingJobId(job.id)
+    setPipelineEvents([{
+      step: 'queued',
+      state: job.state,
+      message: 'Queued CAD generation pipeline...',
+      timestamp: new Date().toISOString(),
+    }])
     setSelectedJob(job)
     try {
       await processJob(job.id, (data) => {
+        if (data.message || data.step || data.state) {
+          setPipelineEvents(prev => {
+            const next = [
+              ...prev,
+              {
+                step: String(data.step || 'update'),
+                state: String(data.state || job.state),
+                message: String(data.message || 'Pipeline event received'),
+                timestamp: new Date().toISOString(),
+              },
+            ]
+            return next.slice(-12)
+          })
+        }
         setSelectedJob(prev => {
           if (!prev) return prev
           if (data.job) return data.job as Job
@@ -323,6 +346,7 @@ export function useWorkspaceState() {
           if (data.state) next.state = data.state as string
           if (data.scadSource) next.scadSource = data.scadSource as string
           if (data.parameterSchema) next.parameterSchema = typeof data.parameterSchema === 'string' ? data.parameterSchema : JSON.stringify(data.parameterSchema)
+          if (data.parameters) next.parameterSchema = typeof data.parameters === 'string' ? data.parameters : JSON.stringify(data.parameters)
           if (data.parameterValues) next.parameterValues = typeof data.parameterValues === 'string' ? data.parameterValues : JSON.stringify(data.parameterValues)
           if (data.partFamily) next.partFamily = data.partFamily as string
           if (data.validationResults) next.validationResults = typeof data.validationResults === 'string' ? data.validationResults : JSON.stringify(data.validationResults)
@@ -358,6 +382,7 @@ export function useWorkspaceState() {
       addActivityEvent('failed', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Processing Failed')
     } finally {
       setIsProcessing(false)
+      setProcessingJobId(null)
     }
   }
 
@@ -444,6 +469,30 @@ export function useWorkspaceState() {
       await loadJobs()
     } catch {
       toast({ title: 'Cancel failed', variant: 'destructive', duration: 2000 })
+    }
+  }
+
+  const handleRepair = async (job: Job) => {
+    try {
+      const result = await repairJob(job.id)
+      setSelectedJob(result.job)
+      if (result.repaired) {
+        toast({ title: 'Job repaired', description: result.reason, duration: 2500 })
+        addNotification('job_completed', 'Auto Repair Complete', `Job ${job.id.slice(0, 8)} restored to delivered`)
+        addActivityEvent('delivered', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Auto repaired')
+      } else if (result.recommendation === 'retry') {
+        toast({ title: 'Retry recommended', description: result.reason, duration: 3500 })
+      } else {
+        toast({ title: 'No repair needed', description: result.reason, duration: 2500 })
+      }
+      await loadJobs()
+    } catch (error) {
+      toast({
+        title: 'Auto repair failed',
+        description: error instanceof Error ? error.message : 'Failed to repair job',
+        variant: 'destructive',
+        duration: 3000,
+      })
     }
   }
 
@@ -667,12 +716,13 @@ export function useWorkspaceState() {
     activityEvents, showActivityFeed, setShowActivityFeed,
     showThemePanel, setShowThemePanel,
     activityFeedRef,
+    processingJobId, pipelineEvents,
     // DnD
     sensors, handleDragStart, handleDragEnd, handleDragCancel,
     sortedJobsForDnd: sortedJobs,
     // Job actions
     handleCreate, handleProcess, handleApplyScad,
-    handleDelete, handleDuplicate, handleCancel,
+    handleDelete, handleDuplicate, handleCancel, handleRepair,
     handleBatchAction, toggleSelect,
     handleSetPriority, handleLinkParent,
     handleAiEnhance,

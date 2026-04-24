@@ -79,22 +79,22 @@ export function KeyboardShortcuts({
       }
       // E: Edit SCAD code
       if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
-        onSetActiveTab('SCAD')
+        onSetActiveTab('CODE')
       }
       // D: Show dependencies
       if (e.key === 'd' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
-        onSetActiveTab('DEPS')
+        onSetActiveTab('MODEL')
       }
       // H: Show history (LOG tab)
       if (e.key === 'h' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
-        onSetActiveTab('LOG')
+        onSetActiveTab('HISTORY')
       }
       // T: Open theme settings
       if (e.key === 't' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onShowSettings(true)
       }
-      // 1-7: Switch inspector tabs
-      const tabMap: Record<string, string> = { '1': 'PARAMS', '2': 'RESEARCH', '3': 'VALIDATE', '4': 'SCAD', '5': 'LOG', '6': 'NOTES', '7': 'DEPS', '8': 'HISTORY', '9': 'AI' }
+      // 1-6: Switch inspector tabs
+      const tabMap: Record<string, string> = { '1': 'SPEC', '2': 'PARAMETERS', '3': 'MODEL', '4': 'CODE', '5': 'VALIDATION', '6': 'HISTORY' }
       if (tabMap[e.key] && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onSetActiveTab(tabMap[e.key])
       }
