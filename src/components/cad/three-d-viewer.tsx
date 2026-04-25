@@ -33,12 +33,22 @@ function fitCameraToObject(THREE: any, camera: any, controls: any, object: any, 
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
   const maxDim = Math.max(size.x, size.y, size.z)
+  if (!Number.isFinite(maxDim) || maxDim <= 0) {
+    camera.position.set(60, 50, 60)
+    controls.target.set(0, 0, 0)
+    controls.update()
+    return { center: new THREE.Vector3(0, 0, 0), size: new THREE.Vector3(1, 1, 1), maxDim: 1, dist: 90 }
+  }
   const fov = camera.fov * (Math.PI / 180)
   const dist = (maxDim / 2 / Math.tan(fov / 2)) * padding
 
   camera.position.set(center.x + dist * 0.7, center.y + dist * 0.5, center.z + dist * 0.7)
+  camera.near = Math.max(0.01, dist / 1000)
+  camera.far = Math.max(1000, dist * 8, maxDim * 10)
+  camera.updateProjectionMatrix()
   controls.target.copy(center)
   controls.update()
+  return { center, size, maxDim, dist }
 }
 
 // ─── Fallback procedural enclosure ──────────────────────────────────────────
@@ -374,7 +384,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
       try {
         const scene = new THREE.Scene()
         scene.background = new THREE.Color(controlsState.darkBg ? 0x080b10 : 0x111827)
-        scene.fog = new THREE.Fog(0x080b10, 100, 200)
+        scene.fog = new THREE.Fog(0x080b10, 600, 1200)
         sceneRef.current = scene
 
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000)
@@ -429,12 +439,16 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
             if (cancelled) return
 
-            // Center and normalize the geometry
+            // Center geometry around the origin so camera fitting works across STL generators.
             geometry.computeBoundingBox()
             const bbox = geometry.boundingBox
+            if (!bbox || bbox.isEmpty()) {
+              throw new Error('STL has no renderable geometry')
+            }
             const center = new THREE.Vector3()
             bbox.getCenter(center)
             geometry.translate(-center.x, -center.y, -center.z)
+            geometry.computeVertexNormals()
 
             const material = new THREE.MeshPhongMaterial({
               color: 0x4aa3ff,
@@ -478,8 +492,14 @@ export function ThreeDViewer({ job }: { job: Job }) {
         bboxOverlayRef.current = dimOverlay
         dimensionLabelsRef.current = dimOverlay.sizes
 
-        // Auto-fit camera to the loaded geometry
-        fitCameraToObject(THREE, camera, controls, mainGroup)
+        // Auto-fit camera to the loaded geometry. Fog must scale with the fitted
+        // distance, otherwise long phone-case models disappear into the background.
+        const fitted = fitCameraToObject(THREE, camera, controls, mainGroup)
+        scene.fog = new THREE.Fog(
+          0x080b10,
+          Math.max(fitted.dist * 1.6, fitted.maxDim * 2.2, 220),
+          Math.max(fitted.dist * 5.5, fitted.maxDim * 8, 900),
+        )
 
         // Lights
         const ambient = new THREE.AmbientLight(0x404060, 2.5)
