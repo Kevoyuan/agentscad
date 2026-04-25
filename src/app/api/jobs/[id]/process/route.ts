@@ -4,6 +4,7 @@ import { broadcastWs } from "@/lib/ws-broadcast";
 import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
 import { loadFamilySchema, buildScadPrompt, applyParameterOverrides } from "@/lib/skill-resolver";
 import { validateStl } from "@/lib/mesh-validator";
+import { validatePreviewAgainstRequest } from "@/lib/visual-validator";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -912,7 +913,45 @@ export async function POST(
           });
           await delay(1200);
 
-          const validationResults = await validateStl(stlFilePath, wallThickness);
+          const meshValidationResults = await validateStl(stlFilePath, wallThickness);
+          sendEvent({
+            state: "RENDERED",
+            step: "validating",
+            message: "Running visual design-intent validation...",
+          });
+          const visualValidationResults = await validatePreviewAgainstRequest({
+            inputRequest: job.inputRequest,
+            partFamily,
+            scadSource: scadCode,
+            previewImagePath: pngFilePath,
+          });
+          const validationResults = [...meshValidationResults, ...visualValidationResults];
+          const criticalFailures = validationResults.filter((rule) => !rule.passed && rule.is_critical);
+
+          if (criticalFailures.length > 0) {
+            await db.job.update({
+              where: { id },
+              data: {
+                state: "VALIDATION_FAILED",
+                validationResults: JSON.stringify(validationResults),
+                executionLogs: appendLog(
+                  (await db.job.findUnique({ where: { id } }))?.executionLogs,
+                  "VALIDATION_FAILED",
+                  `Validation failed: ${criticalFailures.map((rule) => `${rule.rule_id} ${rule.rule_name}`).join(", ")}`
+                ),
+              },
+            });
+
+            sendEvent({
+              state: "VALIDATION_FAILED",
+              step: "validation_failed",
+              message: "Validation failed - critical design-intent or mesh rules did not pass",
+              validationResults,
+            });
+            broadcastWs("job:update", { jobId: id, state: "VALIDATION_FAILED", action: "validation_failed" }).catch(() => {});
+            controller.close();
+            return;
+          }
 
           await db.job.update({
             where: { id },
