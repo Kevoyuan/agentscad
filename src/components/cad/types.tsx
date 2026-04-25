@@ -42,6 +42,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  images?: string[]
 }
 
 export interface Job {
