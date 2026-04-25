@@ -761,6 +761,23 @@ pre:hover .code-copy-btn { opacity: 1; }
   box-shadow: 0 0 0 3px var(--cad-accent-soft);
 }
 
+.cad-inspector-panel {
+  min-width: 0;
+}
+
+.cad-inspector-tabs {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cad-inspector-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.cad-inspector-tabs [role="tab"] {
+  min-width: max-content;
+}
+
 @media (max-width: 1023px) {
   .cad-left-panel {
     display: none !important;

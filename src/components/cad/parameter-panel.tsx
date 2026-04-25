@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Wrench, Loader2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
@@ -142,10 +141,10 @@ export function ParameterPanel({
   const changedCount = changedKeys.size
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-4 py-2">
         <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Parameters</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 shrink-0 items-center gap-2">
           {changedCount > 0 && (
             <Badge variant="outline" className="text-[9px] h-4 bg-[var(--cad-accent-soft)] text-[var(--cad-accent)] border-[color:var(--cad-border)]">
               {changedCount} changed
@@ -172,9 +171,9 @@ export function ParameterPanel({
           )}
         </div>
       </div>
-      <ScrollArea className="flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <motion.div
-          className="p-3 space-y-4"
+          className="space-y-4 p-3 pb-24"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
@@ -295,7 +294,7 @@ export function ParameterPanel({
             </motion.div>
           ))}
         </motion.div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

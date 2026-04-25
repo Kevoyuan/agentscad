@@ -64,7 +64,7 @@ export function ViewerPanel({
   const isSelectedProcessing = Boolean(selectedJob && isProcessing && processingJobId === selectedJob.id)
 
   return (
-    <ResizablePanel defaultSize={52} minSize={36} className="cad-viewer-panel">
+    <ResizablePanel id="agentscad-viewer-panel" order={2} defaultSize={52} minSize={36} className="cad-viewer-panel">
       <div className="flex flex-col h-full bg-[var(--app-bg)]">
         {selectedJob ? (
           <>

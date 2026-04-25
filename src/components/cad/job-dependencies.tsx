@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, Unlink, ChevronDown, ChevronRight, FileCode, GitBranch, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { Job, getStateInfo } from './types'
 import { linkJob, unlinkJob, fetchJobs } from './api'
@@ -92,14 +91,14 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)] shrink-0">
+      <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-4 py-2">
         <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-2">
           <GitBranch className="w-3 h-3" />
           Dependencies
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {dependencyCount} link{dependencyCount !== 1 ? 's' : ''}
           </Badge>
@@ -126,8 +125,8 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="space-y-4 p-4 pb-8">
           {/* Link to parent dialog */}
           <AnimatePresence>
             {isLinking && (
@@ -316,7 +315,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

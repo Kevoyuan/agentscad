@@ -78,9 +78,11 @@ export function InspectorPanel({
         return <ParameterPanel job={selectedJob} onUpdate={onUpdate} />
       case 'MODEL':
         return (
-          <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(180px,0.55fr)]">
-            <ResearchPanel job={selectedJob} />
-            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+          <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(180px,0.55fr)]">
+            <div className="min-h-0 min-w-0 overflow-hidden">
+              <ResearchPanel job={selectedJob} />
+            </div>
+            <div className="min-h-0 min-w-0 overflow-hidden border-t border-[color:var(--app-border)]">
               <JobDependencies job={selectedJob} allJobs={allJobs} onUpdate={onUpdate} onNavigateToJob={onNavigateToJob} />
             </div>
           </div>
@@ -89,21 +91,25 @@ export function InspectorPanel({
         return <ValidationPanel job={selectedJob} />
       case 'CODE':
         return (
-          <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(160px,0.5fr)]">
-            <ScadEditor job={selectedJob} onUpdate={onUpdate} onApply={onApplyScad} />
-            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+          <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(240px,3fr)_minmax(220px,2fr)]">
+            <div className="min-h-0 min-w-0 overflow-hidden">
+              <ScadEditor job={selectedJob} onUpdate={onUpdate} onApply={onApplyScad} />
+            </div>
+            <div className="min-h-0 min-w-0 overflow-hidden border-t border-[color:var(--app-border)]">
               <ChatPanel key={selectedJob.id} job={selectedJob} onApplyScad={onApplyScad} />
             </div>
           </div>
         )
       case 'HISTORY':
         return (
-          <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(160px,0.55fr)_minmax(140px,0.5fr)]">
-            <JobVersionHistory key={selectedJob.id} job={selectedJob} />
-            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+          <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(160px,0.55fr)_minmax(140px,0.5fr)]">
+            <div className="min-h-0 min-w-0 overflow-hidden">
+              <JobVersionHistory key={selectedJob.id} job={selectedJob} />
+            </div>
+            <div className="min-h-0 min-w-0 overflow-hidden border-t border-[color:var(--app-border)]">
               <TimelinePanel job={selectedJob} />
             </div>
-            <div className="min-h-0 border-t border-[color:var(--app-border)]">
+            <div className="min-h-0 min-w-0 overflow-hidden border-t border-[color:var(--app-border)]">
               <NotesPanel job={selectedJob} onUpdate={onUpdate} />
             </div>
           </div>
@@ -114,8 +120,8 @@ export function InspectorPanel({
   }
 
   return (
-    <ResizablePanel defaultSize={30} minSize={24} maxSize={42} className="cad-inspector-panel">
-      <div className="flex flex-col h-full bg-[var(--app-surface)]">
+    <ResizablePanel id="agentscad-inspector-panel" order={3} defaultSize={30} minSize={24} maxSize={42} className="cad-inspector-panel min-w-0">
+      <div className="flex h-full min-h-0 min-w-0 flex-col bg-[var(--app-surface)]">
         {selectedJob ? (
           <Tabs value={normalizedActiveTab} onValueChange={(v) => {
             const tabOrder = ['SPEC', 'PARAMETERS', 'MODEL', 'CODE', 'VALIDATION', 'HISTORY']
@@ -124,9 +130,9 @@ export function InspectorPanel({
             onSetTabDirection(newIdx > oldIdx ? 1 : -1)
             onSetPrevTab(normalizedActiveTab)
             onSetActiveTab(v)
-          }} className="flex flex-col h-full">
+          }} className="flex h-full min-h-0 min-w-0 flex-col">
             {/* Inspector Breadcrumb */}
-            <div className="px-3 py-1 shrink-0 breadcrumb-fade-in">
+            <div className="min-w-0 shrink-0 px-3 py-1 breadcrumb-fade-in">
               <BreadcrumbNav
                 jobId={selectedJob.id}
                 activeTab={normalizedActiveTab}
@@ -136,7 +142,7 @@ export function InspectorPanel({
             </div>
             {/* Gradient separator between breadcrumb and tabs */}
             <div className="gradient-separator" />
-            <TabsList className="w-full justify-start px-2 py-1 bg-transparent border-b border-[color:var(--app-border)] h-auto rounded-none shrink-0">
+            <TabsList className="cad-inspector-tabs w-full justify-start overflow-x-auto overflow-y-hidden px-2 py-1 bg-transparent border-b border-[color:var(--app-border)] h-auto rounded-none shrink-0">
               {[
                 { key: 'SPEC', label: 'SPEC', icon: BoxSelect },
                 { key: 'PARAMETERS', label: 'PARAMS', icon: Settings },
@@ -148,13 +154,13 @@ export function InspectorPanel({
                 <TabsTrigger
                   key={tab.key}
                   value={tab.key}
-                  className="tab-indicator text-[9px] font-mono tracking-wider px-2 py-1.5 data-[state=active]:bg-[var(--app-accent-bg)] data-[state=active]:text-[var(--app-accent-text)] data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
+                  className="tab-indicator shrink-0 text-[9px] font-mono tracking-wider px-2.5 py-1.5 data-[state=active]:bg-[var(--app-accent-bg)] data-[state=active]:text-[var(--app-accent-text)] data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
                 >
                   {tab.label}
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
               <AnimatePresence mode="wait" custom={tabDirection}>
                 <motion.div
                   key={normalizedActiveTab}
@@ -163,7 +169,7 @@ export function InspectorPanel({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: tabDirection * -20 }}
                   transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className={`h-full ${tabDirection > 0 ? 'slide-in-right' : 'slide-in-left'}`}
+                  className={`h-full min-h-0 min-w-0 ${tabDirection > 0 ? 'slide-in-right' : 'slide-in-left'}`}
                 >
                   {renderActiveTab()}
                 </motion.div>

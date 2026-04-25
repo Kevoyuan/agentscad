@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion'
 import { Beaker, Lightbulb, Globe, Target, Cpu, Layers, Info } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job, parseJSON } from './types'
 import { SchemaInfoPanel } from './parameter-panel'
 import { fadeInUp, fadeInUpTransition, staggerContainer, staggerChild, staggerTransition, scaleIn, scaleInTransition } from './motion-presets'
@@ -34,13 +33,13 @@ export function ResearchPanel({ job }: { job: Job }) {
   ]
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-[color:var(--app-border)] px-4 py-2">
         <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Research & Intent</h3>
       </div>
-      <ScrollArea className="flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <motion.div
-          className="p-3 space-y-3"
+          className="space-y-3 p-3 pb-8"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
@@ -122,7 +121,7 @@ export function ResearchPanel({ job }: { job: Job }) {
             </motion.div>
           )}
         </motion.div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

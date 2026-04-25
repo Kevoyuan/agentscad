@@ -259,7 +259,7 @@ export function MainWorkspace() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal">
+        <ResizablePanelGroup id="agentscad-workspace-panels" direction="horizontal">
           <JobListPanel
             jobs={state.jobs}
             sortedJobs={state.sortedJobsForDnd}
@@ -286,7 +286,7 @@ export function MainWorkspace() {
             onSetActiveTab={state.setActiveTab}
           />
 
-          <ResizableHandle withHandle />
+          <ResizableHandle id="agentscad-left-viewer-resize" withHandle />
 
           <ViewerPanel
             selectedJob={state.selectedJob}
@@ -306,7 +306,7 @@ export function MainWorkspace() {
             onShowComposer={() => state.setShowComposer(true)}
           />
 
-          <ResizableHandle withHandle />
+          <ResizableHandle id="agentscad-viewer-inspector-resize" withHandle />
 
           <InspectorPanel
             selectedJob={state.selectedJob}

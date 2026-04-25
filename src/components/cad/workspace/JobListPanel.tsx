@@ -72,7 +72,7 @@ export function JobListPanel({
   onSetActiveTab: (tab: string) => void
 }) {
   return (
-    <ResizablePanel defaultSize={18} minSize={14} maxSize={30} className="cad-left-panel">
+    <ResizablePanel id="agentscad-job-list-panel" order={1} defaultSize={18} minSize={14} maxSize={30} className="cad-left-panel">
       <div className="flex flex-col h-full bg-[var(--app-surface)]">
         {/* Search & Filter Panel */}
         <SearchFilterPanel

@@ -182,9 +182,10 @@ function formatDuration(ms: number): string {
 // ─── Live Elapsed Timer ─────────────────────────────────────────────────────
 
 function LiveElapsed({ createdAt }: { createdAt: string }) {
-  const [elapsed, setElapsed] = useState(calculateElapsed(createdAt))
+  const [elapsed, setElapsed] = useState('--')
 
   useEffect(() => {
+    setElapsed(calculateElapsed(createdAt))
     const interval = setInterval(() => {
       setElapsed(calculateElapsed(createdAt))
     }, 1000)
@@ -194,43 +195,79 @@ function LiveElapsed({ createdAt }: { createdAt: string }) {
   return <span>{elapsed}</span>
 }
 
-function ProcessingSkeleton({ state }: { state: string }) {
-  const ribs = Array.from({ length: 9 })
+function ProcessingPreview({
+  state,
+  progress,
+  streamEvents,
+}: {
+  state: string
+  progress: number
+  streamEvents: Array<{ step: string; state: string; message: string; timestamp: string }>
+}) {
   const isRender = state === 'SCAD_GENERATED' || state === 'RENDERED'
+  const latestEvent = streamEvents[streamEvents.length - 1]
 
   return (
-    <div className="relative h-[260px] w-full overflow-hidden rounded-lg cad-viewport-shell">
-      <motion.div
-        className="absolute inset-x-12 top-12 h-28 rounded-[40%] border border-[color:var(--cad-accent)]/50 bg-[var(--cad-accent-soft)]"
-        animate={{ scale: isRender ? [0.94, 1.02, 0.98] : [0.96, 1, 0.96], opacity: [0.45, 0.78, 0.45] }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative w-56 h-40">
-          {ribs.map((_, idx) => (
-            <motion.div
-              key={idx}
-              className="absolute left-1/2 top-1/2 h-20 w-2 rounded-full bg-[var(--cad-accent)]/45 origin-bottom"
-              style={{ rotate: `${idx * 40}deg`, transformOrigin: '50% 78px' }}
-              animate={{ opacity: [0.18, 0.75, 0.18], height: [54, 82, 54] }}
-              transition={{ duration: 1.8, repeat: Infinity, delay: idx * 0.08, ease: 'easeInOut' }}
-            />
-          ))}
-          <motion.div
-            className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--cad-border-strong)] bg-[var(--cad-bg)]"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-          />
+    <div className="relative h-[260px] w-full overflow-hidden rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-bg)]">
+      <div className="absolute inset-0 opacity-80 [background-image:linear-gradient(90deg,var(--cad-grid)_1px,transparent_1px),linear-gradient(0deg,var(--cad-grid)_1px,transparent_1px)] [background-size:24px_24px]" />
+      <div className="absolute left-3 top-3 flex items-center gap-2">
+        <span className="cad-chip bg-[var(--cad-surface)] text-[var(--cad-text-secondary)]">Pipeline preview</span>
+        <span className="hidden rounded border border-[color:var(--cad-border)] bg-[var(--cad-surface)] px-2 py-1 font-mono text-[8px] uppercase tracking-widest text-[var(--cad-text-muted)] sm:inline-flex">
+          Geometry after render
+        </span>
+      </div>
+
+      <div className="absolute inset-x-8 top-16 h-32">
+        <motion.div
+          className="absolute inset-x-0 top-7 h-20 rounded-[28px] border border-[color:var(--cad-border-strong)] bg-[var(--cad-accent-soft)]"
+          animate={{ opacity: isRender ? [0.34, 0.58, 0.34] : [0.18, 0.32, 0.18] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="absolute inset-x-10 top-11 h-12 rounded-[20px] border border-dashed border-[color:var(--cad-border-strong)]" />
+        <motion.div
+          className="absolute left-1/2 top-0 h-32 w-px bg-[var(--cad-measure)]"
+          animate={{ opacity: [0.2, 0.85, 0.2] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute left-1/2 top-16 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--cad-border-strong)] bg-[var(--cad-surface)] shadow-[0_0_40px_var(--cad-accent-soft)]"
+          animate={{ scale: isRender ? [0.96, 1.06, 0.96] : [0.98, 1.02, 0.98] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-3">
+          {PIPELINE_STEPS.map((step, idx) => {
+            const active = step.key === state
+            const done = idx < PIPELINE_STEPS.findIndex(s => s.key === state) || state === 'DELIVERED'
+            return (
+              <motion.div
+                key={step.key}
+                className={`h-px w-12 rounded-full ${done ? 'bg-lime-400/70' : active ? 'bg-[var(--cad-accent)]' : 'bg-[var(--cad-border)]'}`}
+                animate={active ? { height: [1, 8, 1], opacity: [0.5, 1, 0.5] } : undefined}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            )
+          })}
         </div>
       </div>
+
       <motion.div
-        className="absolute left-0 right-0 top-0 h-px bg-[var(--cad-measure)]"
-        animate={{ y: [18, 238, 18], opacity: [0.1, 0.8, 0.1] }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute left-0 top-0 h-full w-16 bg-gradient-to-r from-transparent via-[var(--cad-accent-soft)] to-transparent"
+        animate={{ x: ['-20%', '120%'] }}
+        transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <div className="absolute left-3 top-3 cad-chip bg-black/25">live build</div>
-      <div className="absolute bottom-3 right-3 text-[8px] font-mono tracking-widest text-[var(--cad-text-muted)]">
-        STREAMING PIPELINE
+
+      <div className="absolute bottom-3 left-3 right-3">
+        <div className="flex items-center justify-between gap-3 font-mono text-[9px] text-[var(--cad-text-muted)]">
+          <span className="truncate">{latestEvent?.message || 'Queued CAD generation pipeline...'}</span>
+          <span className="shrink-0 text-[var(--cad-measure)]">{progress}%</span>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--cad-border)]">
+          <motion.div
+            className="h-full rounded-full bg-[var(--cad-accent)]"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+          />
+        </div>
       </div>
     </div>
   )
@@ -276,7 +313,7 @@ export function JobStatusPage({ job, streamEvents = [], onViewLogs, onCancel, is
           className="h-full cad-viewport-shell p-4 grid content-center gap-4 xl:grid-cols-[minmax(0,1.2fr)_360px]"
         >
           <div className="flex min-h-0 flex-col justify-center gap-5">
-            <ProcessingSkeleton state={state} />
+            <ProcessingPreview state={state} progress={effectiveProgress} streamEvents={streamEvents} />
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
                 <AnimatedStateIcon state={state} />
@@ -418,7 +455,7 @@ export function JobStatusPage({ job, streamEvents = [], onViewLogs, onCancel, is
                 <span className="cad-status-dot" />
               </div>
               <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1">
-                {(streamEvents.length ? streamEvents : [{ step: 'waiting', state, message: 'Waiting for pipeline stream...', timestamp: new Date().toISOString() }]).map((event, idx) => (
+                {(streamEvents.length ? streamEvents : [{ step: 'waiting', state, message: 'Waiting for pipeline stream...', timestamp: job.updatedAt || job.createdAt }]).map((event, idx) => (
                   <motion.div
                     key={`${event.timestamp}-${idx}`}
                     initial={{ opacity: 0, y: 4 }}
