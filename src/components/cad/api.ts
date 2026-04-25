@@ -121,6 +121,12 @@ export function sendChatMessageStream(
       }
       const decoder = new TextDecoder()
       let buffer = ''
+      let didFinish = false
+      const finishOnce = () => {
+        if (didFinish) return
+        didFinish = true
+        onDone()
+      }
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -134,7 +140,7 @@ export function sendChatMessageStream(
               if (data.type === 'token' && data.content) {
                 onToken(data.content)
               } else if (data.type === 'done') {
-                onDone()
+                finishOnce()
               } else if (data.type === 'error') {
                 onError(data.message || 'Stream error')
               }
@@ -143,7 +149,7 @@ export function sendChatMessageStream(
         }
       }
       // Ensure done is called if stream ends without explicit done event
-      onDone()
+      finishOnce()
     })
     .catch((err) => {
       if (err.name !== 'AbortError') {
