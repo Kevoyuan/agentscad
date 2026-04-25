@@ -6,6 +6,7 @@ import { promisify } from 'util'
 import { db } from '@/lib/db'
 import { broadcastWs } from '@/lib/ws-broadcast'
 import { trackVersion } from '@/lib/version-tracker'
+import { validatePreviewAgainstRequest } from '@/lib/visual-validator'
 
 const execAsync = promisify(exec)
 
@@ -340,7 +341,47 @@ export async function POST(
           })
           broadcastWs('job:update', { jobId: id, state: 'RENDERED', action: 'rendered' }).catch(() => {})
 
-          const validationResults = generateValidationResults(parameterState.wallThickness)
+          const deterministicValidationResults = generateValidationResults(parameterState.wallThickness)
+          sendEvent({
+            state: 'RENDERED',
+            step: 'validating',
+            message: 'Running visual design-intent validation...',
+          })
+          const visualValidationResults = await validatePreviewAgainstRequest({
+            inputRequest: job.inputRequest,
+            partFamily: job.partFamily,
+            scadSource,
+            previewImagePath: pngFilePath,
+          })
+          const validationResults = [...deterministicValidationResults, ...visualValidationResults]
+          const criticalFailures = validationResults.filter((rule) => !rule.passed && rule.is_critical)
+
+          if (criticalFailures.length > 0) {
+            const failedJob = await db.job.update({
+              where: { id },
+              data: {
+                state: 'VALIDATION_FAILED',
+                validationResults: JSON.stringify(validationResults),
+                executionLogs: appendLog(
+                  (await db.job.findUnique({ where: { id } }))?.executionLogs,
+                  'VALIDATION_FAILED',
+                  `Applied SCAD validation failed: ${criticalFailures.map((rule) => `${rule.rule_id} ${rule.rule_name}`).join(', ')}`
+                ),
+              },
+            })
+
+            sendEvent({
+              state: 'VALIDATION_FAILED',
+              step: 'validation_failed',
+              message: 'Applied SCAD failed visual or engineering validation.',
+              validationResults,
+              job: failedJob,
+            })
+            broadcastWs('job:update', { jobId: id, state: 'VALIDATION_FAILED', action: 'validation_failed' }).catch(() => {})
+            controller.close()
+            return
+          }
+
           const validatedJob = await db.job.update({
             where: { id },
             data: {
