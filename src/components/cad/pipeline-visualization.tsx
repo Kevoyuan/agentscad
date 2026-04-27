@@ -45,8 +45,13 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
   const isFailed = failedStates.includes(state)
   const progress = getPipelineProgress(state)
 
-  // Find which step failed
-  const failedStepKey = isFailed ? state.replace('_FAILED', '') : null
+  // Find which step failed — map failed states to their pipeline step keys
+  const failedStepMap: Record<string, string> = {
+    'GEOMETRY_FAILED': 'SCAD_GENERATED',
+    'RENDER_FAILED': 'RENDERED',
+    'VALIDATION_FAILED': 'VALIDATED',
+  }
+  const failedStepKey = isFailed ? failedStepMap[state] ?? null : null
   const failedStepIdx = failedStepKey ? PIPELINE_STEPS.findIndex(s => s.key === failedStepKey) : -1
 
   // Calculate step durations from execution logs
