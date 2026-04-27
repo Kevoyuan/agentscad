@@ -1,0 +1,87 @@
+{
+  "managed_library_dir_env": "CADCAD_OPENSCAD_LIBRARY_DIR",
+  "default_managed_library_dir": "~/.cadcad/openscad-libraries",
+  "libraries": [
+    {
+      "name": "BOSL2",
+      "repo": "https://github.com/BelfrySCAD/BOSL2.git",
+      "commit": "c3861cfc2f146676b86de0d3f76896ca1f7735d7",
+      "target_dir": "BOSL2",
+      "license": "BSD-2-Clause",
+      "license_gate": "permissive",
+      "default_install": true,
+      "required_files": ["std.scad"],
+      "detection_files": ["BOSL2/std.scad"],
+      "skill_name": "scad-library-bosl2",
+      "include_examples": ["include <BOSL2/std.scad>"]
+    },
+    {
+      "name": "Round-Anything",
+      "repo": "https://github.com/Irev-Dev/Round-Anything.git",
+      "commit": "061fef7c429628808e847696bb345a9b0ec6e279",
+      "target_dir": "Round-Anything",
+      "license": "MIT",
+      "license_gate": "permissive",
+      "default_install": true,
+      "required_files": ["polyround.scad"],
+      "detection_files": ["Round-Anything/polyround.scad", "polyround.scad"],
+      "skill_name": "scad-library-round-anything",
+      "include_examples": ["use <Round-Anything/polyround.scad>"]
+    },
+    {
+      "name": "MCAD",
+      "repo": "https://github.com/openscad/MCAD.git",
+      "commit": "bd0a7ba3f042bfbced5ca1894b236cea08904e26",
+      "target_dir": "MCAD",
+      "license": "LGPL-2.1",
+      "license_gate": "weak-copyleft",
+      "default_install": true,
+      "required_files": ["units.scad", "involute_gears.scad"],
+      "detection_files": ["MCAD/units.scad", "MCAD/involute_gears.scad"],
+      "skill_name": "scad-library-mcad",
+      "include_examples": ["include <MCAD/units.scad>", "use <MCAD/involute_gears.scad>"]
+    },
+    {
+      "name": "threadlib",
+      "repo": "https://github.com/adrianschlatter/threadlib.git",
+      "commit": "3830919a9937d2f662f7205f1dfd28c5bb948aba",
+      "target_dir": "threadlib",
+      "license": "BSD-3-Clause",
+      "license_gate": "permissive",
+      "default_install": false,
+      "default_install_reason": "Requires additional OpenSCAD dependencies (scad-utils, list-comprehension, thread_profile.scad). Keep opt-in until dependency chain is managed.",
+      "required_files": ["threadlib.scad"],
+      "detection_files": ["threadlib/threadlib.scad"],
+      "skill_name": "scad-library-threads",
+      "include_examples": ["use <threadlib/threadlib.scad>"]
+    },
+    {
+      "name": "threads.scad",
+      "repo": null,
+      "commit": null,
+      "target_dir": "",
+      "license": "CC0-1.0",
+      "license_gate": "public-domain",
+      "default_install": false,
+      "default_install_reason": "External single-file library support only. Add a reviewed source before managed installation.",
+      "required_files": ["threads.scad"],
+      "detection_files": ["threads.scad"],
+      "skill_name": "scad-library-threads",
+      "include_examples": ["include <threads.scad>"]
+    },
+    {
+      "name": "NopSCADlib",
+      "repo": "https://github.com/nophead/NopSCADlib.git",
+      "commit": "c9baa0ed0faa23e849141c3d8c6728545d6af910",
+      "target_dir": "NopSCADlib",
+      "license": "GPL-3.0",
+      "license_gate": "gpl",
+      "default_install": false,
+      "default_install_reason": "GPL-3.0 library. Require explicit opt-in and preserve license notices.",
+      "required_files": ["core.scad"],
+      "detection_files": ["NopSCADlib/core.scad"],
+      "skill_name": "scad-library-nopscadlib",
+      "include_examples": ["include <NopSCADlib/core.scad>"]
+    }
+  ]
+}

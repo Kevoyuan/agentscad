@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { buildScadLibraryPrompt } from "@/lib/tools/scad-library-resolver";
 import { getLearnedPatternsForFamily } from "@/lib/improvement-analyzer";
 
 // ---------------------------------------------------------------------------
@@ -121,6 +122,7 @@ export async function buildScadPrompt(
   if (!skillContent) return null;
 
   const familySchema = await loadFamilySchema(partFamily);
+  const libraryPrompt = await buildScadLibraryPrompt();
 
   // Apply parameter overrides to the schema defaults
   const params = (familySchema?.parameters ?? []).map((p) => {
@@ -148,11 +150,11 @@ export async function buildScadPrompt(
   let userPromptTemplate: string;
 
   if (markerIdx >= 0) {
-    systemPrompt = skillContent.slice(0, markerIdx).trim();
+    systemPrompt = `${skillContent.slice(0, markerIdx).trim()}\n\n${libraryPrompt}`;
     userPromptTemplate = skillContent.slice(markerIdx + marker.length).trim();
   } else {
     // Fallback: entire file is the system prompt, build a simple user prompt
-    systemPrompt = skillContent.trim();
+    systemPrompt = `${skillContent.trim()}\n\n${libraryPrompt}`;
     userPromptTemplate = `Generate OpenSCAD code for the following request:\n\n"{inputRequest}"\n\nDetected part family: {partFamily}\n\nSuggested parameters:\n{paramSummary}\n\nCurrent parameter values:\n{parameterValues}\n\nReturn the JSON object with summary, parameters, and scad_source.`;
   }
 
