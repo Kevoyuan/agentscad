@@ -12,6 +12,11 @@ Use this resolver to choose the smallest SCAD skill needed for a job. Keep the r
 | Explain or modify SCAD conversationally | `skills/scad-chat/SKILL.md` |
 | Compare rendered preview to design intent | `skills/scad-visual-validate/SKILL.md` |
 | Decide when OpenSCAD libraries may be used | `skills/scad-library-policy/SKILL.md` |
+| Use BOSL2 helpers in generated OpenSCAD | `skills/scad-library-bosl2/SKILL.md` |
+| Use NopSCADlib helpers in generated OpenSCAD | `skills/scad-library-nopscadlib/SKILL.md` |
+| Use Round-Anything helpers in generated OpenSCAD | `skills/scad-library-round-anything/SKILL.md` |
+| Use MCAD helpers in generated OpenSCAD | `skills/scad-library-mcad/SKILL.md` |
+| Use threads.scad or threadlib helpers in generated OpenSCAD | `skills/scad-library-threads/SKILL.md` |
 | Improve generation from user edits | `skills/scad-improvement/SKILL.md` |
 | Work on the codebase or docs safely | `skills/developer-workflow/SKILL.md` |
 
@@ -36,6 +41,9 @@ Do not change these contracts from skill content:
 
 - Prefer adding or refining skills/docs over widening orchestration code.
 - Prefer approved OpenSCAD libraries when the runtime reports them available.
+- Treat `skills/scad-library-policy/manifest.json` as the source of truth for approved OpenSCAD libraries, license gates, pinned install commits, detection files, and include examples.
+- Keep managed OpenSCAD libraries outside the repo by default at `~/.cadcad/openscad-libraries`.
+- Do not install GPL libraries by default; GPL libraries require explicit opt-in and preserved license notices.
 - Never copy third-party library source into generated SCAD or this repository without explicit human licensing review.
 - Never rename state strings, step strings, artifact filenames, or validation fields casually; the UI and job recovery depend on them.
 - Treat learned patterns as optional context, not hard constraints.
