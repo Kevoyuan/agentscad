@@ -260,6 +260,7 @@ export function SearchFilterPanel({
             onChange={e => updateFilter('search', e.target.value)}
             placeholder="Search jobs... (⌘K for command palette)"
             className="h-7 pl-7 pr-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
+            suppressHydrationWarning
           />
           {filters.search && (
             <button
@@ -295,7 +296,8 @@ export function SearchFilterPanel({
       {/* State Pills - Always visible */}
       <div className="flex items-center gap-1 px-3 py-1.5 border-t border-[color:var(--app-border-separator)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {FILTER_STATES.map(f => {
-          const count = f.key === 'ALL' ? allJobs.length :
+          const totalFiltered = Object.values(stateCounts).reduce((a, b) => a + b, 0)
+          const count = f.key === 'ALL' ? totalFiltered :
             f.key === 'FAILED' ? (stateCounts['VALIDATION_FAILED'] || 0) + (stateCounts['GEOMETRY_FAILED'] || 0) + (stateCounts['RENDER_FAILED'] || 0) :
             stateCounts[f.key] || 0
           const isMultiActive = f.key === 'ALL'
