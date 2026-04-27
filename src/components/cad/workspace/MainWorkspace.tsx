@@ -17,7 +17,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -381,11 +381,14 @@ export function MainWorkspace() {
 
       {/* Keyboard Shortcuts Dialog */}
       <Dialog open={state.showShortcuts} onOpenChange={state.setShowShortcuts}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-md dialog-enter">
+        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-md dialog-enter" aria-describedby="shortcuts-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Keyboard className="w-4 h-4 text-[var(--app-accent-text)]" />Keyboard Shortcuts
             </DialogTitle>
+            <DialogDescription id="shortcuts-description" className="sr-only">
+              Keyboard shortcuts for navigating and controlling AgentSCAD
+            </DialogDescription>
           </DialogHeader>
           <div className="gradient-divider" />
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
@@ -485,11 +488,14 @@ export function MainWorkspace() {
 
       {/* Stats Dashboard */}
       <Dialog open={state.showStats} onOpenChange={state.setShowStats}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-2xl dialog-enter">
+        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-2xl dialog-enter" aria-describedby="stats-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[var(--app-accent-text)]" />Stats Dashboard
             </DialogTitle>
+            <DialogDescription id="stats-description" className="sr-only">
+              Statistics and metrics for all CAD jobs
+            </DialogDescription>
           </DialogHeader>
           <StatsDashboard jobs={state.allJobs} />
         </DialogContent>
@@ -497,11 +503,14 @@ export function MainWorkspace() {
 
       {/* Job Compare */}
       <Dialog open={state.showCompare} onOpenChange={state.setShowCompare}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-4xl max-h-[80vh] dialog-enter">
+        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-4xl max-h-[80vh] dialog-enter" aria-describedby="compare-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <GitCompare className="w-4 h-4 text-[var(--app-accent-text)]" />Compare Jobs
             </DialogTitle>
+            <DialogDescription id="compare-description" className="sr-only">
+              Side-by-side comparison of selected CAD jobs
+            </DialogDescription>
           </DialogHeader>
           <JobCompare jobs={state.allJobs} />
         </DialogContent>
@@ -509,11 +518,14 @@ export function MainWorkspace() {
 
       {/* Theme & Settings */}
       <Dialog open={state.showSettings} onOpenChange={state.setShowSettings}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-sm dialog-enter">
+        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-sm dialog-enter" aria-describedby="settings-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Palette className="w-4 h-4 text-[var(--app-accent-text)]" />Theme & Settings
             </DialogTitle>
+            <DialogDescription id="settings-description" className="sr-only">
+              Theme customization and application settings
+            </DialogDescription>
           </DialogHeader>
           <div className="gradient-divider" />
           <ThemePanel />

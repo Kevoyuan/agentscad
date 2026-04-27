@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 
@@ -95,11 +95,14 @@ export function JobComposer({
 
   return (
     <Dialog open={showComposer} onOpenChange={onShowComposerChange}>
-      <DialogContent className="bg-[var(--app-dialog-bg)] border-[color:var(--cad-border)] max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden p-0 gap-0 grid-rows-[auto_auto_minmax(0,1fr)] dialog-enter">
+      <DialogContent className="bg-[var(--app-dialog-bg)] border-[color:var(--cad-border)] max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden p-0 gap-0 grid-rows-[auto_auto_minmax(0,1fr)] dialog-enter" aria-describedby="composer-description">
         <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle className="text-sm flex items-center gap-2">
             <BoxSelect className="w-4 h-4 text-[var(--cad-accent)]" />New CAD Spec
           </DialogTitle>
+          <DialogDescription id="composer-description" className="sr-only">
+            Create a new CAD job by describing the part you want to design
+          </DialogDescription>
         </DialogHeader>
         <Separator />
         <div className="min-h-0 overflow-y-auto px-6 py-4 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) transparent' }}>
