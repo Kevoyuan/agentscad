@@ -18,6 +18,10 @@ type VisualValidationResponse = {
   missing_features?: string[];
 };
 
+type VisualValidationContext = {
+  scadSource?: string;
+};
+
 function skippedResult(reason: string): ValidationResult {
   return {
     rule_id: "V001",
@@ -44,13 +48,50 @@ function extractJsonObject(raw: string): VisualValidationResponse | null {
   }
 }
 
-function buildResult(parsed: VisualValidationResponse, raw: string): ValidationResult {
+function normalizeFeatureName(value: string): string {
+  return value.toLowerCase().replace(/[_-]+/g, " ");
+}
+
+function hasSourceEvidenceForFeature(feature: string, scadSource: string): boolean {
+  const normalized = normalizeFeatureName(feature);
+  const source = scadSource.toLowerCase();
+  const tokens = normalized
+    .split(/[^a-z0-9]+/i)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 4);
+
+  if (tokens.length === 0) return false;
+  return tokens.some((token) => source.includes(token));
+}
+
+function isCoveredBySourceEvidence(issue: VisualValidationIssue, scadSource: string): boolean {
+  const feature = issue.feature || "";
+  const message = issue.message || "";
+  return hasSourceEvidenceForFeature(feature, scadSource) || hasSourceEvidenceForFeature(message, scadSource);
+}
+
+function buildResult(
+  parsed: VisualValidationResponse,
+  raw: string,
+  context: VisualValidationContext = {}
+): ValidationResult {
+  const scadSource = context.scadSource || "";
   const issues = Array.isArray(parsed.issues) ? parsed.issues : [];
-  const criticalIssues = issues.filter((issue) => issue.severity === "critical");
   const missingFeatures = Array.isArray(parsed.missing_features) ? parsed.missing_features : [];
-  const passed = parsed.passed !== false && criticalIssues.length === 0;
+  const unresolvedIssues = scadSource
+    ? issues.filter((issue) => !isCoveredBySourceEvidence(issue, scadSource))
+    : issues;
+  const unresolvedMissingFeatures = scadSource
+    ? missingFeatures.filter((feature) => !hasSourceEvidenceForFeature(feature, scadSource))
+    : missingFeatures;
+  const criticalIssues = unresolvedIssues.filter((issue) => issue.severity === "critical");
+  const sourceResolvedDisagreement =
+    (issues.length > unresolvedIssues.length || missingFeatures.length > unresolvedMissingFeatures.length) &&
+    criticalIssues.length === 0 &&
+    unresolvedMissingFeatures.length === 0;
+  const passed = sourceResolvedDisagreement || (parsed.passed !== false && criticalIssues.length === 0);
   const summary = parsed.summary?.trim() || (passed ? "Rendered preview matches visible design intent" : "Rendered preview has visible design-intent issues");
-  const issueSummary = issues
+  const issueSummary = unresolvedIssues
     .map((issue) => {
       const feature = issue.feature ? `${issue.feature}: ` : "";
       return `${feature}${issue.message || issue.severity || "visual issue"}`;
@@ -58,7 +99,10 @@ function buildResult(parsed: VisualValidationResponse, raw: string): ValidationR
     .filter(Boolean)
     .slice(0, 3)
     .join(" | ");
-  const missingSummary = missingFeatures.length ? ` Missing: ${missingFeatures.slice(0, 5).join(", ")}.` : "";
+  const missingSummary = unresolvedMissingFeatures.length ? ` Missing: ${unresolvedMissingFeatures.slice(0, 5).join(", ")}.` : "";
+  const sourceEvidenceSummary = sourceResolvedDisagreement
+    ? " Source evidence found in OpenSCAD; preview angle treated as inconclusive rather than critical."
+    : "";
   const confidence = typeof parsed.confidence === "number" ? ` Confidence: ${Math.round(parsed.confidence * 100)}%.` : "";
 
   return {
@@ -67,7 +111,7 @@ function buildResult(parsed: VisualValidationResponse, raw: string): ValidationR
     level: "SEMANTIC",
     passed,
     is_critical: !passed,
-    message: `${summary}${issueSummary ? ` Issues: ${issueSummary}.` : ""}${missingSummary}${confidence}`.trim() || raw.slice(0, 240),
+    message: `${summary}${issueSummary ? ` Issues: ${issueSummary}.` : ""}${missingSummary}${sourceEvidenceSummary}${confidence}`.trim() || raw.slice(0, 240),
   };
 }
 
@@ -144,7 +188,7 @@ export async function validatePreviewAgainstRequest({
       return [skippedResult(`vision response was not valid JSON: ${raw.slice(0, 160)}`)];
     }
 
-    return [buildResult(parsed, raw)];
+    return [buildResult(parsed, raw, { scadSource })];
   } catch (error) {
     const message = error instanceof Error ? error.message : "visual validation failed";
     return [skippedResult(message)];
