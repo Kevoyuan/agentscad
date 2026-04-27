@@ -1,112 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
-import { exec } from 'child_process'
-import { promisify } from 'util'
 import { db } from '@/lib/db'
 import { broadcastWs } from '@/lib/ws-broadcast'
 import { trackVersion } from '@/lib/version-tracker'
-import { validatePreviewAgainstRequest } from '@/lib/visual-validator'
-
-const execAsync = promisify(exec)
+import { appendLog, parameterDefsToValues } from '@/lib/stores/job-store'
+import { sanitizeGeneratedScadSource } from '@/lib/tools/scad-sanitizer'
+import {
+  extractParameterDefsFromScad,
+  mergeExtractedParameters,
+} from '@/lib/tools/scad-parameter-extractor'
+import { buildRenderFailureLog, renderScadArtifacts } from '@/lib/tools/scad-renderer'
+import {
+  clearValidationCache,
+  getCriticalValidationFailures,
+  validateRenderedArtifacts,
+} from '@/lib/tools/validation-tool'
+import type { ParameterDef, RenderedArtifacts } from '@/lib/harness/types'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-interface ParameterDef {
-  key: string
-  label: string
-  kind: string
-  unit: string
-  value: number
-  min: number
-  max: number
-  step: number
-  source: string
-  editable: boolean
-  description: string
-  group: string
-}
-
-function appendLog(existingLogs: string | null | undefined, event: string, message: string): string {
-  let logs: Array<{ timestamp: string; event: string; message: string }> = []
-  if (existingLogs) {
-    try {
-      logs = JSON.parse(existingLogs)
-    } catch {
-      logs = []
-    }
-  }
-
-  logs.push({
-    timestamp: new Date().toISOString(),
-    event,
-    message,
-  })
-
-  return JSON.stringify(logs)
-}
-
-function sanitizeGeneratedScadSource(scadSource: string) {
-  return scadSource
-    .replace(/(^|\n)(\s*)module(\s*=)/g, '$1$2tooth_module$3')
-    .replace(/\bmodule\b(?!\s+[A-Za-z_][A-Za-z0-9_]*\s*\()/g, 'tooth_module')
-}
-
-function titleCaseLabel(key: string) {
-  return key
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-function inferUnit(key: string) {
-  if (key.includes('angle')) return 'deg'
-  if (key.includes('count') || key.includes('teeth') || key.includes('index')) return ''
-  return 'mm'
-}
-
-function inferGroup(key: string) {
-  if (key.includes('angle') || key.includes('clearance') || key.includes('tolerance')) return 'engineering'
-  return 'geometry'
-}
-
-function inferStep(value: number) {
-  return Number.isInteger(value) ? 1 : 0.5
-}
-
-function inferRange(key: string, value: number) {
-  if (key.includes('angle')) {
-    return { min: 0, max: Math.max(180, value * 2 || 180) }
-  }
-  if (Number.isInteger(value) && (key.includes('teeth') || key.includes('count'))) {
-    return { min: 1, max: Math.max(500, value * 3 || 500) }
-  }
-
-  const magnitude = Math.max(Math.abs(value), 1)
-  return {
-    min: Math.max(0, Number((magnitude * 0.25).toFixed(2))),
-    max: Number((magnitude * 4).toFixed(2)),
-  }
-}
-
-function extractAssignedParameters(scadSource: string) {
-  const assignedValues: Record<string, number> = {}
-  const assignmentRegex = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(-?\d+(?:\.\d+)?)\s*;/gm
-
-  for (const match of scadSource.matchAll(assignmentRegex)) {
-    const key = match[1]
-    const value = Number(match[2])
-    if (!Number.isFinite(value)) continue
-    assignedValues[key] = value
-  }
-
-  return assignedValues
-}
-
 function inferParameterState(scadSource: string, existingSchemaStr: string | null, existingValuesStr: string | null) {
-  const extractedValues = extractAssignedParameters(scadSource)
   const existingValues = (() => {
     if (!existingValuesStr) return {} as Record<string, number>
     try {
@@ -126,7 +40,8 @@ function inferParameterState(scadSource: string, existingSchemaStr: string | nul
     }
   })()
 
-  if (Object.keys(extractedValues).length === 0) {
+  const extractedParameters = extractParameterDefsFromScad(scadSource)
+  if (extractedParameters.length === 0) {
     return {
       parameterSchema: existingSchemaStr,
       parameterValues: existingValuesStr,
@@ -134,71 +49,14 @@ function inferParameterState(scadSource: string, existingSchemaStr: string | nul
     }
   }
 
-  const schemaByKey = new Map(existingSchema.map((parameter) => [parameter.key, parameter]))
-  const nextSchema: ParameterDef[] = []
-
-  for (const [key, value] of Object.entries(extractedValues)) {
-    const existing = schemaByKey.get(key)
-    const range = inferRange(key, value)
-
-    nextSchema.push({
-      key,
-      label: existing?.label || titleCaseLabel(key),
-      kind: existing?.kind || (Number.isInteger(value) ? 'integer' : 'float'),
-      unit: existing?.unit || inferUnit(key),
-      value,
-      min: existing?.min ?? range.min,
-      max: existing?.max ?? range.max,
-      step: existing?.step ?? inferStep(value),
-      source: existing?.source || 'scad_declared',
-      editable: existing?.editable ?? true,
-      description: existing?.description || `Extracted from applied SCAD source (${key})`,
-      group: existing?.group || inferGroup(key),
-    })
-  }
+  const nextSchema = mergeExtractedParameters(extractedParameters, existingSchema)
+  const extractedValues = parameterDefsToValues(nextSchema)
 
   return {
     parameterSchema: JSON.stringify(nextSchema),
     parameterValues: JSON.stringify(extractedValues),
     wallThickness: extractedValues.wall_thickness ?? existingValues.wall_thickness ?? 2,
   }
-}
-
-function generateValidationResults(wallThickness: number) {
-  return [
-    {
-      rule_id: 'R001',
-      rule_name: 'Minimum Wall Thickness',
-      level: 'ENGINEERING',
-      passed: wallThickness >= 1.2,
-      is_critical: true,
-      message: `Wall thickness ${wallThickness}mm ${wallThickness >= 1.2 ? 'meets' : 'does not meet'} minimum 1.2mm`,
-    },
-    {
-      rule_id: 'R002',
-      rule_name: 'Maximum Dimensions',
-      level: 'MANUFACTURING',
-      passed: true,
-      is_critical: false,
-      message: 'All dimensions within manufacturing limits',
-    },
-    {
-      rule_id: 'R003',
-      rule_name: 'Manifold Geometry',
-      level: 'ENGINEERING',
-      passed: true,
-      is_critical: true,
-      message: 'Geometry is manifold (watertight)',
-    },
-    {
-      rule_id: 'S001',
-      rule_name: 'Semantic Geometry Match',
-      level: 'ENGINEERING',
-      passed: true,
-      is_critical: true,
-      message: 'Applied SCAD rendered successfully',
-    },
-  ]
 }
 
 export async function POST(
@@ -256,43 +114,25 @@ export async function POST(
           })
           broadcastWs('job:update', { jobId: id, state: 'SCAD_GENERATED', action: 'scad_applied' }).catch(() => {})
 
-          const artifactsDir = path.join(process.cwd(), 'public', 'artifacts', id)
-          await fs.mkdir(artifactsDir, { recursive: true })
-
-          const scadFilePath = path.join(artifactsDir, 'model.scad')
-          const stlFilePath = path.join(artifactsDir, 'model.stl')
-          const pngFilePath = path.join(artifactsDir, 'preview.png')
-          await fs.writeFile(scadFilePath, scadSource, 'utf8')
-
           sendEvent({
             state: 'SCAD_GENERATED',
             step: 'rendering',
             message: 'Rendering STL and preview image with current SCAD...',
           })
 
-          let renderTime = 0
+          let renderedArtifacts: RenderedArtifacts | null = null
           try {
-            const renderStart = Date.now()
             sendEvent({ state: 'SCAD_GENERATED', step: 'rendering', message: 'Generating STL...' })
-            await execAsync(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
-
             sendEvent({ state: 'SCAD_GENERATED', step: 'rendering', message: 'Generating PNG preview...' })
-            await execAsync(`openscad -o "${pngFilePath}" --colorscheme=Tomorrow "${scadFilePath}"`)
-            renderTime = Date.now() - renderStart
+            renderedArtifacts = await renderScadArtifacts(id, scadSource)
+            clearValidationCache()
           } catch (error) {
             const renderError = error instanceof Error ? error.message : 'Unknown OpenSCAD render error'
             const failedJob = await db.job.update({
               where: { id },
               data: {
                 state: 'GEOMETRY_FAILED',
-                renderLog: JSON.stringify({
-                  openscad_version: 'error',
-                  render_time_ms: renderTime,
-                  stl_triangles: 0,
-                  stl_vertices: 0,
-                  png_resolution: null,
-                  warnings: [renderError],
-                }),
+                renderLog: JSON.stringify(buildRenderFailureLog(0, [renderError])),
                 executionLogs: appendLog(scadUpdatedJob.executionLogs, 'GEOMETRY_FAILED', `Applied SCAD render failed: ${renderError}`),
               },
             })
@@ -309,24 +149,21 @@ export async function POST(
             return
           }
 
+          if (!renderedArtifacts) {
+            throw new Error('OpenSCAD render did not return artifact paths')
+          }
+
           const renderedJob = await db.job.update({
             where: { id },
             data: {
               state: 'RENDERED',
-              stlPath: `/artifacts/${id}/model.stl`,
-              pngPath: `/artifacts/${id}/preview.png`,
-              renderLog: JSON.stringify({
-                openscad_version: 'real',
-                render_time_ms: renderTime,
-                stl_triangles: 0,
-                stl_vertices: 0,
-                png_resolution: '800x600',
-                warnings: [],
-              }),
+              stlPath: renderedArtifacts.stlPath,
+              pngPath: renderedArtifacts.pngPath,
+              renderLog: JSON.stringify(renderedArtifacts.renderLog),
               executionLogs: appendLog(
                 (await db.job.findUnique({ where: { id } }))?.executionLogs,
                 'RENDERED',
-                `Applied SCAD rendered successfully (${renderTime}ms)`
+                `Applied SCAD rendered successfully (${renderedArtifacts.renderLog.render_time_ms}ms)`
               ),
             },
           })
@@ -341,20 +178,20 @@ export async function POST(
           })
           broadcastWs('job:update', { jobId: id, state: 'RENDERED', action: 'rendered' }).catch(() => {})
 
-          const deterministicValidationResults = generateValidationResults(parameterState.wallThickness)
           sendEvent({
             state: 'RENDERED',
             step: 'validating',
-            message: 'Running visual design-intent validation...',
+            message: 'Running mesh and visual design-intent validation...',
           })
-          const visualValidationResults = await validatePreviewAgainstRequest({
-            inputRequest: job.inputRequest,
+          const validationResults = await validateRenderedArtifacts({
+            inputRequest: job.inputRequest ?? 'generic part',
             partFamily: job.partFamily,
             scadSource,
-            previewImagePath: pngFilePath,
+            stlFilePath: renderedArtifacts.stlFilePath,
+            previewImagePath: renderedArtifacts.pngFilePath,
+            wallThickness: parameterState.wallThickness,
           })
-          const validationResults = [...deterministicValidationResults, ...visualValidationResults]
-          const criticalFailures = validationResults.filter((rule) => !rule.passed && rule.is_critical)
+          const criticalFailures = getCriticalValidationFailures(validationResults)
 
           if (criticalFailures.length > 0) {
             const failedJob = await db.job.update({

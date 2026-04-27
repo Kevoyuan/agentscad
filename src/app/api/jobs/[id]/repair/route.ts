@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { appendLog } from "@/lib/stores/job-store";
 import { broadcastWs } from "@/lib/ws-broadcast";
 import fs from "fs/promises";
 import path from "path";
@@ -87,25 +88,4 @@ async function publicArtifactExists(publicPath: string | null): Promise<boolean>
   } catch {
     return false;
   }
-}
-
-function appendLog(
-  existingLogs: string | null,
-  event: string,
-  message: string
-): string {
-  let logs: Array<{ timestamp: string; event: string; message: string }> = [];
-  if (existingLogs) {
-    try {
-      logs = JSON.parse(existingLogs);
-    } catch {
-      logs = [];
-    }
-  }
-  logs.push({
-    timestamp: new Date().toISOString(),
-    event,
-    message,
-  });
-  return JSON.stringify(logs);
 }

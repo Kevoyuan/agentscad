@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { appendLog } from "@/lib/stores/job-store";
 import { broadcastWs } from "@/lib/ws-broadcast";
 import { trackVersion } from "@/lib/version-tracker";
 
@@ -140,25 +141,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
-
-function appendLog(
-  existingLogs: string | null,
-  event: string,
-  message: string
-): string {
-  let logs: Array<{ timestamp: string; event: string; message: string }> = [];
-  if (existingLogs) {
-    try {
-      logs = JSON.parse(existingLogs);
-    } catch {
-      logs = [];
-    }
-  }
-  logs.push({
-    timestamp: new Date().toISOString(),
-    event,
-    message,
-  });
-  return JSON.stringify(logs);
 }
