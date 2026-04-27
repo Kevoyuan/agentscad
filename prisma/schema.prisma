@@ -13,6 +13,7 @@ model Job {
   inputRequest    String
   customerId      String?
   priority        Int      @default(5)
+  modelId         String?
   partFamily      String?
   builderName     String?
   generationPath  String?

@@ -51,6 +51,7 @@ export interface Job {
   inputRequest: string
   customerId: string | null
   priority: number
+  modelId: string | null
   partFamily: string | null
   builderName: string | null
   generationPath: string | null

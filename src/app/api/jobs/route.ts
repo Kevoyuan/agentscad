@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       jobs,
+      total,
       pagination: {
         total,
         limit,
@@ -77,12 +78,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/jobs
- * Create a new job with inputRequest, customerId, priority
+ * Create a new job with inputRequest, customerId, priority, modelId
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { inputRequest, customerId, priority } = body;
+    const { inputRequest, customerId, priority, modelId } = body;
 
     if (!inputRequest || typeof inputRequest !== "string" || inputRequest.trim().length === 0) {
       return NextResponse.json(
@@ -92,6 +93,10 @@ export async function POST(request: NextRequest) {
     }
 
     const jobPriority = typeof priority === "number" ? Math.min(Math.max(priority, 1), 10) : 5;
+    const selectedModelId =
+      typeof modelId === "string" && modelId.trim().length > 0
+        ? modelId.trim()
+        : process.env.MIMO_MODEL || "mimo-v2.5-pro";
 
     // Generate a default parameter schema based on a generic enclosure
     const defaultParameterSchema = JSON.stringify({
@@ -170,6 +175,7 @@ export async function POST(request: NextRequest) {
         inputRequest: inputRequest.trim(),
         customerId: customerId || null,
         priority: jobPriority,
+        modelId: selectedModelId,
         state: "NEW",
         parameterSchema: defaultParameterSchema,
         parameterValues: defaultParameterValues,
@@ -177,7 +183,7 @@ export async function POST(request: NextRequest) {
           {
             timestamp: new Date().toISOString(),
             event: "JOB_CREATED",
-            message: `Job created with input: ${inputRequest.trim().substring(0, 100)}`,
+            message: `Job created with input: ${inputRequest.trim().substring(0, 100)} (model: ${selectedModelId})`,
           },
         ]),
       },

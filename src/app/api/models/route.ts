@@ -263,6 +263,28 @@ const AVAILABLE_MODELS: ModelInfo[] = [
 
   // ─── DeepSeek ────────────────────────────────────────────────────────────
   {
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    description: "DeepSeek V4 Pro 推理增强模型，适合复杂 CAD/OpenSCAD 生成。",
+    provider: "deepseek",
+    providerName: "DeepSeek",
+    multimodal: false,
+    reasoning: true,
+    category: "reasoning",
+    released: "2026-04",
+  },
+  {
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    description: "DeepSeek V4 Flash 快速模型，适合低延迟 CAD 草稿生成。",
+    provider: "deepseek",
+    providerName: "DeepSeek",
+    multimodal: false,
+    reasoning: true,
+    category: "fast",
+    released: "2026-04",
+  },
+  {
     id: "deepseek-chat",
     name: "DeepSeek-V3",
     description: "DeepSeek旗舰对话模型，671B MoE架构，性价比极高",
