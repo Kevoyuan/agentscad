@@ -102,12 +102,15 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
     <div className="flex items-center gap-2 px-2 py-1">
       <div className="flex items-center gap-0.5">
         {PIPELINE_STEPS.map((step, idx) => {
+          const isTerminalState = state === 'DELIVERED' || state === 'CANCELLED'
           const isCompleted = isFailed
             ? idx < failedStepIdx
-            : idx < currentIdx
+            : isTerminalState
+              ? idx <= currentIdx
+              : idx < currentIdx
           const isCurrent = isFailed
             ? idx === failedStepIdx
-            : idx === currentIdx && !isFailed
+            : !isTerminalState && idx === currentIdx && !isFailed
           const isFailedStep = isFailed && idx === failedStepIdx
           const Icon = step.icon
           const duration = stepDurations[step.key]
