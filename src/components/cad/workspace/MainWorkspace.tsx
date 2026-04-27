@@ -347,6 +347,7 @@ export function MainWorkspace() {
         showComposer={state.showComposer}
         newJobText={state.newJobText}
         newJobPriority={state.newJobPriority}
+        newJobModelId={state.newJobModelId}
         newJobTags={state.newJobTags}
         isCreating={state.isCreating}
         isAiEnhancing={state.isAiEnhancing}
@@ -354,6 +355,7 @@ export function MainWorkspace() {
         onShowComposerChange={state.setShowComposer}
         onNewJobTextChange={state.setNewJobText}
         onNewJobPriorityChange={state.setNewJobPriority}
+        onNewJobModelIdChange={state.setNewJobModelId}
         onNewJobTagsChange={state.setNewJobTags}
         onCreate={state.handleCreate}
         onAiEnhance={state.handleAiEnhance}

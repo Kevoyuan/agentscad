@@ -44,6 +44,7 @@ export function useWorkspaceState() {
   const [isCreating, setIsCreating] = useState(false)
   const [newJobText, setNewJobText] = useState('')
   const [newJobPriority, setNewJobPriority] = useState(5)
+  const [newJobModelId, setNewJobModelId] = useState('mimo-v2.5-pro')
   const [isProcessing, setIsProcessing] = useState(false)
   const [showComposer, setShowComposer] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -295,12 +296,13 @@ export function useWorkspaceState() {
     setIsCreating(true)
     try {
       const tagsCustomerId = newJobTags.trim() ? buildCustomerId(newJobTags.split(',').map(t => t.trim()).filter(t => t)) : undefined
-      const { job } = await createJob(newJobText.trim(), tagsCustomerId, newJobPriority)
-      toast({ title: 'Job created', description: `Priority ${newJobPriority}`, duration: 2000 })
+      const { job } = await createJob(newJobText.trim(), tagsCustomerId, newJobPriority, newJobModelId)
+      toast({ title: 'Job created', description: `Priority ${newJobPriority} · ${newJobModelId}`, duration: 2000 })
       addNotification('parameter_updated', 'Job created', newJobText.trim().slice(0, 60))
       addActivityEvent('created', newJobText.trim().slice(0, 30), job.id.slice(0, 8), 'Created')
       setNewJobText('')
       setNewJobPriority(5)
+      setNewJobModelId('mimo-v2.5-pro')
       setNewJobTags('')
       setShowComposer(false)
       await loadJobs()
@@ -450,7 +452,7 @@ export function useWorkspaceState() {
 
   const handleDuplicate = async (job: Job) => {
     try {
-      const { job: newJob } = await createJob(job.inputRequest, job.customerId ?? undefined, job.priority)
+      const { job: newJob } = await createJob(job.inputRequest, job.customerId ?? undefined, job.priority, job.modelId ?? undefined)
       toast({ title: 'Job duplicated', duration: 1500 })
       await loadJobs()
       setSelectedJob(newJob)
@@ -699,6 +701,7 @@ export function useWorkspaceState() {
     showCommandPalette, setShowCommandPalette,
     isCreating, newJobText, setNewJobText,
     newJobPriority, setNewJobPriority,
+    newJobModelId, setNewJobModelId,
     isProcessing, showComposer, setShowComposer,
     showShortcuts, setShowShortcuts,
     showStats, setShowStats,

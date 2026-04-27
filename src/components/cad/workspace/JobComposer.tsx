@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  Plus, Loader2, Wand2, Tag, Ruler, Hammer, BoxSelect, Gauge, LockKeyhole,
+  Plus, Loader2, Wand2, Tag, Ruler, Hammer, BoxSelect, Gauge, LockKeyhole, Brain,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ export function JobComposer({
   showComposer,
   newJobText,
   newJobPriority,
+  newJobModelId,
   newJobTags,
   isCreating,
   isAiEnhancing,
@@ -28,6 +29,7 @@ export function JobComposer({
   onShowComposerChange,
   onNewJobTextChange,
   onNewJobPriorityChange,
+  onNewJobModelIdChange,
   onNewJobTagsChange,
   onCreate,
   onAiEnhance,
@@ -35,6 +37,7 @@ export function JobComposer({
   showComposer: boolean
   newJobText: string
   newJobPriority: number
+  newJobModelId: string
   newJobTags: string
   isCreating: boolean
   isAiEnhancing: boolean
@@ -42,11 +45,26 @@ export function JobComposer({
   onShowComposerChange: (open: boolean) => void
   onNewJobTextChange: (text: string) => void
   onNewJobPriorityChange: (priority: number) => void
+  onNewJobModelIdChange: (modelId: string) => void
   onNewJobTagsChange: (tags: string) => void
   onCreate: () => void
   onAiEnhance: () => void
 }) {
   const { toast } = useToast()
+  const generationModels = [
+    {
+      id: 'mimo-v2.5-pro',
+      name: 'MiMo-V2.5-Pro',
+      provider: 'Xiaomi MiMo',
+      description: '默认低延迟 CAD 草稿模型',
+    },
+    {
+      id: 'deepseek-v4-pro',
+      name: 'DeepSeek V4 Pro',
+      provider: 'DeepSeek',
+      description: '更强推理，适合复杂 OpenSCAD 生成',
+    },
+  ]
   const specGroups = [
     {
       label: 'Dimensions',
@@ -77,14 +95,14 @@ export function JobComposer({
 
   return (
     <Dialog open={showComposer} onOpenChange={onShowComposerChange}>
-      <DialogContent className="bg-[var(--app-dialog-bg)] border-[color:var(--cad-border)] max-w-2xl dialog-enter">
-        <DialogHeader>
+      <DialogContent className="bg-[var(--app-dialog-bg)] border-[color:var(--cad-border)] max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden p-0 gap-0 grid-rows-[auto_auto_minmax(0,1fr)] dialog-enter">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle className="text-sm flex items-center gap-2">
             <BoxSelect className="w-4 h-4 text-[var(--cad-accent)]" />New CAD Spec
           </DialogTitle>
         </DialogHeader>
         <Separator />
-        <div className="space-y-4">
+        <div className="min-h-0 overflow-y-auto px-6 py-4 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) transparent' }}>
           {/* Recent Requests */}
           {recentRequests.length > 0 && (
             <div>
@@ -175,6 +193,31 @@ export function JobComposer({
                   )
                 })}
               </div>
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
+              <Brain className="w-2.5 h-2.5" />Generation Model
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {generationModels.map(model => (
+                <button
+                  key={model.id}
+                  type="button"
+                  className={`text-left rounded-lg border px-3 py-2 transition-colors ${
+                    newJobModelId === model.id
+                      ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
+                      : 'border-[color:var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:border-[color:var(--app-accent-border)] hover:text-[var(--app-text-primary)]'
+                  }`}
+                  onClick={() => onNewJobModelIdChange(model.id)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono font-semibold">{model.name}</span>
+                    <span className="text-[8px] uppercase tracking-widest opacity-70">{model.provider}</span>
+                  </div>
+                  <p className="mt-1 text-[9px] leading-snug opacity-75">{model.description}</p>
+                </button>
+              ))}
             </div>
           </div>
           <div>

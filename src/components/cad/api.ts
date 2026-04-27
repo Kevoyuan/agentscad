@@ -9,11 +9,11 @@ export async function fetchJobs(state?: string): Promise<{ jobs: Job[]; paginati
   return res.json()
 }
 
-export async function createJob(inputRequest: string, customerId?: string, priority?: number): Promise<{ job: Job }> {
+export async function createJob(inputRequest: string, customerId?: string, priority?: number, modelId?: string): Promise<{ job: Job }> {
   const res = await fetch('/api/jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ inputRequest, customerId, priority }),
+    body: JSON.stringify({ inputRequest, customerId, priority, modelId }),
   })
   if (!res.ok) throw new Error('Failed to create job')
   return res.json()
