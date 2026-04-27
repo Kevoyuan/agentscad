@@ -589,14 +589,14 @@ export function useWorkspaceState() {
 
   const stateCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const j of allJobs) {
+    for (const j of jobs) {
       if (['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(j.state)) {
         counts['FAILED'] = (counts['FAILED'] || 0) + 1
       }
       counts[j.state] = (counts[j.state] || 0) + 1
     }
     return counts
-  }, [allJobs])
+  }, [jobs])
 
   const linkedJobCount = useMemo(() => {
     return allJobs.filter(j => j.parentId).length
