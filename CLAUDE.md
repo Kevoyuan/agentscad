@@ -11,20 +11,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Build for production | `bun run build` |
 | Start production server | `bun run start` |
 | Lint | `bun run lint` |
+| Test | `bun run test` |
+| Check OpenSCAD libraries | `bun run scad:libs:check` |
+| Install default OpenSCAD libraries | `bun run scad:libs:install` |
+| Install GPL OpenSCAD libraries explicitly | `bun run scad:libs:install:gpl` |
 | Sync DB schema to SQLite | `bun run db:push` |
 | Generate Prisma client | `bun run db:generate` |
 | Run DB migrations | `bun run db:migrate` |
 | Reset DB | `bun run db:reset` |
 
-No test runner is configured. There is no `test` script in package.json.
+Tests use Bun's built-in test runner. Run `bun run test` before handing off CAD pipeline or skill resolver changes.
 
 ## Architecture
 
 **AgentSCAD** is an AI-powered CAD job management platform. Users submit natural-language descriptions; an LLM pipeline generates parametric OpenSCAD code, renders it via OpenSCAD CLI, and validates the geometry.
 
-### Core Pipeline (the most important file)
+### Core Pipeline
 
-`src/app/api/jobs/[id]/process/route.ts` — the state machine that drives every job:
+`src/app/api/jobs/[id]/process/route.ts` is a thin HTTP/SSE adapter. It validates the job exists, checks the state is processable, emits raw SSE frames, and calls `executeCadJob`.
+
+`src/lib/pipeline/execute-cad-job.ts` owns the current runtime state machine:
 
 1. **INTAKE** — parse the user's request
 2. **GENERATE** — LLM generates OpenSCAD code (falls back to template-based mock code). Auto-detects part family (spur_gear, device_stand, electronics_enclosure, phone_case).
@@ -33,6 +39,22 @@ No test runner is configured. There is no `test` script in package.json.
 5. **DELIVER** — artifacts ready (SCAD source, STL, PNG, parameters, validation report)
 
 Each step emits SSE events to the frontend and broadcasts via WebSocket.
+
+### Thin Harness, Fat Skills Rules
+
+- Keep CAD reasoning, repair strategy, validation interpretation, and manufacturing judgment in `skills/`.
+- Keep deterministic work in code: OpenSCAD rendering, Python/trimesh validation, Prisma writes, artifact paths, SCAD sanitization, SSE formatting, Socket.IO broadcasts, file IO, and tests.
+- Preserve runtime contracts unless a migration explicitly updates the frontend and tests: SSE `data: ${JSON.stringify(payload)}\n\n`, existing state strings, existing step strings, `/artifacts/{jobId}/model.stl`, `/artifacts/{jobId}/preview.png`, and `validationResults` objects with `rule_id`, `rule_name`, `level`, `passed`, `is_critical`, `message`.
+- Preserve model fallback behavior: MiMo when configured, otherwise `z-ai-web-dev-sdk`, and template generation when generation fails.
+- Prefer wrappers and adapters over route rewrites. The process route should become thinner gradually, only after behavior-preserving tools are proven.
+- Prefer artifact-first CAD architecture: generate or repair complete OpenSCAD, then let deterministic tools parse parameters from top-level SCAD assignments. Do not make hidden JSON-only parameters the source of truth.
+- Improve CAD quality through general library support, render feedback, and repair loops rather than hardcoded product-family geometry.
+- Do not copy third-party CAD app or library source code into this repository without explicit licensing review.
+- Keep approved OpenSCAD library policy in `skills/scad-library-policy/manifest.json`, not hardcoded route logic.
+- Managed OpenSCAD libraries live outside the repo at `~/.cadcad/openscad-libraries` by default. `CADCAD_OPENSCAD_LIBRARY_DIR` may override this location.
+- Use `OPENSCAD_LIBRARY_PATHS`/`OPENSCADPATH` only for additional reviewed local OpenSCAD library parent directories.
+- Default library installation must not include GPL libraries. NopSCADlib requires explicit opt-in through `bun run scad:libs:install:gpl`.
+- Keep `src/app/api/jobs/[id]/process/route.ts` as a thin HTTP/SSE adapter. Put CAD job state-machine work in `src/lib/pipeline/execute-cad-job.ts` or lower-level tools.
 
 ### API Layer
 
@@ -67,6 +89,14 @@ Prisma ORM with SQLite (`db/custom.db`). Two models: `Job` (18 fields) and `JobV
 - `src/lib/mimo.ts` — Xiaomi MiMo API client (OpenAI-compatible format)
 - Primary LLM provider, with `z-ai-web-dev-sdk` as fallback
 
+### OpenSCAD Library Bundle
+
+- `skills/scad-library-policy/manifest.json` is the source of truth for approved libraries, pinned commits, detection files, include examples, and license gates.
+- `skills/scad-library-policy/scripts/install_scad_libraries.py` installs the managed local bundle.
+- `skills/scad-library-policy/scripts/check_scad_libraries.py` reports what OpenSCAD can currently resolve.
+- `skills/scad-library-policy/scripts/validate_scad_includes.py` validates generated `include`/`use` statements against approved and available libraries.
+- `src/lib/tools/scad-library-resolver.ts` reads the manifest and runtime paths, then injects only available library skill guidance into generation prompts.
+
 ## Key Config
 
 - **Runtime**: Bun (primary), Node.js as fallback
@@ -79,3 +109,9 @@ Prisma ORM with SQLite (`db/custom.db`). Two models: `Job` (18 fields) and `JobV
 ## Env Variables
 
 Copy `.env.example` to `.env`. Required: `DATABASE_URL` (SQLite path), `MIMO_BASE_URL`, `MIMO_MODEL`, `MIMO_API_KEY`.
+
+OpenSCAD library env:
+
+- `CADCAD_OPENSCAD_LIBRARY_DIR` overrides the managed library directory.
+- `OPENSCAD_LIBRARY_PATHS` adds extra reviewed library parent paths.
+- `OPENSCADPATH` is passed through to OpenSCAD and augmented by the resolver.
