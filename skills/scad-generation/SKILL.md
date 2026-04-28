@@ -31,6 +31,8 @@ Each parameter object must have:
 10. Use descriptive `snake_case` names; never use one-letter parameter names for user-editable dimensions.
 11. Use `color()` calls on major subassemblies so the preview is visually readable, but keep the model printable and connected.
 12. Prefer composed modules for distinct features, but ensure the top-level object is a single 3D printable assembly.
+13. Never rely on zero-overlap face contact to connect solids. Parts that must be one printable body must overlap by a small explicit merge tolerance, e.g. `merge_overlap = 0.2;`, or be modeled as one boolean solid. Feet, lips, ribs, brackets, and support posts must penetrate the base by that tolerance rather than merely touching its surface.
+14. Avoid coincident coplanar solids inside `union()`. If two components share a plane or occupy the same volume boundary, offset or overlap them deliberately so OpenSCAD exports a watertight manifold STL.
 
 ## Engineering Constraints
 

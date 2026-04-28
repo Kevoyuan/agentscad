@@ -450,8 +450,12 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
         executionLogs: appendLog(
           (await db.job.findUnique({ where: { id: jobId } }))?.executionLogs,
           "VALIDATED",
-          `Validation passed: ${validationResults.filter((r) => r.passed).length}/${validationResults.length} rules passed` +
-            (validationResults.some((r) => r.message.includes("(mock")) ? " [mock fallback]" : " [real mesh analysis]")
+          (() => {
+            const actionable = validationResults.filter((r) => !r.message.toLowerCase().startsWith("skipped"));
+            const skipped = validationResults.length - actionable.length;
+            return `Validation passed: ${actionable.filter((r) => r.passed).length}/${actionable.length} actionable rules passed` +
+              (skipped > 0 ? `, ${skipped} skipped` : " [real mesh analysis]");
+          })()
         ),
       },
     });

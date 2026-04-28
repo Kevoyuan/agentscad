@@ -284,7 +284,7 @@ def check_manifold(mesh) -> dict:
     is_volume = bool(mesh.is_volume)
 
     # Check for degenerate faces (zero area)
-    face_areas = mesh.area_faces()
+    face_areas = mesh.area_faces
     degenerate_count = int(np.sum(face_areas < 1e-10))
 
     n_vertices = int(len(mesh.vertices))

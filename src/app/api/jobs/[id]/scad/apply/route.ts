@@ -227,7 +227,12 @@ export async function POST(
               executionLogs: appendLog(
                 (await db.job.findUnique({ where: { id } }))?.executionLogs,
                 'VALIDATED',
-                `Applied SCAD validation passed: ${validationResults.filter((rule) => rule.passed).length}/${validationResults.length} rules passed`
+                (() => {
+                  const actionable = validationResults.filter((rule) => !rule.message.toLowerCase().startsWith('skipped'))
+                  const skipped = validationResults.length - actionable.length
+                  return `Applied SCAD validation passed: ${actionable.filter((rule) => rule.passed).length}/${actionable.length} actionable rules passed` +
+                    (skipped > 0 ? `, ${skipped} skipped` : ' [real mesh analysis]')
+                })()
               ),
             },
           })
