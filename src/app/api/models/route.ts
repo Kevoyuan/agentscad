@@ -145,6 +145,19 @@ const AVAILABLE_MODELS: ModelInfo[] = [
     deprecated: true,
   },
 
+  // ─── OpenRouter ─────────────────────────────────────────────────────────
+  {
+    id: "openai/gpt-5.5",
+    name: "GPT-5.5 via OpenRouter",
+    description: "OpenRouter 路由的 OpenAI GPT-5.5，适合高质量 CAD 推理与 OpenSCAD 生成。",
+    provider: "openrouter",
+    providerName: "OpenRouter",
+    multimodal: true,
+    reasoning: true,
+    category: "flagship",
+    released: "2026-04",
+  },
+
   // ─── Anthropic ───────────────────────────────────────────────────────────
   {
     id: "claude-opus-4-7-20260401",

@@ -5,6 +5,10 @@ import {
   type MimoMessage,
 } from "@/lib/mimo";
 import { createDeepSeekChatCompletion } from "@/lib/deepseek";
+import {
+  createOpenRouterChatCompletion,
+  isOpenRouterModel,
+} from "@/lib/openrouter";
 import { parseJsonObject } from "@/lib/harness/structured-output";
 
 export interface ModelRouterRequest {
@@ -20,6 +24,16 @@ export async function createChatCompletionWithFallback({
   stream = false,
   preferMimo = true,
 }: ModelRouterRequest): Promise<string> {
+  if (isOpenRouterModel(model)) {
+    const openRouterResponse = await createOpenRouterChatCompletion({
+      model,
+      messages,
+      stream,
+    });
+    const result = await openRouterResponse.json();
+    return result?.choices?.[0]?.message?.content ?? JSON.stringify(result);
+  }
+
   if (model?.startsWith("deepseek-")) {
     const deepSeekResponse = await createDeepSeekChatCompletion({
       model,

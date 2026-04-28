@@ -59,6 +59,12 @@ export function JobComposer({
       provider: 'DeepSeek',
       description: '更强推理，适合复杂 OpenSCAD 生成',
     },
+    {
+      id: 'openai/gpt-5.5',
+      name: 'GPT-5.5',
+      provider: 'OpenRouter',
+      description: '高质量推理，适合复杂 CAD 方案',
+    },
   ]
   const specGroups = [
     {
@@ -197,7 +203,7 @@ export function JobComposer({
             <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
               <Brain className="w-2.5 h-2.5" />Generation Model
             </label>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-3">
               {generationModels.map(model => (
                 <button
                   key={model.id}

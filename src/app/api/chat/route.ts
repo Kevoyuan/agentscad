@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
+import { createOpenRouterChatCompletion, isOpenRouterModel } from "@/lib/openrouter";
 import { loadSkill } from "@/lib/skill-resolver";
 
 type ContentPart =
@@ -89,6 +90,8 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
       "mimo-v2-omni",
       // OpenAI
       "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini", "gpt-4o", "o4-mini",
+      // OpenRouter
+      "openai/gpt-5.5",
       // Anthropic
       "claude-opus-4-7-20260401", "claude-opus-4-6-20260205", "claude-sonnet-4-6-20260217", "claude-sonnet-4-5-20251022", "claude-haiku-4-5-20251022",
       // Google
@@ -125,10 +128,99 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
     }
 
     const mimoConfig = getMimoConfig();
+    const requestedOpenRouter = isOpenRouterModel(requestedModel);
+
+    try {
+      if (requestedOpenRouter) {
+        const openRouterResponse = await createOpenRouterChatCompletion({
+          messages: formattedMessages,
+          model: requestedModel,
+          stream: true,
+        });
+
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+
+        const stream = new ReadableStream({
+          async start(controller) {
+            const reader = openRouterResponse.body?.getReader();
+
+            if (!reader) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "error", message: "OpenRouter response body unavailable" })}\n\n`)
+              );
+              controller.close();
+              return;
+            }
+
+            let buffer = "";
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const rawLine of lines) {
+                  const line = rawLine.trim();
+                  if (!line.startsWith("data:")) continue;
+
+                  const payload = line.slice(5).trim();
+                  if (!payload) continue;
+
+                  if (payload === "[DONE]") {
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+                    );
+                    controller.close();
+                    return;
+                  }
+
+                  try {
+                    const chunk = JSON.parse(payload);
+                    const content = chunk?.choices?.[0]?.delta?.content ?? "";
+                    if (content) {
+                      controller.enqueue(
+                        encoder.encode(`data: ${JSON.stringify({ type: "token", content })}\n\n`)
+                      );
+                    }
+                  } catch {
+                    // Ignore malformed provider SSE lines
+                  }
+                }
+              }
+
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+              );
+              controller.close();
+            } catch (streamErr) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "error", message: streamErr instanceof Error ? streamErr.message : "OpenRouter stream interrupted" })}\n\n`)
+              );
+              controller.close();
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      }
+    } catch (openRouterError) {
+      console.warn("OpenRouter chat request failed, falling back:", openRouterError);
+    }
 
     // Try Xiaomi MiMo first when configured or explicitly selected
     try {
-      const shouldUseMimo = mimoConfig.enabled || requestedModel.startsWith("mimo-");
+      const shouldUseMimo = !requestedOpenRouter && (requestedModel.startsWith("mimo-") || (mimoConfig.enabled && !model));
 
       if (shouldUseMimo) {
         const mimoResponse = await createMimoChatCompletion({
