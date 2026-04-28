@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { analyzeUserEdits, writeLearnedPatterns } from "@/lib/improvement-analyzer";
+import { authenticateBearer } from "@/lib/auth";
 import fs from "fs/promises";
 import path from "path";
 
@@ -9,25 +10,7 @@ import path from "path";
 // ---------------------------------------------------------------------------
 
 function authenticate(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    // No secret configured — allow all (dev mode)
-    return true;
-  }
-
-  // Check Bearer token
-  const authHeader = request.headers.get("authorization");
-  if (authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  // Check query param
-  const url = new URL(request.url);
-  if (url.searchParams.get("secret") === cronSecret) {
-    return true;
-  }
-
-  return false;
+  return authenticateBearer(request, process.env.CRON_SECRET);
 }
 
 // ---------------------------------------------------------------------------
