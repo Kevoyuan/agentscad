@@ -177,6 +177,10 @@ export async function buildScadPrompt(
     if (idx >= 0) {
       const constraints = [
         "FDM minimum wall thickness: 1.2 mm (R001 validation will fail below this)",
+        "Every printable local feature must be at least 1.2 mm thick/wide, including decorative ribs, relief lines, scrollwork, rims, lips, bridges around holes, nose ridges, tabs, bosses, and connectors.",
+        "Prefer 1.6 mm or thicker for decorative details and 2.0 mm or thicker for structural/support features unless the user explicitly asks for a non-printable display-only model.",
+        "Do not create knife-edge, hairline, zero-thickness, or sub-1.2 mm features. If a requested visual detail would be too thin, simplify, merge, emboss, or thicken it while preserving the design intent.",
+        "Avoid tangential/coplanar boolean contacts and degenerate sliver triangles; overlap joined solids by an explicit merge tolerance such as 0.2 mm.",
         "All dimensions in millimeters",
       ].join("\n");
       userPrompt =

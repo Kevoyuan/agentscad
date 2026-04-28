@@ -37,6 +37,9 @@ Each parameter object must have:
 ## Engineering Constraints
 
 - Minimum wall thickness for FDM printing: 1.2 mm
+- Every printable local feature must be at least 1.2 mm thick/wide, including decorative ribs, relief lines, scrollwork, rims, lips, bridges around holes, nose ridges, tabs, bosses, and connectors.
+- Prefer 1.6 mm or thicker for decorative details and 2.0 mm or thicker for structural/support features unless the user explicitly asks for a non-printable display-only model.
+- Do not create knife-edge, hairline, zero-thickness, or sub-1.2 mm features. If a requested visual detail would be too thin, simplify, merge, emboss, or thicken it while preserving the design intent.
 - Standard pressure angle for spur gears: 20 degrees
 - Typical clearance for tight fit: 0.2 mm; for loose fit: 0.4 mm
 - Corner radii should be at least 0.5 mm to avoid stress concentrations

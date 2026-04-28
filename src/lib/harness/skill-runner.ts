@@ -41,7 +41,7 @@ export const FALLBACK_SCHEMAS: Record<string, ParameterDef[]> = {
     { key: "body_length", label: "Body Length", kind: "float", unit: "mm", value: 158, min: 100, max: 200, step: 0.5, source: "user", editable: true, description: "Length of the phone body", group: "device" },
     { key: "body_width", label: "Body Width", kind: "float", unit: "mm", value: 78, min: 50, max: 120, step: 0.5, source: "user", editable: true, description: "Width of the phone body", group: "device" },
     { key: "body_depth", label: "Body Depth", kind: "float", unit: "mm", value: 8, min: 5, max: 15, step: 0.5, source: "user", editable: true, description: "Depth (thickness) of the phone body", group: "device" },
-    { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 1.5, min: 0.8, max: 4, step: 0.1, source: "engineering", editable: true, description: "Case wall thickness", group: "engineering" },
+    { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 1.5, min: 1.2, max: 4, step: 0.1, source: "engineering", editable: true, description: "Case wall thickness", group: "engineering" },
     { key: "camera_clearance", label: "Camera Clearance", kind: "float", unit: "mm", value: 1, min: 0, max: 5, step: 0.25, source: "user", editable: true, description: "Extra clearance around camera bump", group: "geometry" },
   ],
 };
@@ -50,7 +50,8 @@ export const UNKNOWN_FALLBACK_SCHEMA: ParameterDef[] = [
   { key: "width", label: "Width", kind: "float", unit: "mm", value: 40, min: 5, max: 500, step: 1, source: "user", editable: true, description: "Width of the part", group: "geometry" },
   { key: "depth", label: "Depth", kind: "float", unit: "mm", value: 30, min: 5, max: 500, step: 1, source: "user", editable: true, description: "Depth of the part", group: "geometry" },
   { key: "height", label: "Height", kind: "float", unit: "mm", value: 15, min: 5, max: 500, step: 1, source: "user", editable: true, description: "Height of the part", group: "geometry" },
-  { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 2, min: 0.8, max: 10, step: 0.2, source: "engineering", editable: true, description: "Wall thickness", group: "engineering" },
+  { key: "wall_thickness", label: "Wall Thickness", kind: "float", unit: "mm", value: 2, min: 1.2, max: 10, step: 0.2, source: "engineering", editable: true, description: "Wall thickness", group: "engineering" },
+  { key: "min_feature_width", label: "Minimum Feature Width", kind: "float", unit: "mm", value: 1.6, min: 1.2, max: 10, step: 0.2, source: "engineering", editable: true, description: "Minimum printable width for decorative ribs, reliefs, rims, bridges, and connection features", group: "engineering" },
 ];
 
 export function detectPartFamily(request: string): PartFamily {
