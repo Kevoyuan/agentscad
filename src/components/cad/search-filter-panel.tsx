@@ -50,7 +50,7 @@ export const DEFAULT_FILTER_STATE: FilterState = {
   dateTo: null,
   partFamily: null,
   builderName: null,
-  sortBy: 'priority',
+  sortBy: 'created',
   sortOrder: 'desc',
 }
 
@@ -145,7 +145,7 @@ export function countActiveFilters(filters: FilterState): number {
   if (filters.dateRange !== 'all') count++
   if (filters.partFamily) count++
   if (filters.builderName) count++
-  if (filters.sortBy !== 'priority' || filters.sortOrder !== 'desc') count++
+  if (filters.sortBy !== 'created' || filters.sortOrder !== 'desc') count++
   return count
 }
 
@@ -162,7 +162,7 @@ export function filtersToUrlParams(filters: FilterState): URLSearchParams {
   if (filters.dateTo) params.set('dt', filters.dateTo)
   if (filters.partFamily) params.set('pf', filters.partFamily)
   if (filters.builderName) params.set('bn', filters.builderName)
-  if (filters.sortBy !== 'priority') params.set('sort', filters.sortBy)
+  if (filters.sortBy !== 'created') params.set('sort', filters.sortBy)
   if (filters.sortOrder !== 'desc') params.set('order', filters.sortOrder)
   return params
 }
