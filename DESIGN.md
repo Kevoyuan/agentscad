@@ -21,13 +21,13 @@ Use a "precision graphite" foundation:
 
 - Background: deep graphite for the primary workspace.
 - Surfaces: layered neutral panels with hairline borders.
-- Accent: calibrated steel-blue or cyan-blue, used sparingly.
+- Accent: calibrated indigo (`#5e6ad2`), used sparingly. This is the intentional brand accent — not decorative purple.
 - Status colors: semantic only, never decorative.
 - Shadows: shallow and rare. Prefer borders and elevation through contrast.
 
 Avoid:
 
-- Purple or violet as the dominant accent.
+- Decorative purple or violet outside the established indigo accent system.
 - Decorative gradients as first-impression styling.
 - Dashboard card mosaics.
 - Colored icon circles.
@@ -48,9 +48,9 @@ Recommended token direction:
   --cad-text: #eef3f8;
   --cad-text-secondary: #aab5c0;
   --cad-text-muted: #75808b;
-  --cad-accent: #4aa3ff;
-  --cad-accent-muted: rgba(74, 163, 255, 0.14);
-  --cad-grid: rgba(120, 150, 180, 0.16);
+  --cad-accent: #5e6ad2;
+  --cad-accent-soft: rgba(94, 106, 210, 0.16);
+  --cad-grid: rgba(140, 145, 180, 0.14);
   --cad-success: #35c46f;
   --cad-warning: #d99b2b;
   --cad-danger: #f06464;
@@ -58,7 +58,7 @@ Recommended token direction:
 }
 ```
 
-Use purple only if it has a specific product meaning. It should not be the global identity.
+The indigo accent is the global identity. Do not introduce competing purple tones outside this system.
 
 ## Typography
 

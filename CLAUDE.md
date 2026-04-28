@@ -61,7 +61,7 @@ Each step emits SSE events to the frontend and broadcasts via WebSocket.
 Next.js Route Handlers under `src/app/api/`:
 - `jobs/` — CRUD, batch operations, pipeline processing, SCAD editing, versioning
 - `chat/` — LLM chat with SSE streaming
-- `models/` — 30+ model definitions from 7 providers
+- `models/` — 30+ model definitions from 8 providers (including OpenRouter)
 - `health/` — health check
 
 ### Frontend
@@ -69,7 +69,7 @@ Next.js Route Handlers under `src/app/api/`:
 `src/components/cad/workspace/MainWorkspace.tsx` (~1700 lines) is the central UI — a 3-panel IDE-like layout:
 - **Left**: Job list with drag-and-drop reordering
 - **Center**: 3D viewer (Three.js/R3F) + pipeline status
-- **Right**: 9-tab inspector (PARAMS, RENDER, VALIDATE, SCAD, LOG, NOTES, DEPS, HISTORY, AI)
+- **Right**: 6-tab inspector (SPEC, PARAMETERS, ASSIST, VALIDATION, HISTORY, CODE)
 
 Key client files:
 - `src/components/cad/api.ts` — client-side API functions + SSE streaming helpers
@@ -87,6 +87,8 @@ Prisma ORM with SQLite (`db/custom.db`). Two models: `Job` (18 fields) and `JobV
 ### LLM Integration
 
 - `src/lib/mimo.ts` — Xiaomi MiMo API client (OpenAI-compatible format)
+- `src/lib/openrouter.ts` — OpenRouter API client (routes to GPT-5.5 and other models)
+- `src/lib/tools/model-router.ts` — Routes requests to MiMo, OpenRouter, DeepSeek, or fallback
 - Primary LLM provider, with `z-ai-web-dev-sdk` as fallback
 
 ### OpenSCAD Library Bundle
@@ -108,7 +110,7 @@ Prisma ORM with SQLite (`db/custom.db`). Two models: `Job` (18 fields) and `JobV
 
 ## Env Variables
 
-Copy `.env.example` to `.env`. Required: `DATABASE_URL` (SQLite path), `MIMO_BASE_URL`, `MIMO_MODEL`, `MIMO_API_KEY`.
+Copy `.env.example` to `.env`. Required: `DATABASE_URL` (SQLite path), `MIMO_BASE_URL`, `MIMO_MODEL`, `MIMO_API_KEY`. Optional: `OPENROUTER_API_KEY` for OpenRouter models, `DEEPSEEK_API_KEY` for DeepSeek.
 
 OpenSCAD library env:
 

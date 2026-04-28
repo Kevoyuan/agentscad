@@ -5,8 +5,8 @@ AgentSCAD is a full-stack AI-powered CAD job management platform. It translates 
 ## Features
 
 - **Natural Language to CAD**: Uses advanced LLMs to infer part families, generate parametric schemas, and write OpenSCAD geometry.
-- **Multi-Stage Pipeline**: Organized state machine (Intake → Generate → Render → Validate → Deliver).
-- **Multi-Provider LLM Support**: Supports over 30 models from 7 providers (OpenAI, Anthropic, Google, DeepSeek, Zhipu, Qwen, Mistral).
+- **Multi-Stage Pipeline**: Organized state machine (Intake → Generate → Render → Validate → Deliver). Validation blockers keep rendered artifacts available for review (HUMAN_REVIEW) instead of blocking the pipeline.
+- **Multi-Provider LLM Support**: Supports over 30 models from 8 providers (OpenAI, Anthropic, Google, DeepSeek, OpenRouter, Zhipu, Qwen, Mistral).
 - **Real-Time Workspace**: Server-Sent Events (SSE) stream generation progress, while a standalone Socket.IO microservice broadcasts global job updates.
 - **Parametric Editing**: Instantly tweak CAD parameters (like wall thickness or teeth count) within schema constraints.
 - **Artifact-First SCAD**: Treats generated OpenSCAD as the source of truth and extracts editable numeric parameters from top-level SCAD assignments.
@@ -133,3 +133,4 @@ Generated SCAD may reference available libraries with `include` or `use`, but Ag
 - `/prisma/`: ORM schema and database setup
 - `/skills/`: AI model capabilities, SCAD generation/repair/library policy, library usage guides, and deterministic skill scripts
 - `/docs/thin-harness-fat-skills.md`: Architecture contract for thin harness / fat skills work
+- `/DESIGN.md`: Design system, visual direction, and workspace principles
