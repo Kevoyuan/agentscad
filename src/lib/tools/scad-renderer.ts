@@ -9,6 +9,30 @@ import type { RenderedArtifacts, RenderLog } from "@/lib/harness/types";
 
 const execAsync = promisify(exec);
 
+function quoteShellArg(value: string): string {
+  return `"${value.replace(/(["\\$`])/g, "\\$1")}"`;
+}
+
+function formatOpenScadDefineValue(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "string") return JSON.stringify(value);
+  return null;
+}
+
+function buildDefineArgs(definitions?: Record<string, unknown>): string {
+  if (!definitions) return "";
+
+  return Object.entries(definitions)
+    .filter(([key]) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(key))
+    .map(([key, value]) => {
+      const formatted = formatOpenScadDefineValue(value);
+      return formatted ? `-D ${quoteShellArg(`${key}=${formatted}`)}` : null;
+    })
+    .filter(Boolean)
+    .join(" ");
+}
+
 export async function validateGeneratedScadSource(scadSource: string): Promise<void> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "cadcad-scad-"));
   const tempScadPath = path.join(tmpDir, "validate.scad");
@@ -27,27 +51,38 @@ export async function validateGeneratedScadSource(scadSource: string): Promise<v
   }
 }
 
-export async function renderStl(scadFilePath: string, stlFilePath: string): Promise<void> {
-  await execAsync(`openscad -o "${stlFilePath}" "${scadFilePath}"`, {
+export async function renderStl(
+  scadFilePath: string,
+  stlFilePath: string,
+  definitions?: Record<string, unknown>
+): Promise<void> {
+  const defineArgs = buildDefineArgs(definitions);
+  await execAsync(`openscad ${defineArgs} -o ${quoteShellArg(stlFilePath)} ${quoteShellArg(scadFilePath)}`, {
     env: await buildOpenScadExecEnv(),
   });
 }
 
-export async function renderPng(scadFilePath: string, pngFilePath: string): Promise<void> {
-  await execAsync(`openscad -o "${pngFilePath}" --colorscheme=Tomorrow "${scadFilePath}"`, {
+export async function renderPng(
+  scadFilePath: string,
+  pngFilePath: string,
+  definitions?: Record<string, unknown>
+): Promise<void> {
+  const defineArgs = buildDefineArgs(definitions);
+  await execAsync(`openscad ${defineArgs} -o ${quoteShellArg(pngFilePath)} --colorscheme=Tomorrow ${quoteShellArg(scadFilePath)}`, {
     env: await buildOpenScadExecEnv(),
   });
 }
 
 export async function renderScadArtifacts(
   jobId: string,
-  scadSource: string
+  scadSource: string,
+  definitions?: Record<string, unknown>
 ): Promise<RenderedArtifacts> {
   const paths = await writeJobScadSource(jobId, scadSource);
   const startTime = Date.now();
 
-  await renderStl(paths.scadFilePath, paths.stlFilePath);
-  await renderPng(paths.scadFilePath, paths.pngFilePath);
+  await renderStl(paths.scadFilePath, paths.stlFilePath, definitions);
+  await renderPng(paths.scadFilePath, paths.pngFilePath, definitions);
 
   const renderLog: RenderLog = {
     openscad_version: "real",
