@@ -87,7 +87,7 @@ function AnimatedCounter({
   }, [value, duration])
 
   return (
-    <span className={`tabular-nums ${className}`}>
+    <span className={`tabular-nums ${className}`} aria-live="polite" aria-atomic="true">
       {prefix}
       {decimals > 0 ? display.toFixed(decimals) : Math.round(display)}
       {suffix}
@@ -118,7 +118,7 @@ function ProgressRing({
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90" role="img" aria-label={label ? `${label}: ${Math.round(value)}%` : `${Math.round(value)}%`}>
         {/* Background ring with rotating dash pattern */}
         <circle
           cx={size / 2}
@@ -218,7 +218,7 @@ function Sparkline({
     ` L ${points[0].x} ${height - padding} Z`
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg width={width} height={height} className="overflow-visible" role="img" aria-label={`Activity sparkline: ${data.reduce((a, b) => a + b.count, 0)} jobs in last 24 hours`}>
       <defs>
         <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.3} />
@@ -662,6 +662,14 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       exit="exit"
       transition={staggerTransition}
     >
+      {/* Screen-reader summary */}
+      <div className="sr-only" role="status" aria-live="polite">
+        Dashboard showing {stats.totalJobs} total jobs, {stats.successRate.toFixed(0)}% success rate,
+        {stats.jobsCreatedToday} jobs created today, most common part family is {stats.mostCommonPartFamily.replace(/_/g, ' ')},
+        average processing time {formatDuration(stats.avgProcessingTimeMs)}.
+        Job states: {Object.entries(stats.jobsByState).map(([state, count]) => `${state.replace(/_/g, ' ')}: ${count}`).join(', ')}.
+      </div>
+
       {/* Header */}
       <motion.div variants={staggerChild} className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  Plus, Loader2, Wand2, Tag, Ruler, Hammer, BoxSelect, Gauge, LockKeyhole, Brain,
+  Play, Loader2, Wand2, Tag, Ruler, Hammer, BoxSelect, Gauge, LockKeyhole, Brain,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 
-import { getPriorityColor } from '@/components/cad/types'
 import { JobTemplateCards } from '@/components/cad/job-templates'
 import { CaseMemory } from '@/components/cad/case-memory'
 import { TagBadges, buildCustomerId } from '@/components/cad/tag-badges'
@@ -20,7 +19,6 @@ import { TagBadges, buildCustomerId } from '@/components/cad/tag-badges'
 export function JobComposer({
   showComposer,
   newJobText,
-  newJobPriority,
   newJobModelId,
   newJobTags,
   isCreating,
@@ -28,7 +26,6 @@ export function JobComposer({
   recentRequests,
   onShowComposerChange,
   onNewJobTextChange,
-  onNewJobPriorityChange,
   onNewJobModelIdChange,
   onNewJobTagsChange,
   onCreate,
@@ -36,7 +33,6 @@ export function JobComposer({
 }: {
   showComposer: boolean
   newJobText: string
-  newJobPriority: number
   newJobModelId: string
   newJobTags: string
   isCreating: boolean
@@ -44,7 +40,6 @@ export function JobComposer({
   recentRequests: string[]
   onShowComposerChange: (open: boolean) => void
   onNewJobTextChange: (text: string) => void
-  onNewJobPriorityChange: (priority: number) => void
   onNewJobModelIdChange: (modelId: string) => void
   onNewJobTagsChange: (tags: string) => void
   onCreate: () => void
@@ -223,26 +218,6 @@ export function JobComposer({
               ))}
             </div>
           </div>
-          <div>
-            <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 block">Priority</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={newJobPriority}
-                onChange={e => onNewJobPriorityChange(Number(e.target.value))}
-                className="flex-1 accent-[var(--cad-accent)]"
-              />
-              <span className={`text-xs font-mono px-2 py-0.5 rounded border min-w-[36px] text-center ${getPriorityColor(newJobPriority)}`}>
-                P{newJobPriority}
-              </span>
-            </div>
-            <div className="flex justify-between text-[9px] text-[var(--app-text-muted)] mt-1">
-              <span>Low</span>
-              <span>Critical</span>
-            </div>
-          </div>
           {/* Tags Input */}
           <div>
             <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
@@ -265,8 +240,8 @@ export function JobComposer({
             onClick={onCreate}
             disabled={!newJobText.trim() || isCreating}
           >
-            {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-            Create Job
+            {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+            Generate CAD
           </Button>
         </div>
       </DialogContent>

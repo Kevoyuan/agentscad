@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Settings, Shield, Activity, Clock,
-  History, Plus, BoxSelect, FileCode,
+  History, Plus, BoxSelect, FileCode, Loader2,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ export function InspectorPanel({
   onNavigateToJob,
   onClearSelectedJob,
   onShowComposer,
+  isFirstLoadComplete,
 }: {
   selectedJob: Job | null
   allJobs: Job[]
@@ -54,6 +55,7 @@ export function InspectorPanel({
   onNavigateToJob: (jobId: string) => void
   onClearSelectedJob: () => void
   onShowComposer: () => void
+  isFirstLoadComplete: boolean
 }) {
   const normalizeTab = (tab: string) => ({
     PARAMS: 'PARAMETERS',
@@ -176,6 +178,10 @@ export function InspectorPanel({
               </AnimatePresence>
             </div>
           </Tabs>
+        ) : !isFirstLoadComplete ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" />
+          </div>
         ) : (
           <div className="relative flex flex-col items-center justify-center h-full text-[var(--app-text-muted)] gap-3 p-6">
             {/* Enhanced empty state with SVG illustration */}

@@ -26,12 +26,12 @@ export function ViewerPanel({
   onDelete,
   onDownloadScad,
   onView3D,
-  onEditPriority,
   onViewLog,
   onShare,
   onRepair,
   onSetActiveTab,
   onShowComposer,
+  isFirstLoadComplete,
 }: {
   selectedJob: Job | null
   isProcessing: boolean
@@ -42,12 +42,12 @@ export function ViewerPanel({
   onDelete: (id: string) => void
   onDownloadScad: (job: Job) => void
   onView3D: () => void
-  onEditPriority: (job: Job) => void
   onViewLog: (job: Job) => void
   onShare: (job: Job) => void
   onRepair: (job: Job) => void
   onSetActiveTab: (tab: string) => void
   onShowComposer: () => void
+  isFirstLoadComplete: boolean
 }) {
   const getDimensionSummary = (job: Job) => {
     try {
@@ -146,7 +146,6 @@ export function ViewerPanel({
               onReprocess={onProcess}
               onDownloadScad={onDownloadScad}
               onView3D={onView3D}
-              onEditPriority={onEditPriority}
               onViewLog={onViewLog}
               onShare={onShare}
               onRepair={onRepair}
@@ -166,6 +165,7 @@ export function ViewerPanel({
                     job={selectedJob}
                     streamEvents={isSelectedProcessing ? pipelineEvents : []}
                     onViewLogs={() => onSetActiveTab('LOG')}
+                    onViewError={() => onSetActiveTab('VALIDATION')}
                     onCancel={onCancel}
                     isCancelable={isCancelable || isSelectedProcessing}
                   />
@@ -177,6 +177,7 @@ export function ViewerPanel({
                   <JobStatusPage
                     job={selectedJob}
                     onViewLogs={() => onSetActiveTab('LOG')}
+                    onViewError={() => onSetActiveTab('VALIDATION')}
                     onCancel={onCancel}
                     isCancelable={false}
                   />
@@ -235,6 +236,10 @@ export function ViewerPanel({
               )
             })()}
           </>
+        ) : !isFirstLoadComplete ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" />
+          </div>
         ) : (
           <div className="relative flex flex-col items-center justify-center h-full text-[var(--cad-text-muted)] gap-4 cad-viewport-shell m-2">
             <div className="w-20 h-20 rounded-lg cad-viewport-glass flex items-center justify-center">

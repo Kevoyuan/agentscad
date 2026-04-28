@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/sortable'
 import {
   Trash2, RotateCcw, X,
-  Layers, Ban,
+  Layers, Ban, ArrowUpDown, Clock, ListOrdered,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ResizablePanel } from '@/components/ui/resizable'
@@ -21,6 +21,7 @@ import { JobContextMenu } from '@/components/cad/job-context-menu'
 import { SearchFilterPanel, FilterState } from '@/components/cad/search-filter-panel'
 import { SensorDescriptor } from '@dnd-kit/core'
 import { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
+import { Loader2 } from 'lucide-react'
 
 export function JobListPanel({
   jobs,
@@ -41,13 +42,14 @@ export function JobListPanel({
   onCancel,
   onDuplicate,
   onDelete,
-  onSetPriority,
   onLinkParent,
   onBatchAction,
   onFilterChange,
   onSetActiveTab,
+  isFirstLoadComplete,
 }: {
   jobs: Job[]
+  isFirstLoadComplete: boolean
   sortedJobs: Job[]
   allJobs: Job[]
   selectedJob: Job | null
@@ -65,7 +67,6 @@ export function JobListPanel({
   onCancel: (job: Job) => void
   onDuplicate: (job: Job) => void
   onDelete: (id: string) => void
-  onSetPriority: (id: string, priority: number) => Promise<void>
   onLinkParent: (job: Job) => void
   onBatchAction: (action: 'delete' | 'cancel' | 'reprocess') => void
   onFilterChange: (filters: FilterState) => void
@@ -134,7 +135,6 @@ export function JobListPanel({
                     onDuplicate={onDuplicate}
                     onCancel={onCancel}
                     onDelete={onDelete}
-                    onSetPriority={onSetPriority}
                     onLinkParent={onLinkParent}
                   >
                     <SortableJobCard
@@ -150,7 +150,12 @@ export function JobListPanel({
                     />
                   </JobContextMenu>
                 ))}
-                {jobs.length === 0 && (
+                {jobs.length === 0 && !isFirstLoadComplete && (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" />
+                  </div>
+                )}
+                {jobs.length === 0 && isFirstLoadComplete && (
                   <div className="relative flex flex-col items-center justify-center py-12 text-[var(--app-text-muted)] gap-3">
                     <div className="w-14 h-14 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center empty-float">
                       <Layers className="w-7 h-7 opacity-20" />

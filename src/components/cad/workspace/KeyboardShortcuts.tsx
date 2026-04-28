@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { updatePriority } from '@/components/cad/api'
 import { Job } from '@/components/cad/types'
-import { NotificationType } from '@/components/cad/notification-center'
 
 export function KeyboardShortcuts({
   selectedJob,
@@ -18,8 +16,6 @@ export function KeyboardShortcuts({
   onSetActiveTab,
   onDelete,
   onProcess,
-  onAddNotification,
-  onLoadJobs,
 }: {
   selectedJob: Job | null
   showComposer: boolean
@@ -33,8 +29,6 @@ export function KeyboardShortcuts({
   onSetActiveTab: (tab: string) => void
   onDelete: (id: string) => void
   onProcess: (job: Job) => void
-  onAddNotification: (type: NotificationType, title: string, description: string) => void
-  onLoadJobs: () => void
 }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,6 +83,10 @@ export function KeyboardShortcuts({
       if (e.key === 'h' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onSetActiveTab('HISTORY')
       }
+      // S: Open stats dashboard
+      if (e.key === 's' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
+        onShowStats(true)
+      }
       // T: Open theme settings
       if (e.key === 't' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onShowSettings(true)
@@ -98,27 +96,10 @@ export function KeyboardShortcuts({
       if (tabMap[e.key] && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onSetActiveTab(tabMap[e.key])
       }
-      // Shift+Up/Down: Move job priority
-      if (e.shiftKey && e.key === 'ArrowUp' && selectedJob && !isInputFocused) {
-        e.preventDefault()
-        const newPriority = Math.min(10, selectedJob.priority + 1)
-        updatePriority(selectedJob.id, newPriority).then(() => {
-          onAddNotification('parameter_updated', 'Priority increased', `Job ${selectedJob.id.slice(0, 8)} → P${newPriority}`)
-          onLoadJobs()
-        })
-      }
-      if (e.shiftKey && e.key === 'ArrowDown' && selectedJob && !isInputFocused) {
-        e.preventDefault()
-        const newPriority = Math.max(1, selectedJob.priority - 1)
-        updatePriority(selectedJob.id, newPriority).then(() => {
-          onAddNotification('parameter_updated', 'Priority decreased', `Job ${selectedJob.id.slice(0, 8)} → P${newPriority}`)
-          onLoadJobs()
-        })
-      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedJob, showComposer, onShowComposer, onShowCommandPalette, onShowShortcuts, onShowStats, onShowCompare, onShowSettings, onCloseAll, onSetActiveTab, onDelete, onProcess, onAddNotification, onLoadJobs])
+  }, [selectedJob, showComposer, onShowComposer, onShowCommandPalette, onShowShortcuts, onShowStats, onShowCompare, onShowSettings, onCloseAll, onSetActiveTab, onDelete, onProcess])
 
   // This component renders nothing
   return null

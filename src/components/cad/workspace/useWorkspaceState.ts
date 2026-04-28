@@ -14,7 +14,7 @@ import {
   Job, CANCELABLE_STATES, timeAgo, getPriorityColor,
 } from '@/components/cad/types'
 import {
-  fetchJobs, createJob, deleteJob, processJob,
+  fetchJobs, fetchJob, createJob, deleteJob, processJob,
   cancelJob, batchOperation, updatePriority, sendChatMessageStream,
   applyScadSource, repairJob,
 } from '@/components/cad/api'
@@ -43,7 +43,6 @@ export function useWorkspaceState() {
   const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newJobText, setNewJobText] = useState('')
-  const [newJobPriority, setNewJobPriority] = useState(5)
   const [newJobModelId, setNewJobModelId] = useState('mimo-v2.5-pro')
   const [isProcessing, setIsProcessing] = useState(false)
   const [showComposer, setShowComposer] = useState(false)
@@ -59,6 +58,7 @@ export function useWorkspaceState() {
   const [prevJobId, setPrevJobId] = useState<string | null>(null)
   const [jobCountFlash, setJobCountFlash] = useState(false)
   const [wsConnected, setWsConnected] = useState(false)
+  const [isFirstLoadComplete, setFirstLoadComplete] = useState(false)
   const [uptimeSeconds, setUptimeSeconds] = useState(0)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [dependencyCount, setDependencyCount] = useState(0)
@@ -206,6 +206,17 @@ export function useWorkspaceState() {
   const selectedJobRef = useRef<Job | null>(null)
   selectedJobRef.current = selectedJob
 
+  const selectJob = useCallback(async (job: Job, tab = 'PARAMS') => {
+    setSelectedJob(job)
+    setActiveTab(tab)
+    try {
+      const { job: fullJob } = await fetchJob(job.id)
+      setSelectedJob(fullJob)
+    } catch (err) {
+      console.error('Failed to fetch job details:', err)
+    }
+  }, [])
+
   const loadJobs = useCallback(async () => {
     try {
       const data = await fetchJobs()
@@ -226,7 +237,12 @@ export function useWorkspaceState() {
       if (currentSelected) {
         const updated = data.jobs.find(j => j.id === currentSelected.id)
         if (updated && (updated.state !== currentSelected.state || updated.updatedAt !== currentSelected.updatedAt)) {
-          setSelectedJob(updated)
+          try {
+            const { job: fullJob } = await fetchJob(updated.id)
+            setSelectedJob(fullJob)
+          } catch {
+            setSelectedJob(updated)
+          }
         }
       }
     } catch (err) {
@@ -252,12 +268,12 @@ export function useWorkspaceState() {
   }, [])
 
   useEffect(() => {
-    loadJobs()
+    loadJobs().finally(() => setFirstLoadComplete(true))
 
     const socket = io('/?XTransformPort=3003', {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: Infinity,
+      reconnectionAttempts: 5,
       reconnectionDelay: 2000,
     })
     socketRef.current = socket
@@ -294,19 +310,20 @@ export function useWorkspaceState() {
   const handleCreate = async () => {
     if (!newJobText.trim()) return
     setIsCreating(true)
+    const request = newJobText.trim()
     try {
       const tagsCustomerId = newJobTags.trim() ? buildCustomerId(newJobTags.split(',').map(t => t.trim()).filter(t => t)) : undefined
-      const { job } = await createJob(newJobText.trim(), tagsCustomerId, newJobPriority, newJobModelId)
-      toast({ title: 'Job created', description: `Priority ${newJobPriority} · ${newJobModelId}`, duration: 2000 })
-      addNotification('parameter_updated', 'Job created', newJobText.trim().slice(0, 60))
-      addActivityEvent('created', newJobText.trim().slice(0, 30), job.id.slice(0, 8), 'Created')
+      const { job } = await createJob(request, tagsCustomerId, undefined, newJobModelId)
+      toast({ title: 'CAD generation started', description: newJobModelId, duration: 2000 })
+      addNotification('parameter_updated', 'CAD generation started', request.slice(0, 60))
+      addActivityEvent('created', request.slice(0, 30), job.id.slice(0, 8), 'Created and started')
       setNewJobText('')
-      setNewJobPriority(5)
       setNewJobModelId('mimo-v2.5-pro')
       setNewJobTags('')
       setShowComposer(false)
       await loadJobs()
       setSelectedJob(job)
+      void handleProcess(job)
     } catch {
       toast({ title: 'Failed to create job', variant: 'destructive', duration: 3000 })
     } finally {
@@ -522,21 +539,9 @@ export function useWorkspaceState() {
     })
   }
 
-  const handleSetPriority = useCallback(async (id: string, priority: number) => {
-    try {
-      await updatePriority(id, priority)
-      toast({ title: `Priority set to P${priority}`, duration: 1500 })
-      addNotification('parameter_updated', 'Priority updated', `Job ${id.slice(0, 8)} → P${priority}`)
-      await loadJobs()
-    } catch {
-      toast({ title: 'Failed to update priority', variant: 'destructive', duration: 2000 })
-    }
-  }, [toast, addNotification, loadJobs])
-
   const handleLinkParent = useCallback((job: Job) => {
-    setSelectedJob(job)
-    setActiveTab('DEPS')
-  }, [])
+    selectJob(job, 'DEPS')
+  }, [selectJob])
 
   // ── Filter State Handler ────────────────────────────────────────────────
 
@@ -555,18 +560,9 @@ export function useWorkspaceState() {
 
   // ── Quick Action Handlers ──────────────────────────────────────────────
 
-  const handleQuickEditPriority = useCallback((job: Job) => {
-    const newPriority = Math.min(10, job.priority + 1)
-    updatePriority(job.id, newPriority).then(() => {
-      addNotification('parameter_updated', 'Priority updated', `Job ${job.id.slice(0, 8)} → P${newPriority}`)
-      loadJobs()
-    })
-  }, [addNotification, loadJobs])
-
   const handleQuickViewLog = useCallback((job: Job) => {
-    setSelectedJob(job)
-    setActiveTab('LOG')
-  }, [])
+    selectJob(job, 'LOG')
+  }, [selectJob])
 
   const handleQuickView3D = useCallback(() => {
     toast({ title: '3D viewer active', duration: 1000 })
@@ -584,8 +580,25 @@ export function useWorkspaceState() {
   // ── Computed Values ───────────────────────────────────────────────────────
 
   const sortedJobs = useMemo(() => {
-    return [...jobs].sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }, [jobs])
+    return [...jobs].sort((a, b) => {
+      let cmp = 0
+      switch (filterState.sortBy) {
+        case 'priority':
+          cmp = a.priority - b.priority
+          break
+        case 'created':
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+        case 'updated':
+          cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+          break
+        case 'state':
+          cmp = a.state.localeCompare(b.state)
+          break
+      }
+      return filterState.sortOrder === 'desc' ? -cmp : cmp
+    })
+  }, [jobs, filterState.sortBy, filterState.sortOrder])
 
   const stateCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -693,14 +706,13 @@ export function useWorkspaceState() {
     // Theme
     theme, setTheme, resolvedTheme, mounted,
     // Job data
-    jobs, allJobs, selectedJob, setSelectedJob,
+    jobs, allJobs, selectedJob, setSelectedJob, selectJob,
     sortedJobs, stateCounts, linkedJobCount,
     // Filter
     filterState, handleFilterChange,
     // UI state
     showCommandPalette, setShowCommandPalette,
     isCreating, newJobText, setNewJobText,
-    newJobPriority, setNewJobPriority,
     newJobModelId, setNewJobModelId,
     isProcessing, showComposer, setShowComposer,
     showShortcuts, setShowShortcuts,
@@ -712,7 +724,7 @@ export function useWorkspaceState() {
     activeTab, setActiveTab, prevTab, setPrevTab,
     tabDirection, setTabDirection,
     prevJobId, setPrevJobId,
-    jobCountFlash, wsConnected,
+    jobCountFlash, wsConnected, isFirstLoadComplete,
     uptime, activeDragId,
     notifications, newJobTags, setNewJobTags,
     isAiEnhancing,
@@ -727,10 +739,10 @@ export function useWorkspaceState() {
     handleCreate, handleProcess, handleApplyScad,
     handleDelete, handleDuplicate, handleCancel, handleRepair,
     handleBatchAction, toggleSelect,
-    handleSetPriority, handleLinkParent,
+    handleLinkParent,
     handleAiEnhance,
     // Quick actions
-    handleQuickEditPriority, handleQuickViewLog,
+    handleQuickViewLog,
     handleQuickView3D, handleQuickShare,
     // Notifications
     addNotification, markNotificationRead,

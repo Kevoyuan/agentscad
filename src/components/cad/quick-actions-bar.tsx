@@ -3,10 +3,8 @@
 import { useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Play, Edit3, Trash2, Ban, RotateCcw, Download, Eye,
-  Share2, AlertCircle, FileText, ArrowUp, ArrowDown,
-  Settings2, Copy, ExternalLink,
-  Wrench,
+  Play, Trash2, Ban, RotateCcw, Download, Eye,
+  Share2, FileText, Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,7 +34,6 @@ interface QuickActionsBarProps {
   onReprocess: (job: Job) => void
   onDownloadScad: (job: Job) => void
   onView3D: () => void
-  onEditPriority: (job: Job) => void
   onViewLog: (job: Job) => void
   onShare: (job: Job) => void
   onRepair: (job: Job) => void
@@ -62,13 +59,6 @@ function getActionsForState(
           shortcut: 'Space',
           onClick: () => props.onProcess(job),
           variant: 'success',
-        },
-        {
-          id: 'edit-priority',
-          label: 'Edit Priority',
-          icon: <ArrowUp className="w-3.5 h-3.5" />,
-          shortcut: '⇧↑',
-          onClick: () => props.onEditPriority(job),
         },
         {
           id: 'delete',

@@ -19,9 +19,12 @@ export function ValidationPanel({ job }: { job: Job }) {
     </div>
   )
 
-  const passed = results.filter(r => r.passed).length
-  const failed = results.filter(r => !r.passed).length
-  const score = Math.round((passed / results.length) * 100)
+  const isSkipped = (result: ValidationResult) => result.message.toLowerCase().startsWith('skipped')
+  const actionableResults = results.filter(r => !isSkipped(r))
+  const skipped = results.length - actionableResults.length
+  const passed = actionableResults.filter(r => r.passed).length
+  const failed = actionableResults.filter(r => !r.passed).length
+  const score = actionableResults.length > 0 ? Math.round((passed / actionableResults.length) * 100) : 0
 
   return (
     <div className="flex flex-col h-full">
@@ -36,6 +39,7 @@ export function ValidationPanel({ job }: { job: Job }) {
           </div>
           <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">{passed}✓</Badge>
           {failed > 0 && <Badge variant="outline" className="text-[9px] h-4 bg-rose-500/10 text-rose-400 border-rose-500/20">{failed}✗</Badge>}
+          {skipped > 0 && <Badge variant="outline" className="text-[9px] h-4 bg-amber-500/10 text-amber-400 border-amber-500/20">{skipped} skipped</Badge>}
         </div>
       </div>
       <ScrollArea className="flex-1">
@@ -53,12 +57,16 @@ export function ValidationPanel({ job }: { job: Job }) {
               variants={staggerChild}
               transition={staggerTransition}
               className={`flex items-start gap-2 p-2.5 rounded-lg linear-transition ${
-                r.passed
+                isSkipped(r)
+                  ? 'bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10'
+                  : r.passed
                   ? 'bg-[var(--app-surface)] hover:bg-[var(--app-surface-hover)]'
                   : 'bg-rose-500/5 border border-rose-500/10 hover:bg-rose-500/10'
               }`}
             >
-              {r.passed
+              {isSkipped(r)
+                ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                : r.passed
                 ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
                 : <XCircle className="w-3.5 h-3.5 text-rose-500 mt-0.5 shrink-0" />
               }
@@ -69,6 +77,11 @@ export function ValidationPanel({ job }: { job: Job }) {
                   {r.is_critical && (
                     <span className="flex items-center gap-0.5 text-[8px] text-amber-500">
                       <AlertTriangle className="w-2.5 h-2.5" />CRITICAL
+                    </span>
+                  )}
+                  {isSkipped(r) && (
+                    <span className="flex items-center gap-0.5 text-[8px] text-amber-500">
+                      SKIPPED
                     </span>
                   )}
                   <Badge variant="outline" className="text-[8px] h-3 px-1 border-[color:var(--app-border)] text-[var(--app-text-muted)]">{r.level}</Badge>

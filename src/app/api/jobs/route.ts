@@ -41,7 +41,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const summary = searchParams.get("summary") === "true";
     const where = state ? { state } : {};
+
+    // In summary mode, omit large text fields to reduce payload size
+    const summaryOmit = summary
+      ? {
+          scadSource: true, parameterSchema: true, parameterValues: true,
+          researchResult: true, intentResult: true, designResult: true,
+          renderLog: true, validationResults: true, executionLogs: true, notes: true,
+          generationPath: true,
+        }
+      : undefined;
 
     const [jobs, total] = await Promise.all([
       db.job.findMany({
@@ -49,6 +60,7 @@ export async function GET(request: NextRequest) {
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
         take: limit,
         skip: offset,
+        omit: summaryOmit,
         include: {
           parent: { select: { id: true, inputRequest: true, state: true, partFamily: true } },
           children: { select: { id: true, inputRequest: true, state: true, partFamily: true } },

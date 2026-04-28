@@ -95,13 +95,23 @@ export function CadConstraintChip({
 
 export function CadExportChecklist({ job }: { job: Job }) {
   const validation = parseJSON<ValidationResult[]>(job.validationResults, [])
+  const isSkipped = (rule: ValidationResult) => rule.message.toLowerCase().startsWith('skipped')
+  const skipped = validation.filter(isSkipped)
   const blockers = validation.filter(rule => !rule.passed && rule.is_critical)
   const warnings = validation.filter(rule => !rule.passed && !rule.is_critical)
   const checks = [
     { label: 'SCAD source', ok: Boolean(job.scadSource), detail: job.scadSource ? 'Inspectable' : 'Missing' },
     { label: 'STL artifact', ok: Boolean(job.stlPath), detail: job.stlPath ? 'Ready' : 'Stale or missing' },
     { label: 'Preview image', ok: Boolean(job.pngPath), detail: job.pngPath ? 'Ready' : 'Stale or missing' },
-    { label: 'Critical validation', ok: blockers.length === 0 && validation.length > 0, detail: validation.length ? `${blockers.length} blockers` : 'Pending' },
+    {
+      label: 'Critical validation',
+      ok: blockers.length === 0 && validation.length > 0 && skipped.length < validation.length,
+      detail: validation.length
+        ? skipped.length
+          ? `${blockers.length} blockers, ${skipped.length} skipped`
+          : `${blockers.length} blockers`
+        : 'Pending',
+    },
   ]
   const ready = checks.every(check => check.ok)
 
@@ -124,6 +134,12 @@ export function CadExportChecklist({ job }: { job: Job }) {
           <div className="flex items-center gap-2 rounded-md border border-[color:var(--cad-border)] px-2 py-1.5 text-[10px] text-[var(--cad-warning)]">
             <Circle className="h-3 w-3" />
             {warnings.length} non-blocking warning{warnings.length === 1 ? '' : 's'}
+          </div>
+        )}
+        {skipped.length > 0 && (
+          <div className="flex items-center gap-2 rounded-md border border-[color:var(--cad-border)] px-2 py-1.5 text-[10px] text-[var(--cad-warning)]">
+            <CircleAlert className="h-3 w-3" />
+            {skipped.length} validation rule{skipped.length === 1 ? '' : 's'} skipped
           </div>
         )}
       </div>

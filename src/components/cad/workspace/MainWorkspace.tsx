@@ -27,11 +27,13 @@ import {
 
 import { PipelineVisualization } from '@/components/cad/pipeline-visualization'
 import dynamic from 'next/dynamic'
-import { NotificationCenter } from '@/components/cad/notification-center'
-import { JobActivityFeed } from '@/components/cad/job-activity-feed'
 import { Footer } from '@/components/cad/footer'
-import { CommandPalette, CommandAction } from '@/components/cad/command-palette'
-import { ThemePanel } from '@/components/cad/theme-panel'
+import type { CommandAction } from '@/components/cad/command-palette'
+
+const NotificationCenter = dynamic(() => import('@/components/cad/notification-center').then(m => ({ default: m.NotificationCenter })), { ssr: false })
+const JobActivityFeed = dynamic(() => import('@/components/cad/job-activity-feed').then(m => ({ default: m.JobActivityFeed })), { ssr: false })
+const CommandPalette = dynamic(() => import('@/components/cad/command-palette').then(m => ({ default: m.CommandPalette })), { ssr: false })
+const ThemePanel = dynamic(() => import('@/components/cad/theme-panel').then(m => ({ default: m.ThemePanel })), { ssr: false })
 
 const StatsDashboard = dynamic(() => import('@/components/cad/stats-dashboard').then(m => ({ default: m.StatsDashboard })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
 const JobCompare = dynamic(() => import('@/components/cad/job-compare').then(m => ({ default: m.JobCompare })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
@@ -40,7 +42,7 @@ import { useWorkspaceState } from './useWorkspaceState'
 import { JobListPanel } from './JobListPanel'
 import { ViewerPanel } from './ViewerPanel'
 import { InspectorPanel } from './InspectorPanel'
-import { JobComposer } from './JobComposer'
+const JobComposer = dynamic(() => import('./JobComposer').then(m => ({ default: m.JobComposer })), { ssr: false })
 import { KeyboardShortcuts } from './KeyboardShortcuts'
 
 export function MainWorkspace() {
@@ -122,8 +124,6 @@ export function MainWorkspace() {
         onSetActiveTab={state.setActiveTab}
         onDelete={state.handleDelete}
         onProcess={state.handleProcess}
-        onAddNotification={state.addNotification}
-        onLoadJobs={state.loadJobs}
       />
 
       {/* Header */}
@@ -154,7 +154,7 @@ export function MainWorkspace() {
                   <BarChart3 className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p className="text-xs">Stats Dashboard</p></TooltipContent>
+              <TooltipContent><p className="text-xs">Stats Dashboard (S)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
@@ -270,16 +270,16 @@ export function MainWorkspace() {
             stateCounts={state.stateCounts}
             activeDragId={state.activeDragId}
             sensors={state.sensors}
+            isFirstLoadComplete={state.isFirstLoadComplete}
             onDragStart={state.handleDragStart}
             onDragEnd={state.handleDragEnd}
             onDragCancel={state.handleDragCancel}
-            onSelectJob={(job) => { state.setSelectedJob(job); state.setActiveTab('PARAMS') }}
+            onSelectJob={(job) => { state.selectJob(job, 'PARAMS') }}
             onToggleSelect={state.toggleSelect}
             onProcess={state.handleProcess}
             onCancel={(j) => state.setCancelTarget(j)}
             onDuplicate={state.handleDuplicate}
             onDelete={state.handleDelete}
-            onSetPriority={state.handleSetPriority}
             onLinkParent={state.handleLinkParent}
             onBatchAction={state.handleBatchAction}
             onFilterChange={state.handleFilterChange}
@@ -298,12 +298,12 @@ export function MainWorkspace() {
             onDelete={state.handleDelete}
             onDownloadScad={state.downloadScad}
             onView3D={state.handleQuickView3D}
-            onEditPriority={state.handleQuickEditPriority}
             onViewLog={state.handleQuickViewLog}
             onShare={state.handleQuickShare}
             onRepair={state.handleRepair}
             onSetActiveTab={state.setActiveTab}
             onShowComposer={() => state.setShowComposer(true)}
+            isFirstLoadComplete={state.isFirstLoadComplete}
           />
 
           <ResizableHandle id="agentscad-viewer-inspector-resize" withHandle />
@@ -323,6 +323,7 @@ export function MainWorkspace() {
             onNavigateToJob={handleNavigateToJob}
             onClearSelectedJob={() => state.setSelectedJob(null)}
             onShowComposer={() => state.setShowComposer(true)}
+            isFirstLoadComplete={state.isFirstLoadComplete}
           />
         </ResizablePanelGroup>
       </main>
@@ -346,7 +347,6 @@ export function MainWorkspace() {
       <JobComposer
         showComposer={state.showComposer}
         newJobText={state.newJobText}
-        newJobPriority={state.newJobPriority}
         newJobModelId={state.newJobModelId}
         newJobTags={state.newJobTags}
         isCreating={state.isCreating}
@@ -354,7 +354,6 @@ export function MainWorkspace() {
         recentRequests={state.recentRequests}
         onShowComposerChange={state.setShowComposer}
         onNewJobTextChange={state.setNewJobText}
-        onNewJobPriorityChange={state.setNewJobPriority}
         onNewJobModelIdChange={state.setNewJobModelId}
         onNewJobTagsChange={state.setNewJobTags}
         onCreate={state.handleCreate}
@@ -405,6 +404,7 @@ export function MainWorkspace() {
                   { keys: ['E', ''], desc: 'Edit SCAD code' },
                   { keys: ['D', ''], desc: 'Show dependencies' },
                   { keys: ['H', ''], desc: 'Show history (LOG)' },
+                  { keys: ['S', ''], desc: 'Open stats dashboard' },
                   { keys: ['T', ''], desc: 'Open theme settings' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
@@ -428,8 +428,6 @@ export function MainWorkspace() {
                   { keys: ['⌘', '⇧', 'N'], desc: 'New job (focus input)' },
                   { keys: ['Space'], desc: 'Process selected' },
                   { keys: ['Del'], desc: 'Delete selected' },
-                  { keys: ['⇧', '↑'], desc: 'Priority up' },
-                  { keys: ['⇧', '↓'], desc: 'Priority down' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
                     <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
@@ -488,9 +486,9 @@ export function MainWorkspace() {
 
       {/* Stats Dashboard */}
       <Dialog open={state.showStats} onOpenChange={state.setShowStats}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-2xl dialog-enter" aria-describedby="stats-description">
+        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-2xl dialog-enter" aria-describedby="stats-description" aria-labelledby="stats-dashboard-title">
           <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
+            <DialogTitle id="stats-dashboard-title" className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[var(--app-accent-text)]" />Stats Dashboard
             </DialogTitle>
             <DialogDescription id="stats-description" className="sr-only">
@@ -537,7 +535,7 @@ export function MainWorkspace() {
         open={state.showCommandPalette}
         onOpenChange={state.setShowCommandPalette}
         jobs={state.allJobs}
-        onSelectJob={(job) => { state.setSelectedJob(job); state.setActiveTab('PARAMS') }}
+        onSelectJob={(job) => { state.selectJob(job, 'PARAMS') }}
         actions={commandPaletteActions}
       />
     </div>

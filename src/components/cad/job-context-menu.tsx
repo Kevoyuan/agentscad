@@ -2,16 +2,13 @@
 
 import { ReactNode } from 'react'
 import {
-  Play, RotateCcw, Copy, Ban, Trash2, ArrowUp, Link2, Clipboard, ExternalLink,
+  Play, RotateCcw, Copy, Ban, Trash2, Link2, Clipboard, ExternalLink,
 } from 'lucide-react'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
   ContextMenuTrigger,
   ContextMenuShortcut,
 } from '@/components/ui/context-menu'
@@ -26,7 +23,6 @@ interface JobContextMenuProps {
   onDuplicate: (job: Job) => void
   onCancel: (job: Job) => void
   onDelete: (id: string) => void
-  onSetPriority: (id: string, priority: number) => void
   onLinkParent: (job: Job) => void
 }
 
@@ -39,7 +35,6 @@ export function JobContextMenu({
   onDuplicate,
   onCancel,
   onDelete,
-  onSetPriority,
   onLinkParent,
 }: JobContextMenuProps) {
   const isCancelable = CANCELABLE_STATES.includes(job.state)
@@ -96,35 +91,6 @@ export function JobContextMenu({
 
         <ContextMenuSeparator className="bg-[var(--app-surface-hover)]" />
 
-        {/* Set Priority submenu */}
-        <ContextMenuSub>
-          <ContextMenuSubTrigger className="text-[11px] gap-2 text-[var(--app-text-secondary)]">
-            <ArrowUp className="w-3.5 h-3.5" />
-            Set Priority
-            <span className="ml-auto text-[9px] text-[var(--app-text-dim)]">P{job.priority}</span>
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-36 linear-surface linear-border linear-shadow-md">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(p => (
-              <ContextMenuItem
-                key={p}
-                className={`text-[10px] gap-2 font-mono ${
-                  p === job.priority ? 'text-[var(--app-accent-text)] bg-violet-500/10' : 'text-[var(--app-text-muted)]'
-                }`}
-                onClick={() => onSetPriority(job.id, p)}
-              >
-                <span className={`w-4 text-center ${p >= 8 ? 'text-rose-400' : p >= 6 ? 'text-orange-400' : p >= 4 ? 'text-amber-400' : 'text-[var(--app-text-muted)]'}`}>
-                  P{p}
-                </span>
-                {p === 1 && <span className="text-[8px] text-[var(--app-text-dim)]">Low</span>}
-                {p === 5 && <span className="text-[8px] text-[var(--app-text-dim)]">Normal</span>}
-                {p === 10 && <span className="text-[8px] text-[var(--app-text-dim)]">Critical</span>}
-                {p === job.priority && <span className="ml-auto text-[8px] text-[var(--app-accent-text)]">●</span>}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-
-        {/* Link to Parent */}
         <ContextMenuItem
           className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={() => onLinkParent(job)}

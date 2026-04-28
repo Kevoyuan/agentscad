@@ -277,6 +277,28 @@ export function SearchFilterPanel({
               <Button
                 variant="ghost"
                 size="sm"
+                className={`h-7 px-1.5 gap-1 text-[9px] font-mono ${filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
+                onClick={() => {
+                  if (filters.sortBy === 'created' && filters.sortOrder === 'desc') {
+                    onFiltersChange({ ...filters, sortBy: 'priority', sortOrder: 'desc' })
+                  } else {
+                    onFiltersChange({ ...filters, sortBy: 'created', sortOrder: 'desc' })
+                  }
+                }}
+              >
+                <Clock className="w-3 h-3" />
+                {filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Time' : 'Prio'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p className="text-xs">{filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Switch to priority sort' : 'Switch to time sort'}</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
                 className={`h-7 w-7 p-0 relative ${expanded ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
                 onClick={() => setExpanded(!expanded)}
               >

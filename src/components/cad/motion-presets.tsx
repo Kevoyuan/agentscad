@@ -3,7 +3,7 @@
 import type { Variants, Transition } from 'framer-motion'
 
 // ─── Animation Presets ──────────────────────────────────────────────────────
-// Reusable framer-motion animation variants for the AgentSCAD dashboard.
+// Reusable motion animation variants for the AgentSCAD dashboard.
 // Each preset exports `initial`, `animate`, `exit`, and `transition` objects.
 
 // Fade in from below with slight Y offset
