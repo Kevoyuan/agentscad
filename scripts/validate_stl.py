@@ -161,7 +161,7 @@ def check_wall_thickness(mesh, min_wall: float) -> dict:
             # Distance from ray origin to each hit
             dists = np.linalg.norm(hit_points - ray_origins[i], axis=1)
             # The nearest hit after the offset is the opposite wall
-            valid_dists = dists[dists > 0.1]  # filter out near-zero hits (self-intersection)
+            valid_dists = dists[dists > 0.3]  # filter out near-zero hits (self-intersection and grazing rays)
             if len(valid_dists) > 0:
                 thicknesses.append(float(np.min(valid_dists)))
 

@@ -168,6 +168,24 @@ export async function buildScadPrompt(
       JSON.stringify(parameterValues, null, 2)
     );
 
+  // Inject manufacturing constraints that the validator enforces.
+  // These are NOT the design wall_thickness parameter — they are
+  // printability thresholds the mesh validator checks against.
+  {
+    const returnMarker = "Return the JSON object";
+    const idx = userPrompt.lastIndexOf(returnMarker);
+    if (idx >= 0) {
+      const constraints = [
+        "FDM minimum wall thickness: 1.2 mm (R001 validation will fail below this)",
+        "All dimensions in millimeters",
+      ].join("\n");
+      userPrompt =
+        userPrompt.slice(0, idx).trimEnd() +
+        `\n\n## Manufacturing constraints (validated)\n${constraints}\n\n` +
+        userPrompt.slice(idx);
+    }
+  }
+
   // Inject learned patterns from user edit history (self-learning loop).
   // These are optional context — they enhance generation quality but are
   // never treated as hard constraints.

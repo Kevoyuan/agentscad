@@ -18,6 +18,9 @@ const INSTALL_TIMEOUT_MS = 180_000;
 const VALIDATION_TIMEOUT_MS = 30_000;
 const REQUIRED_PACKAGES = ["trimesh>=4,<5", "numpy>=1.24", "scipy>=1.10", "rtree>=1.2"];
 
+/** Minimum wall thickness for FDM 3D printing (mm). */
+const FDM_MIN_WALL_MM = 1.2;
+
 // ---------------------------------------------------------------------------
 // Types matching the frontend's ValidationResult interface
 // ---------------------------------------------------------------------------
@@ -324,8 +327,11 @@ export async function getMeshValidatorStatus(): Promise<MeshValidatorStatus> {
 /**
  * Validate an STL file using real mesh analysis.
  *
+ * Uses a fixed manufacturing threshold (FDM_MIN_WALL_MM) for wall thickness,
+ * independent of any design-level wall_thickness parameter. The design
+ * parameter informs the generator, not the validator.
+ *
  * @param stlPath - Absolute path to the STL file on disk
- * @param _wallThickness - Reserved for future min-wall override support.
  * @returns Array of ValidationResult objects matching the frontend interface
  */
 export async function validateStl(
@@ -349,10 +355,11 @@ export async function validateStl(
   }
 
   try {
-    // Attempt real validation via Python
+    // Wall thickness validation uses the FDM manufacturing minimum,
+    // not the design-level wall_thickness parameter.
     const { stdout, stderr } = await execAsync(
-      `${shellQuote(validator.pythonPath)} ${shellQuote(scriptPath)} ${shellQuote(stlPath)}`,
-      { timeout: VALIDATION_TIMEOUT_MS } // 30s timeout for large meshes
+      `${shellQuote(validator.pythonPath)} ${shellQuote(scriptPath)} ${shellQuote(stlPath)} --min-wall ${FDM_MIN_WALL_MM}`,
+      { timeout: VALIDATION_TIMEOUT_MS }
     );
 
     if (stderr) {
