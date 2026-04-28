@@ -3,17 +3,10 @@
 import { useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Loader2, Cpu, Code2, Box, Shield, CheckCircle2,
-  XCircle, Clock, FileText, Ban, AlertCircle, Activity,
+  Loader2, Code2, CheckCircle2,
+  XCircle, Clock, FileText, Ban, AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   Job, PIPELINE_STEPS, getPipelineProgress, parseJSON, ExecutionLog,
   timeAgo, getStateInfo, ValidationResult,
@@ -41,102 +34,11 @@ const AVERAGE_STEP_TIMES: Record<string, number> = {
   DELIVERED: 1,
 }
 
-function estimateTimeRemaining(currentState: string): string {
-  const currentIdx = PIPELINE_STEPS.findIndex(s => s.key === currentState)
-  if (currentIdx === -1) return 'Calculating...'
-
-  let totalSeconds = 0
-  for (let i = currentIdx + 1; i < PIPELINE_STEPS.length; i++) {
-    totalSeconds += AVERAGE_STEP_TIMES[PIPELINE_STEPS[i].key] || 5
-  }
-
-  if (totalSeconds < 60) return `~${totalSeconds}s`
-  return `~${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`
-}
-
 function calculateElapsed(createdAt: string): string {
   const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)
   if (elapsed < 60) return `${elapsed}s`
   if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
   return `${Math.floor(elapsed / 3600)}h ${Math.floor((elapsed % 3600) / 60)}m`
-}
-
-// ─── Animated State Icon ────────────────────────────────────────────────────
-
-function AnimatedStateIcon({ state }: { state: string }) {
-  const failedStates = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED']
-  const isFailed = failedStates.includes(state)
-
-  const iconClass = 'w-16 h-16'
-
-  if (isFailed) {
-    return (
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-      >
-        <XCircle className={`${iconClass} text-rose-400`} />
-      </motion.div>
-    )
-  }
-
-  const currentIdx = PIPELINE_STEPS.findIndex(s => s.key === state)
-
-  if (state === 'DELIVERED') {
-    return (
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-      >
-        <CheckCircle2 className={`${iconClass} text-lime-400`} />
-      </motion.div>
-    )
-  }
-
-  if (state === 'SCAD_GENERATED') {
-    return (
-      <motion.div
-        animate={{ rotate: [0, 10, -10, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Code2 className={`${iconClass} text-amber-400`} />
-      </motion.div>
-    )
-  }
-
-  if (state === 'RENDERED') {
-    return (
-      <motion.div
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Box className={`${iconClass} text-cyan-400`} />
-      </motion.div>
-    )
-  }
-
-  if (state === 'VALIDATED') {
-    return (
-      <motion.div
-        animate={{ opacity: [1, 0.6, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Shield className={`${iconClass} text-emerald-400`} />
-      </motion.div>
-    )
-  }
-
-  // Default: spinning loader
-  return (
-    <motion.div
-      animate={{ rotate: 360 }}
-      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-    >
-      <Loader2 className={`${iconClass} text-[var(--app-accent-text)]`} />
-    </motion.div>
-  )
 }
 
 // ─── Step Duration from Execution Logs ──────────────────────────────────────
@@ -447,107 +349,80 @@ export function JobStatusPage({ job, streamEvents = [], onViewLogs, onViewError,
             </div>
           </div>
 
-          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
             <div className="flex min-h-0 flex-col gap-3">
-              <div className="rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/45 p-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--cad-text-secondary)]">Current activity</span>
+              <div className="min-h-0 flex-1 rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/45 p-2.5">
+                <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--cad-text-secondary)]">Run steps</span>
                   <span className="text-[9px] font-mono text-[var(--cad-text-muted)]">
                     {latestEvent ? new Date(latestEvent.timestamp).toLocaleTimeString() : 'waiting'}
                   </span>
                 </div>
-                <p className="text-xs leading-relaxed text-[var(--cad-text-secondary)]">
-                  {latestEvent?.message || 'Queued CAD generation pipeline...'}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/45 p-3">
-                <div className="mb-3 flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-[var(--cad-text-muted)]">Pipeline Progress</span>
-                  <span className={
-                    isFailed ? 'text-rose-400' :
-                    isDelivered ? 'text-lime-400' :
-                    'text-[var(--cad-measure)]'
-                  }>
-                    {effectiveProgress}%
-                  </span>
-                </div>
-                <Progress
-                  value={effectiveProgress}
-                  className={`h-2 ${
-                    isFailed ? '[&>[data-slot=progress-indicator]]:bg-rose-500' :
-                    isDelivered ? '[&>[data-slot=progress-indicator]]:bg-lime-500' :
-                    '[&>[data-slot=progress-indicator]]:bg-[var(--cad-accent)]'
-                  }`}
-                />
-              </div>
-
-              <div className="min-h-0 flex-1 rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/45 p-2">
                 <div className="space-y-1">
-                {PIPELINE_STEPS.map((step, idx) => {
-                  const isCompleted = idx < currentIdx || isDelivered
-                  const isCurrent = idx === currentIdx && !isFailed && !isDelivered
-                  const isFailedStep = isFailed && step.key === state.replace('_FAILED', '')
-                  const StepIcon = step.icon
-                  const duration = stepDurations[step.key]
+                  {PIPELINE_STEPS.map((step, idx) => {
+                    const isCompleted = idx < currentIdx || isDelivered
+                    const isCurrent = idx === currentIdx && !isFailed && !isDelivered
+                    const isFailedStep = isFailed && step.key === state.replace('_FAILED', '')
+                    const StepIcon = step.icon
+                    const duration = stepDurations[step.key]
 
-                  return (
-                    <motion.div
-                      key={step.key}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: idx * 0.04 }}
-                      className={`flex items-center gap-2 rounded px-2 py-1.5 transition-colors ${
-                        isCurrent ? 'bg-[var(--cad-accent-soft)] ring-1 ring-[color:var(--cad-border-strong)]' :
-                        isFailedStep ? 'bg-rose-500/10 ring-1 ring-rose-500/20' :
-                        'hover:bg-[var(--app-hover-subtle)]'
-                      }`}
-                    >
-                      <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                        {isCompleted ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-lime-400" />
-                        ) : isFailedStep ? (
-                          <XCircle className="h-3.5 w-3.5 text-rose-400" />
-                        ) : isCurrent ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--app-accent-text)]" />
-                        ) : (
-                          <StepIcon className="h-3.5 w-3.5 text-[var(--app-state-neutral-dot)]" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`truncate text-[11px] font-medium ${
-                            isCompleted ? 'text-[var(--app-text-secondary)]' :
-                            isCurrent ? 'text-[var(--cad-accent)]' :
-                            isFailedStep ? 'text-rose-300' :
-                            'text-[var(--app-text-dim)]'
-                          }`}>
-                            {step.label}
-                          </span>
-                          {isCurrent && (
-                            <span className="rounded border border-[color:var(--cad-border)] bg-[var(--cad-accent-soft)] px-1 py-0.5 text-[7px] font-mono text-[var(--cad-accent)]">
-                              ACTIVE
-                            </span>
-                          )}
-                          {isFailedStep && (
-                            <span className="rounded border border-rose-500/30 bg-rose-500/20 px-1 py-0.5 text-[7px] font-mono text-rose-400">
-                              FAILED
-                            </span>
+                    return (
+                      <motion.div
+                        key={step.key}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: idx * 0.04 }}
+                        className={`flex items-center gap-2 rounded px-2 py-1.5 transition-colors ${
+                          isCurrent ? 'bg-[var(--cad-accent-soft)] ring-1 ring-[color:var(--cad-border-strong)]' :
+                          isFailedStep ? 'bg-rose-500/10 ring-1 ring-rose-500/20' :
+                          'hover:bg-[var(--app-hover-subtle)]'
+                        }`}
+                      >
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          {isCompleted ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-lime-400" />
+                          ) : isFailedStep ? (
+                            <XCircle className="h-3.5 w-3.5 text-rose-400" />
+                          ) : isCurrent ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--app-accent-text)]" />
+                          ) : (
+                            <StepIcon className="h-3.5 w-3.5 text-[var(--app-state-neutral-dot)]" />
                           )}
                         </div>
-                      </div>
-                      <div className="shrink-0 text-[8px] font-mono text-[var(--app-text-dim)]">
-                        {isCurrent ? (
-                          <span className="text-[var(--cad-measure)]">Running</span>
-                        ) : isCompleted && duration ? (
-                          <span className="text-lime-500/60">{formatDuration(duration)}</span>
-                        ) : !isCompleted && !isFailedStep ? (
-                          <span>~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
-                        ) : null}
-                      </div>
-                    </motion.div>
-                  )
-                })}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`truncate text-[11px] font-medium ${
+                              isCompleted ? 'text-[var(--app-text-secondary)]' :
+                              isCurrent ? 'text-[var(--cad-accent)]' :
+                              isFailedStep ? 'text-rose-300' :
+                              'text-[var(--app-text-dim)]'
+                            }`}>
+                              {step.label}
+                            </span>
+                            {isCurrent && (
+                              <span className="rounded border border-[color:var(--cad-border)] bg-[var(--cad-accent-soft)] px-1 py-0.5 text-[7px] font-mono text-[var(--cad-accent)]">
+                                ACTIVE
+                              </span>
+                            )}
+                            {isFailedStep && (
+                              <span className="rounded border border-rose-500/30 bg-rose-500/20 px-1 py-0.5 text-[7px] font-mono text-rose-400">
+                                FAILED
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-[8px] font-mono text-[var(--app-text-dim)]">
+                          {isCurrent ? (
+                            <span className="text-[var(--cad-measure)]">Running</span>
+                          ) : isCompleted && duration ? (
+                            <span className="text-lime-500/60">{formatDuration(duration)}</span>
+                          ) : !isCompleted && !isFailedStep ? (
+                            <span>~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
+                          ) : null}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
                 </div>
               </div>
 
