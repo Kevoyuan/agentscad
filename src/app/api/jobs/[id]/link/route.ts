@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { broadcastWs } from '@/lib/ws-broadcast'
 
 export async function PATCH(
   request: NextRequest,
@@ -22,7 +21,6 @@ export async function PATCH(
         where: { id },
         data: { parentId: null },
       })
-      broadcastWs('job:update', { jobId: id, state: updated.state, action: 'unlinked' }).catch(() => {})
       return NextResponse.json({ job: updated })
     }
 
@@ -54,8 +52,6 @@ export async function PATCH(
       where: { id },
       data: { parentId },
     })
-
-    broadcastWs('job:update', { jobId: id, state: updated.state, action: 'linked', parentId }).catch(() => {})
 
     return NextResponse.json({ job: updated })
   } catch (error) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { broadcastWs } from '@/lib/ws-broadcast'
 
 const CANCELABLE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
 
@@ -30,9 +29,6 @@ export async function PATCH(
         completedAt: new Date(),
       },
     })
-
-    // Broadcast WebSocket event
-    broadcastWs('job:update', { jobId: id, state: 'CANCELLED', action: 'cancelled' }).catch(() => {})
 
     return NextResponse.json({ job: updated })
   } catch (error) {

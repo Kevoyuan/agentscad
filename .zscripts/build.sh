@@ -18,7 +18,7 @@ if [ ! -d "$NEXTJS_PROJECT_DIR" ]; then
     exit 1
 fi
 
-echo "🚀 开始构建 Next.js 应用和 mini-services..."
+echo "🚀 开始构建 Next.js 应用..."
 echo "📁 Next.js 项目路径: $NEXTJS_PROJECT_DIR"
 
 # 切换到 Next.js 项目目录
@@ -38,22 +38,6 @@ bun install
 # 构建 Next.js 应用
 echo "🔨 构建 Next.js 应用..."
 bun run build
-
-# 构建 mini-services
-# 检查 Next.js 项目目录下是否有 mini-services 目录
-if [ -d "$NEXTJS_PROJECT_DIR/mini-services" ]; then
-    echo "🔨 构建 mini-services..."
-    # 使用 workspace-agent 目录下的 mini-services 脚本
-    sh "$SCRIPT_DIR/mini-services-install.sh"
-    sh "$SCRIPT_DIR/mini-services-build.sh"
-
-    # 复制 mini-services-start.sh 到 mini-services-dist 目录
-    echo "  - 复制 mini-services-start.sh 到 $BUILD_DIR"
-    cp "$SCRIPT_DIR/mini-services-start.sh" "$BUILD_DIR/mini-services-start.sh"
-    chmod +x "$BUILD_DIR/mini-services-start.sh"
-else
-    echo "ℹ️  mini-services 目录不存在，跳过"
-fi
 
 # 将所有构建产物复制到临时构建目录
 echo "📦 收集构建产物到 $BUILD_DIR..."

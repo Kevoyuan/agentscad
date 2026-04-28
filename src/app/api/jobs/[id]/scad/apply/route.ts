@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { broadcastWs } from '@/lib/ws-broadcast'
 import { trackVersion } from '@/lib/version-tracker'
 import { appendLog, parameterDefsToValues } from '@/lib/stores/job-store'
 import { sanitizeGeneratedScadSource } from '@/lib/tools/scad-sanitizer'
@@ -112,7 +111,6 @@ export async function POST(
             parameterValues: parameterState.parameterValues,
             generationPath: 'manual_scad_apply',
           })
-          broadcastWs('job:update', { jobId: id, state: 'SCAD_GENERATED', action: 'scad_applied' }).catch(() => {})
 
           sendEvent({
             state: 'SCAD_GENERATED',
@@ -144,7 +142,6 @@ export async function POST(
               error: renderError,
               job: failedJob,
             })
-            broadcastWs('job:update', { jobId: id, state: 'GEOMETRY_FAILED', action: 'render_failed' }).catch(() => {})
             controller.close()
             return
           }
@@ -176,7 +173,6 @@ export async function POST(
             pngPath: renderedJob.pngPath,
             renderLog: renderedJob.renderLog,
           })
-          broadcastWs('job:update', { jobId: id, state: 'RENDERED', action: 'rendered' }).catch(() => {})
 
           sendEvent({
             state: 'RENDERED',
@@ -214,7 +210,6 @@ export async function POST(
               validationResults,
               job: reviewJob,
             })
-            broadcastWs('job:update', { jobId: id, state: 'HUMAN_REVIEW', action: 'validation_review' }).catch(() => {})
             controller.close()
             return
           }
@@ -243,7 +238,6 @@ export async function POST(
             message: 'Applied SCAD validated successfully',
             validationResults,
           })
-          broadcastWs('job:update', { jobId: id, state: 'VALIDATED', action: 'validated' }).catch(() => {})
 
           const finalJob = await db.job.update({
             where: { id },
@@ -260,7 +254,6 @@ export async function POST(
             message: 'Applied SCAD saved, rendered, and delivered.',
             job: finalJob,
           })
-          broadcastWs('job:update', { jobId: id, state: 'DELIVERED', action: 'delivered' }).catch(() => {})
           controller.close()
         } catch (error) {
           console.error('Apply SCAD error:', error)

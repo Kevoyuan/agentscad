@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { broadcastWs } from "@/lib/ws-broadcast";
 import { MIMO_DEFAULT_MODEL } from "@/lib/mimo";
 import { appendLog, parameterDefsToValues } from "@/lib/stores/job-store";
 import {
@@ -351,7 +350,6 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
       parameters: generationResult.parameters,
       partFamily,
     });
-    broadcastWs("job:update", { jobId, state: "SCAD_GENERATED", action: "scad_generated" }).catch(() => {});
     await delay(1200);
 
     sendEvent({
@@ -395,7 +393,6 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
         message: "OpenSCAD render failed. Real STL/PNG artifacts were not generated.",
         error: renderError,
       });
-      broadcastWs("job:update", { jobId, state: "GEOMETRY_FAILED", action: "render_failed" }).catch(() => {});
       return;
     }
 
@@ -425,7 +422,6 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
       stlPath: renderedArtifacts.stlPath,
       pngPath: renderedArtifacts.pngPath,
     });
-    broadcastWs("job:update", { jobId, state: "RENDERED", action: "rendered" }).catch(() => {});
     await delay(1000);
 
     sendEvent({
@@ -466,7 +462,6 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
         message: "Rendered successfully; validation blockers require review or repair before export",
         validationResults,
       });
-      broadcastWs("job:update", { jobId, state: "HUMAN_REVIEW", action: "validation_review" }).catch(() => {});
       return;
     }
 
@@ -495,7 +490,6 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
       message: "Validation passed - all critical rules satisfied",
       validationResults,
     });
-    broadcastWs("job:update", { jobId, state: "VALIDATED", action: "validated" }).catch(() => {});
     await delay(800);
 
     sendEvent({
@@ -526,7 +520,6 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
       message: "Job completed successfully! All deliverables are ready.",
       job: finalJob,
     });
-    broadcastWs("job:update", { jobId, state: "DELIVERED", action: "delivered" }).catch(() => {});
   } catch (error) {
     console.error("Error during job processing:", error);
 
@@ -549,6 +542,5 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
       step: "error",
       message: `Processing failed: ${message}`,
     });
-    broadcastWs("job:update", { jobId, state: "GEOMETRY_FAILED", action: "error" }).catch(() => {});
   }
 }

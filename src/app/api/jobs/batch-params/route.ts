@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { broadcastWs } from '@/lib/ws-broadcast'
 import { trackVersion } from '@/lib/version-tracker'
 
 /**
@@ -72,9 +71,6 @@ export async function PATCH(request: NextRequest) {
         failed.push(jobId)
       }
     }
-
-    // Broadcast WebSocket event
-    broadcastWs('job:update', { jobId: jobIds, action: 'batch_params_updated' }).catch(() => {})
 
     return NextResponse.json({ results: { success, failed } })
   } catch (error) {

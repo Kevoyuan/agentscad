@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { appendLog } from "@/lib/stores/job-store";
-import { broadcastWs } from "@/lib/ws-broadcast";
 import fs from "fs/promises";
 import path from "path";
 
@@ -63,8 +62,6 @@ export async function POST(
         ),
       },
     });
-
-    broadcastWs("job:update", { jobId: id, state: updated.state, action: "auto_repaired" }).catch(() => {});
 
     return NextResponse.json({
       job: updated,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { broadcastWs } from "@/lib/ws-broadcast";
 import { analyzeUserEdits, writeLearnedPatterns } from "@/lib/improvement-analyzer";
 import fs from "fs/promises";
 import path from "path";
@@ -99,13 +98,6 @@ async function retryFailed(): Promise<{
       }
 
       retried++;
-
-      // Broadcast state change
-      broadcastWs("job:update", {
-        jobId: job.id,
-        state: "NEW",
-        action: "cron_retry",
-      }).catch(() => {});
 
       // Kick off processing asynchronously — fire and forget.
       // We use fetch to our own endpoint so the cron route stays lightweight.

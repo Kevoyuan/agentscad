@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { io, Socket } from 'socket.io-client'
 import {
   useSensor, useSensors, PointerSensor, KeyboardSensor,
   DragStartEvent, DragEndEvent,
@@ -58,7 +57,6 @@ export function useWorkspaceState() {
   const [tabDirection, setTabDirection] = useState(1)
   const [prevJobId, setPrevJobId] = useState<string | null>(null)
   const [jobCountFlash, setJobCountFlash] = useState(false)
-  const [wsConnected, setWsConnected] = useState(false)
   const [isFirstLoadComplete, setFirstLoadComplete] = useState(false)
   const [uptimeSeconds, setUptimeSeconds] = useState(0)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -251,60 +249,20 @@ export function useWorkspaceState() {
     }
   }, [filterState])
 
-  // ── WebSocket + Polling Fallback ─────────────────────────────────────────
-
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const socketRef = useRef<Socket | null>(null)
-
-  const startPolling = useCallback(() => {
-    if (pollingRef.current) return
-    pollingRef.current = setInterval(loadJobs, 15000)
-  }, [loadJobs])
-
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current)
-      pollingRef.current = null
-    }
-  }, [])
+  // ── Polling Refresh ─────────────────────────────────────────────────────
 
   useEffect(() => {
-    loadJobs().finally(() => setFirstLoadComplete(true))
-
-    const socket = io('/?XTransformPort=3003', {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
+    let cancelled = false
+    loadJobs().finally(() => {
+      if (!cancelled) setFirstLoadComplete(true)
     })
-    socketRef.current = socket
-
-    socket.on('connect', () => {
-      console.log('[WS] Connected to ws-service')
-      setWsConnected(true)
-      stopPolling()
-    })
-
-    socket.on('job:update', () => {
-      loadJobs()
-    })
-
-    socket.on('disconnect', () => {
-      console.log('[WS] Disconnected from ws-service, falling back to polling')
-      setWsConnected(false)
-      startPolling()
-    })
-
-    socket.on('connect_error', () => {
-      startPolling()
-    })
+    const interval = setInterval(loadJobs, 15000)
 
     return () => {
-      socket.disconnect()
-      socketRef.current = null
-      stopPolling()
+      cancelled = true
+      clearInterval(interval)
     }
-  }, [loadJobs, startPolling, stopPolling])
+  }, [loadJobs])
 
   // ── Job Actions ───────────────────────────────────────────────────────────
 
@@ -730,7 +688,7 @@ export function useWorkspaceState() {
     activeTab, setActiveTab, prevTab, setPrevTab,
     tabDirection, setTabDirection,
     prevJobId, setPrevJobId,
-    jobCountFlash, wsConnected, isFirstLoadComplete,
+    jobCountFlash, isFirstLoadComplete,
     uptime, activeDragId,
     notifications, newJobTags, setNewJobTags,
     isAiEnhancing,

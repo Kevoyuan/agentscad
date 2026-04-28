@@ -15,7 +15,6 @@ import {
 // ─── Types ──────────────────────────────────────────────────────────────
 
 interface FooterProps {
-  wsConnected: boolean
   jobCount: number
   jobCountFlash: boolean
   deliveredCount: number
@@ -87,7 +86,6 @@ function SeparatorDot() {
 // ─── Footer Component ──────────────────────────────────────────────────
 
 export function Footer({
-  wsConnected,
   jobCount,
   jobCountFlash,
   deliveredCount,
@@ -96,16 +94,16 @@ export function Footer({
   onExport,
 }: FooterProps) {
   const memoryUsage = useMemoryUsage()
-  const hasAttention = failedCount > 0 || !wsConnected
+  const hasAttention = failedCount > 0
 
   return (
     <footer className="relative flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
       <div className="flex min-w-0 items-center gap-3 text-[9px] font-mono text-[var(--app-text-muted)]">
-        <FooterMetric tooltip={wsConnected ? 'Realtime sync connected' : 'Realtime socket unavailable; polling keeps jobs updated'}>
+        <FooterMetric tooltip="Jobs refresh automatically while the workspace is open">
           <span className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-dot' : 'bg-amber-500'}`} />
-            <Activity className={`w-2.5 h-2.5 ${wsConnected ? 'text-emerald-500' : 'text-amber-500'}`} />
-            {wsConnected ? 'Synced' : 'Polling'}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 online-dot" />
+            <Activity className="w-2.5 h-2.5 text-emerald-500" />
+            Auto-refresh
           </span>
         </FooterMetric>
         <SeparatorDot />
@@ -122,7 +120,7 @@ export function Footer({
           <>
             <SeparatorDot />
             <FooterMetric tooltip="Items needing attention">
-              <span className={failedCount > 0 ? 'text-rose-500/80' : 'text-amber-500/80'}>{failedCount} blockers</span>
+              <span className="text-rose-500/80">{failedCount} blockers</span>
             </FooterMetric>
           </>
         )}

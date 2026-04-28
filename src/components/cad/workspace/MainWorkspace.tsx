@@ -330,7 +330,6 @@ export function MainWorkspace() {
 
       {/* Footer */}
       <Footer
-        wsConnected={state.wsConnected}
         jobCount={state.allJobs.length}
         jobCountFlash={state.jobCountFlash}
         deliveredCount={state.stateCounts['DELIVERED'] || 0}
