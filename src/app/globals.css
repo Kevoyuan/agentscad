@@ -80,9 +80,9 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* AgentSCAD custom - Light (precision instrument aesthetic) */
-  --app-bg: #eef1f5;
-  --app-surface: #f8f9fb;
-  --app-surface-raised: #edf0f4;
+  --app-bg: #f5f5f7;
+  --app-surface: #fbfbfc;
+  --app-surface-raised: #f0f0f3;
   --app-surface-50: rgba(248, 249, 251, 0.5);
   --app-surface-hover: rgba(15, 23, 42, 0.04);
   --app-surface-95: rgba(238, 241, 245, 0.95);
@@ -110,19 +110,19 @@
   --app-footer-tooltip-bg: #f8f9fb;
   --app-footer-tooltip-border: rgba(15, 23, 42, 0.12);
   --app-footer-tooltip-text: #334155;
-  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.10), rgba(74, 163, 255, 0.03), transparent);
+  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.08), transparent);
   --app-card-hover-shadow: 0 2px 8px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.04);
   --app-pipeline-bg: rgba(15, 23, 42, 0.04);
   --app-activity-hover: rgba(15, 23, 42, 0.03);
   --app-selected-bg: rgba(37, 99, 235, 0.06);
   --app-code-copy-hover: rgba(15, 23, 42, 0.06);
   --app-empty-bg: rgba(15, 23, 42, 0.03);
-  --app-accent: #2563eb;
-  --app-accent-hover: #1d4ed8;
-  --app-accent-bg: rgba(37, 99, 235, 0.08);
-  --app-accent-border: rgba(37, 99, 235, 0.26);
-  --app-accent-text: #1d4ed8;
-  --app-accent-text-secondary: rgba(29, 78, 216, 0.72);
+  --app-accent: #5e6ad2;
+  --app-accent-hover: #4f5fc6;
+  --app-accent-bg: rgba(94, 106, 210, 0.10);
+  --app-accent-border: rgba(94, 106, 210, 0.24);
+  --app-accent-text: #4f5fc6;
+  --app-accent-text-secondary: rgba(79, 95, 198, 0.72);
   --app-danger: #dc2626;
   --app-danger-bg: rgba(220, 38, 38, 0.08);
   --app-warning: #d97706;
@@ -153,7 +153,7 @@
   --app-state-neutral-text: #4a4a58;
   --app-state-neutral-dot: #71717a;
   --app-state-neutral-border: rgba(100, 100, 116, 0.2);
-  --cad-bg: #f6f8fb;
+  --cad-bg: #f7f7f9;
   --cad-surface: #ffffff;
   --cad-surface-raised: #eef3f8;
   --cad-border: rgba(15, 23, 42, 0.12);
@@ -161,9 +161,9 @@
   --cad-text: #111827;
   --cad-text-secondary: #475569;
   --cad-text-muted: #64748b;
-  --cad-accent: #2563eb;
-  --cad-accent-soft: rgba(37, 99, 235, 0.1);
-  --cad-grid: rgba(37, 99, 235, 0.08);
+  --cad-accent: #5e6ad2;
+  --cad-accent-soft: rgba(94, 106, 210, 0.10);
+  --cad-grid: rgba(94, 106, 210, 0.06);
   --cad-measure: #0ea5e9;
   --cad-success: #0f9f6e;
   --cad-warning: #b7791f;
@@ -205,9 +205,9 @@
   --sidebar-ring: oklch(0.556 0 0);
 
   /* AgentSCAD custom - Dark */
-  --app-bg: #0c0c0e;
-  --app-surface: #151517;
-  --app-surface-raised: #1c1c1f;
+  --app-bg: #0f1014;
+  --app-surface: #17181d;
+  --app-surface-raised: #202128;
   --app-surface-50: rgba(21, 21, 23, 0.5);
   --app-surface-hover: rgba(255, 255, 255, 0.04);
   --app-surface-95: rgba(12, 12, 14, 0.95);
@@ -235,19 +235,19 @@
   --app-footer-tooltip-bg: #2a2a32;
   --app-footer-tooltip-border: rgba(255, 255, 255, 0.10);
   --app-footer-tooltip-text: #b4b4be;
-  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(74, 163, 255, 0.2), rgba(74, 163, 255, 0.06), transparent);
+  --app-gradient-separator: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.10), transparent);
   --app-card-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --app-pipeline-bg: rgba(255, 255, 255, 0.06);
   --app-activity-hover: rgba(255, 255, 255, 0.03);
   --app-selected-bg: rgba(74, 163, 255, 0.09);
   --app-code-copy-hover: rgba(255, 255, 255, 0.08);
   --app-empty-bg: rgba(255, 255, 255, 0.04);
-  --app-accent: #4aa3ff;
-  --app-accent-hover: #74b9ff;
-  --app-accent-bg: rgba(74, 163, 255, 0.12);
-  --app-accent-border: rgba(74, 163, 255, 0.3);
-  --app-accent-text: #9ccfff;
-  --app-accent-text-secondary: rgba(156, 207, 255, 0.72);
+  --app-accent: #5e6ad2;
+  --app-accent-hover: #717beb;
+  --app-accent-bg: rgba(94, 106, 210, 0.16);
+  --app-accent-border: rgba(94, 106, 210, 0.35);
+  --app-accent-text: #a8b0ff;
+  --app-accent-text-secondary: rgba(168, 176, 255, 0.72);
   --app-danger: #f87171;
   --app-danger-bg: rgba(248, 113, 113, 0.1);
   --app-warning: #fbbf24;
@@ -286,9 +286,9 @@
   --cad-text: #eef3f8;
   --cad-text-secondary: #aab5c0;
   --cad-text-muted: #75808b;
-  --cad-accent: #4aa3ff;
-  --cad-accent-soft: rgba(74, 163, 255, 0.14);
-  --cad-grid: rgba(120, 150, 180, 0.16);
+  --cad-accent: #5e6ad2;
+  --cad-accent-soft: rgba(94, 106, 210, 0.16);
+  --cad-grid: rgba(140, 145, 180, 0.14);
   --cad-measure: #76d8ff;
   --cad-success: #35c46f;
   --cad-warning: #d99b2b;

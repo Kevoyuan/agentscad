@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/sortable'
 import {
   Trash2, RotateCcw, X,
-  Layers, Ban, ArrowUpDown, Clock, ListOrdered,
+  Layers, Ban,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ResizablePanel } from '@/components/ui/resizable'
@@ -141,7 +141,7 @@ export function JobListPanel({
                       job={job}
                       isSelected={selectedJob?.id === job.id}
                       isChecked={selectedIds.has(job.id)}
-                      onSelect={(j) => { onSelectJob(j); onSetActiveTab('PARAMS') }}
+                      onSelect={(j) => { onSelectJob(j); onSetActiveTab('SPEC') }}
                       onToggleSelect={onToggleSelect}
                       onProcess={onProcess}
                       onCancel={onCancel}

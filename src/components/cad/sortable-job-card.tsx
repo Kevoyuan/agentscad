@@ -1,10 +1,10 @@
 'use client'
 
-import { CSSProperties, useState, useEffect } from 'react'
+import { CSSProperties } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Clock } from 'lucide-react'
-import { Job, CANCELABLE_STATES, timeAgo, getPriorityColor, getStateInfo, getPipelineProgress, getStateHex } from './types'
+import { GripVertical } from 'lucide-react'
+import { Job, CANCELABLE_STATES, timeAgo, getPipelineProgress, getStateHex } from './types'
 import { StateBadge } from './state-badge'
 import { PartFamilyIcon } from './part-family-icon'
 import { TagBadges } from './tag-badges'
@@ -29,23 +29,10 @@ interface SortableJobCardProps {
 }
 
 // Processing states that should show the pulse ring animation
-const PROCESSING_STATES = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW']
+const PROCESSING_STATES = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
 
 // Failed states that should show retry action
 const FAILED_STATES = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED']
-
-// ─── Elapsed Time Helper ──────────────────────────────────────────────────
-
-function formatElapsed(iso: string): string {
-  const now = Date.now()
-  const then = new Date(iso).getTime()
-  const diff = Math.floor((now - then) / 1000)
-  if (diff < 0) return '0s'
-  if (diff < 60) return `${diff}s`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ${diff % 60}s`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`
-  return `${Math.floor(diff / 86400)}d`
-}
 
 // ─── Sortable Job Card ──────────────────────────────────────────────────────
 
@@ -83,47 +70,28 @@ export function SortableJobCard({
   const progressPercent = getPipelineProgress(job.state)
   const progressColor = stateHex
 
-  // Priority key for re-rendering badge (no animation, just update text)
-  const priorityKey = job.priority
-
-  // Live elapsed time updater - update every 60s to reduce re-renders and card jumping
-  const [elapsed, setElapsed] = useState(() => formatElapsed(job.createdAt))
-  useEffect(() => {
-    const update = () => setElapsed(formatElapsed(job.createdAt))
-    update() // Initial calculation
-    const interval = setInterval(update, 60000) // 60s to minimize re-renders
-    return () => clearInterval(interval)
-  }, [job.createdAt])
-
-  // Priority badge visual hierarchy: higher priority = bolder styling
-  const priorityVisual = job.priority >= 8
-    ? 'bg-rose-500/30 text-rose-300 border-rose-500/40 font-bold shadow-sm shadow-rose-500/10'
-    : job.priority >= 6
-    ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
-    : job.priority >= 4
-    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-[var(--app-state-neutral-bg)] text-[var(--app-text-muted)] border-[color:var(--app-state-neutral-border)] font-normal'
+  const priorityTone = job.priority >= 8 ? 'text-rose-500' : job.priority >= 6 ? 'text-amber-500' : 'text-[var(--app-text-dim)]'
 
   return (
     <div
       ref={setNodeRef}
       style={{ ...style, '--border-color': leftBorderColor } as CSSProperties}
-      className={`group/card relative rounded-lg p-2.5 cursor-pointer overflow-hidden job-card-left-border job-card-hover ${
+      className={`group/card relative cursor-pointer overflow-hidden border-b border-[color:var(--app-border-subtle)] px-3 py-2 transition-colors ${
         isDragging || isSortableDragging
-          ? 'shadow-xl ring-2 ring-violet-500/20 scale-[1.02] z-50'
+          ? 'shadow-xl ring-2 ring-[color:var(--app-accent-border)] scale-[1.01] z-50'
           : ''
       } ${
-        isProcessing ? 'opacity-95' : '' // Subtle visual indicator without layout shift
+        isProcessing ? 'opacity-95' : ''
       } ${
         isSelected
-          ? 'linear-selected bg-[var(--app-accent-bg)] border border-violet-500/30'
-          : 'linear-surface border border-[color:var(--app-border)] hover:bg-[var(--app-surface-hover)]'
+          ? 'bg-[var(--app-accent-bg)]'
+          : 'bg-transparent hover:bg-[var(--app-surface-hover)]'
       }`}
       onClick={() => onSelect(job)}
     >
       {/* Drag Handle */}
       <div
-        className="absolute top-1 right-0 z-10 cursor-grab active:cursor-grabbing text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center"
+        className="absolute right-1 top-1.5 z-10 flex min-h-[24px] min-w-[24px] cursor-grab items-center justify-center p-1 text-[var(--app-text-dim)] opacity-0 transition-colors hover:text-[var(--app-text-muted)] active:cursor-grabbing group-hover/card:opacity-100"
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
@@ -133,10 +101,10 @@ export function SortableJobCard({
       </div>
 
       {/* Select checkbox */}
-      <div className="absolute top-1 left-0 z-10" onClick={e => e.stopPropagation()}>
+      <div className="absolute left-1 top-1.5 z-10" onClick={e => e.stopPropagation()}>
         <button
-          className={`w-6 h-6 rounded flex items-center justify-center transition-colors min-w-[28px] min-h-[28px] ${
-            isChecked ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-surface-hover)] text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)]'
+          className={`flex h-5 w-5 items-center justify-center rounded transition-colors ${
+            isChecked ? 'bg-[var(--app-accent)] text-white' : 'text-[var(--app-text-dim)] opacity-0 hover:bg-[var(--app-surface-hover)] group-hover/card:opacity-100'
           }`}
           onClick={() => onToggleSelect(job.id)}
           aria-label={isChecked ? 'Deselect job' : 'Select job'}
@@ -145,23 +113,22 @@ export function SortableJobCard({
         </button>
       </div>
 
-      <div className="pl-4 relative z-[1]">
-        <div className="flex items-start justify-between gap-1.5 pr-5">
-          <p className="text-[11px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
-          <div className="flex items-center gap-1 shrink-0">
-            <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-            <span
-              key={priorityKey}
-              className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual}`}
-            >
-              P{job.priority}
-            </span>
+      <div className="relative z-[1] pl-5 pr-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 text-[12px] leading-snug text-[var(--app-text-secondary)]">{job.inputRequest}</p>
+            <div className="mt-1 flex min-w-0 items-center gap-1.5">
+              <StateBadge state={job.state} />
+              <span className="text-[9px] text-[var(--app-text-dim)]">{timeAgo(job.createdAt)}</span>
+              <span className="text-[var(--app-text-dim)]">·</span>
+              <span className={`text-[9px] font-medium ${priorityTone}`}>P{job.priority}</span>
+            </div>
           </div>
+          <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
         </div>
 
-        {/* Preview thumbnail */}
-        {job.pngPath && job.state !== 'NEW' && job.state !== 'SCAD_GENERATED' && (
-          <div className="mt-1.5 rounded-md overflow-hidden border border-[color:var(--app-border)] bg-[var(--app-empty-bg)] h-16">
+        {isSelected && job.pngPath && job.state !== 'NEW' && job.state !== 'SCAD_GENERATED' && (
+          <div className="mt-2 h-20 overflow-hidden rounded-md border border-[color:var(--app-border)] bg-[var(--app-empty-bg)]">
             <img
               src={job.pngPath}
               alt="Preview"
@@ -170,50 +137,39 @@ export function SortableJobCard({
             />
           </div>
         )}
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <StateBadge state={job.state} />
-          <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{timeAgo(job.createdAt)}</span>
-        </div>
+        {(isProcessing || FAILED_STATES.includes(job.state)) && (
+          <div className="pipeline-mini-progress mt-2">
+            <div
+              className="pipeline-mini-progress-fill"
+              style={{
+                width: `${job.state === 'DELIVERED' ? 100 : progressPercent}%`,
+                backgroundColor: job.state === 'DELIVERED' ? 'var(--app-text-muted)' : (job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') ? 'var(--app-danger)' : progressColor
+              }}
+            />
+          </div>
+        )}
 
-        {/* Elapsed time since creation */}
-        <div className="flex items-center gap-1 mt-1">
-          <Clock className="w-2.5 h-2.5 text-[var(--app-text-dim)]" />
-          <span className="text-[8px] text-[var(--app-text-dim)] font-mono">{elapsed} elapsed</span>
-        </div>
-
-        {/* Mini progress indicator - always rendered to prevent layout shift */}
-        <div className="pipeline-mini-progress mt-1.5" style={{ visibility: isProcessing || job.state === 'DELIVERED' || job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED' ? 'visible' : 'hidden' }}>
-          <div
-            className="pipeline-mini-progress-fill"
-            style={{
-              width: `${job.state === 'DELIVERED' ? 100 : progressPercent}%`,
-              backgroundColor: job.state === 'DELIVERED' ? '#a3e635' : (job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') ? '#fb7185' : progressColor
-            }}
-          />
-        </div>
-
-        <TagBadges customerId={job.customerId} maxDisplay={3} />
-        {/* Action Buttons - Individual hover colors, opacity-only to prevent layout shift */}
-        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200" onClick={e => e.stopPropagation()}>
+        {isSelected && <TagBadges customerId={job.customerId} maxDisplay={2} />}
+        <div className="mt-2 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover/card:opacity-100" onClick={e => e.stopPropagation()}>
           {job.state === 'NEW' && (
-            <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-emerald-500 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
               <Play className="w-3 h-3" />Process
             </Button>
           )}
           {FAILED_STATES.includes(job.state) && (
-            <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10" onClick={() => onProcess(job)}>
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-sky-500 hover:bg-sky-500/10" onClick={() => onProcess(job)}>
               <RefreshCw className="w-3 h-3" />Retry
             </Button>
           )}
           {isCancelable && (
-            <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-orange-500 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
               <Ban className="w-3 h-3" />Cancel
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-[var(--app-text-muted)] hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => onDuplicate(job)}>
+          <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)]" onClick={() => onDuplicate(job)}>
             <Repeat className="w-3 h-3" />Duplicate
           </Button>
-          <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-[var(--app-text-muted)] hover:text-rose-300 hover:bg-rose-500/10" onClick={() => onDelete(job.id)}>
+          <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-[var(--app-text-muted)] hover:bg-rose-500/10 hover:text-rose-500" onClick={() => onDelete(job.id)}>
             <Trash2 className="w-3 h-3" />Delete
           </Button>
         </div>
@@ -225,32 +181,18 @@ export function SortableJobCard({
 // ─── Drag Overlay Card (rendered while dragging) ────────────────────────────
 
 export function DragOverlayCard({ job }: { job: Job }) {
-  const stateHex = getStateHex(job.state)
-  const leftBorderColor = stateHex
-  const progressPercent = getPipelineProgress(job.state)
-  const progressColor = stateHex
-  const isProcessing = PROCESSING_STATES.includes(job.state)
-
-  // Priority visual for overlay
-  const priorityVisual = job.priority >= 8
-    ? 'bg-rose-500/30 text-rose-300 border-rose-500/40 font-bold'
-    : job.priority >= 6
-    ? 'bg-orange-500/25 text-orange-300 border-orange-500/35 font-semibold'
-    : job.priority >= 4
-    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-[var(--app-state-neutral-bg)] text-[var(--app-text-muted)] border-[color:var(--app-state-neutral-border)]'
+  const priorityTone = job.priority >= 8 ? 'text-rose-500' : job.priority >= 6 ? 'text-amber-500' : 'text-[var(--app-text-dim)]'
 
   return (
     <div
-      style={{ '--border-color': leftBorderColor } as CSSProperties}
-      className="rounded-lg p-2.5 linear-surface border border-violet-500/30 shadow-2xl ring-2 ring-violet-500/20 scale-[1.03] job-card-left-border"
+      className="rounded-md border border-[color:var(--app-accent-border)] bg-[var(--app-surface)] p-2.5 shadow-xl ring-2 ring-[color:var(--app-accent-border)]/40 scale-[1.02]"
     >
       <div className="pl-4 pr-5">
         <div className="flex items-start justify-between gap-1.5">
-          <p className="text-[11px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
+          <p className="text-[12px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-            <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${priorityVisual}`}>
+            <span className={`text-[9px] font-medium ${priorityTone}`}>
               P{job.priority}
             </span>
           </div>

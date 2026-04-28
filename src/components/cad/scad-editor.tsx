@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job } from './types'
 import { applyScadSource } from './api'
 import { highlightScad } from '@/lib/scad-highlight'
+import { copyText } from '@/lib/clipboard'
 
 // ─── SCAD Editor Component ────────────────────────────────────────────────
 
@@ -89,11 +90,13 @@ export function ScadEditor({ job, onUpdate, onApply }: ScadEditorProps) {
     setEditSource(job.scadSource || '')
   }
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const source = isEditing ? editSource : (job.scadSource || '')
-    navigator.clipboard.writeText(source)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const ok = await copyText(source)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {

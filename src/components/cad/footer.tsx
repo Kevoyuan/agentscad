@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Activity, Wifi, WifiOff, GitBranch, Timer,
-  CheckCircle2, Cpu, FileJson, MemoryStick, Clock,
+  Activity, CheckCircle2, Cpu, FileJson,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,11 +20,8 @@ interface FooterProps {
   jobCountFlash: boolean
   deliveredCount: number
   failedCount: number
-  dependencyCount: number
-  uptime: number
   successRate: number
   onExport: () => void
-  formatUptime: (s: number) => string
 }
 
 // ─── Memory Usage Hook ──────────────────────────────────────────────────
@@ -55,43 +51,22 @@ function useMemoryUsage(): string | null {
   return memory
 }
 
-// ─── Live Clock Hook ──────────────────────────────────────────────────────
-
-function useLiveClock(): string {
-  const [time, setTime] = useState('')
-
-  useEffect(() => {
-    const update = () => {
-      const now = new Date()
-      setTime(now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }))
-    }
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  return time
-}
-
 // ─── Footer Metric Component ──────────────────────────────────────────────
 
 function FooterMetric({
   tooltip,
   children,
+  className = '',
 }: {
   tooltip: string
   children: React.ReactNode
+  className?: string
 }) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="footer-metric" data-tooltip={tooltip}>
+          <span className={`footer-metric ${className}`} data-tooltip={tooltip}>
             {children}
           </span>
         </TooltipTrigger>
@@ -117,92 +92,62 @@ export function Footer({
   jobCountFlash,
   deliveredCount,
   failedCount,
-  dependencyCount,
-  uptime,
   successRate,
   onExport,
-  formatUptime,
 }: FooterProps) {
   const memoryUsage = useMemoryUsage()
-  const liveClock = useLiveClock()
+  const hasAttention = failedCount > 0 || !wsConnected
 
   return (
     <footer className="relative flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
-      <div className="flex items-center gap-3 text-[9px] font-mono text-[var(--app-text-muted)]">
-        <FooterMetric tooltip="System health status">
+      <div className="flex min-w-0 items-center gap-3 text-[9px] font-mono text-[var(--app-text-muted)]">
+        <FooterMetric tooltip={wsConnected ? 'Realtime sync connected' : 'Realtime socket unavailable; polling keeps jobs updated'}>
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <Activity className="w-2.5 h-2.5 text-emerald-500" />
-            Online
-          </span>
-        </FooterMetric>
-        <SeparatorDot />
-        <FooterMetric tooltip={wsConnected ? 'WebSocket connected to server' : 'WebSocket disconnected - using polling fallback'}>
-          <span className="flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-dot' : 'bg-rose-500'}`} />
-            WS: {wsConnected ? 'OK' : 'Down'}
+            <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 online-dot' : 'bg-amber-500'}`} />
+            <Activity className={`w-2.5 h-2.5 ${wsConnected ? 'text-emerald-500' : 'text-amber-500'}`} />
+            {wsConnected ? 'Synced' : 'Polling'}
           </span>
         </FooterMetric>
         <SeparatorDot />
         <FooterMetric tooltip="Total jobs in the system">
           <span className={jobCountFlash ? 'number-highlight' : ''}>
-            Jobs: {jobCount}
+            {jobCount} runs
           </span>
         </FooterMetric>
         <SeparatorDot />
         <FooterMetric tooltip="Successfully delivered jobs">
-          <span className="text-lime-500/80">Done: {deliveredCount}</span>
+          <span>{deliveredCount} delivered</span>
         </FooterMetric>
-        <SeparatorDot />
-        <FooterMetric tooltip="Jobs that failed validation, geometry, or rendering">
-          <span className="text-rose-500/80">Failed: {failedCount}</span>
-        </FooterMetric>
-        <SeparatorDot />
-        <FooterMetric tooltip="Jobs with parent-child dependencies">
-          <span className="flex items-center gap-1">
-            <GitBranch className="w-2.5 h-2.5" />
-            Deps: {dependencyCount}
-          </span>
-        </FooterMetric>
-        {memoryUsage && (
+        {hasAttention && (
           <>
             <SeparatorDot />
-            <FooterMetric tooltip="JavaScript heap memory usage">
-              <span className="flex items-center gap-1">
-                <Cpu className="w-2.5 h-2.5" />
-                Mem: {memoryUsage}
-              </span>
+            <FooterMetric tooltip="Items needing attention">
+              <span className={failedCount > 0 ? 'text-rose-500/80' : 'text-amber-500/80'}>{failedCount} blockers</span>
             </FooterMetric>
           </>
         )}
       </div>
-      <div className="flex items-center gap-3 text-[9px] font-mono text-[var(--app-text-dim)]">
-        <FooterMetric tooltip="Current time">
-          <span className="flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" />
-            {liveClock}
-          </span>
-        </FooterMetric>
-        <SeparatorDot />
-        <FooterMetric tooltip="Session uptime">
-          <span className="flex items-center gap-1">
-            <Timer className="w-2.5 h-2.5" />
-            {formatUptime(uptime)}
-          </span>
-        </FooterMetric>
-        <SeparatorDot />
+      <div className="flex shrink-0 items-center gap-3 text-[9px] font-mono text-[var(--app-text-dim)]">
         <FooterMetric tooltip="Delivery success rate (delivered vs failed)">
           <span className="flex items-center gap-1">
             <CheckCircle2 className="w-2.5 h-2.5" />
             {successRate}%
           </span>
         </FooterMetric>
+        {memoryUsage && (
+          <>
+            <SeparatorDot />
+            <FooterMetric tooltip="JavaScript heap memory usage">
+              <span className="hidden xl:flex items-center gap-1">
+                <Cpu className="w-2.5 h-2.5" />
+                {memoryUsage}
+              </span>
+            </FooterMetric>
+          </>
+        )}
         <SeparatorDot />
         <FooterMetric tooltip="AgentSCAD application version">
-          <span className="flex items-center gap-1">
-            <Cpu className="w-2.5 h-2.5" />
-            AgentSCAD v0.9
-          </span>
+          <span>v0.9</span>
         </FooterMetric>
         <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={onExport}>
           <FileJson className="w-2.5 h-2.5" />Export

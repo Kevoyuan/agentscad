@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Sparkles, MessageSquare, Send, Square, Clock, Copy, Check, ChevronDown, ImagePlus, X, Eye, Brain, Zap, Code2, Star, Wand2 } from 'lucide-react'
+import { Sparkles, MessageSquare, Send, Square, Clock, Copy, Check, ChevronDown, ImagePlus, X, Eye, Brain, Zap, Code2, Star, Wand2, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { ChatMessage, Job } from './types'
 import { sendChatMessageStream, fetchModels, ModelInfo } from './api'
+import { copyText } from '@/lib/clipboard'
 
 function formatTimestamp(date: Date): string {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
@@ -36,7 +37,8 @@ function CodeCopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text).then(() => {
+    copyText(text).then((ok) => {
+      if (!ok) return
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     })
@@ -143,7 +145,7 @@ function ScadApplyButton({
       className="text-[9px] font-mono text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] px-1.5 py-0.5 rounded flex items-center gap-1 disabled:opacity-60 disabled:cursor-wait"
     >
       <Wand2 className="w-2.5 h-2.5" />
-      {isApplying ? 'Applying...' : mode === 'replace' ? 'Replace SCAD' : 'Patch SCAD'}
+      {isApplying ? 'Rendering...' : mode === 'replace' ? 'Apply & Render' : 'Patch & Render'}
     </button>
   )
 }
@@ -197,6 +199,7 @@ export function ChatPanel({
   const [pendingImages, setPendingImages] = useState<string[]>([])
   const [providerFilter, setProviderFilter] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [lastAppliedSource, setLastAppliedSource] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<(() => void) | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -430,17 +433,24 @@ export function ChatPanel({
 
   const handleApplyScad = useCallback(async (scadSource: string, mode: 'replace' | 'patch') => {
     try {
+      const previousSource = job.scadSource || ''
       if (mode === 'replace') {
         await onApplyScad(job, scadSource)
+        if (previousSource) setLastAppliedSource(previousSource)
+        toast({
+          title: 'Applied and rendered',
+          description: 'The current SCAD was applied directly. No regeneration step was used.',
+          duration: 2600,
+        })
         return
       }
 
-      const currentSource = job.scadSource || ''
+      const currentSource = previousSource
       const patchResult = mergeScadPatch(currentSource, scadSource)
       if (!currentSource || patchResult.changes.length === 0 || patchResult.source === currentSource) {
         toast({
           title: 'Patch needs context',
-          description: 'I could not safely match this snippet to an existing parameter or module. Ask AI for a full SCAD file or copy it manually.',
+          description: 'I could not safely match this snippet to the current file. Ask for a full SCAD block or apply it manually in Code.',
           variant: 'destructive',
           duration: 4200,
         })
@@ -448,9 +458,10 @@ export function ChatPanel({
       }
 
       await onApplyScad(job, patchResult.source)
+      setLastAppliedSource(currentSource)
       toast({
-        title: 'Patch applied',
-        description: `Updated ${patchResult.changes.slice(0, 3).join(', ')}${patchResult.changes.length > 3 ? '...' : ''} and rebuilt the model.`,
+        title: 'Patched and rendered',
+        description: `Updated ${patchResult.changes.slice(0, 3).join(', ')}${patchResult.changes.length > 3 ? '...' : ''}. No regeneration step was used.`,
         duration: 3000,
       })
     } catch (err) {
@@ -463,6 +474,27 @@ export function ChatPanel({
       })
     }
   }, [job, onApplyScad, toast])
+
+  const handleUndoApply = useCallback(async () => {
+    if (!lastAppliedSource) return
+    const currentSource = job.scadSource || ''
+    try {
+      await onApplyScad(job, lastAppliedSource)
+      setLastAppliedSource(currentSource || null)
+      toast({
+        title: 'Apply reverted',
+        description: 'Restored the previous SCAD source and rendered it again.',
+        duration: 2800,
+      })
+    } catch (err) {
+      toast({
+        title: 'Undo failed',
+        description: err instanceof Error ? err.message : 'Could not restore previous SCAD',
+        variant: 'destructive',
+        duration: 3500,
+      })
+    }
+  }, [job, lastAppliedSource, onApplyScad, toast])
 
   const createMarkdownComponents = useCallback((enableScadApply: boolean) => ({
     code({ className, children, ...props }: any) {
@@ -532,6 +564,17 @@ export function ChatPanel({
           <Sparkles className="w-3 h-3 text-[var(--app-accent-text)]" />AI Assistant
         </h3>
         <div className="flex min-w-0 shrink-0 items-center gap-1">
+          {lastAppliedSource && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 gap-1 px-1.5 text-[8px] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+              onClick={handleUndoApply}
+            >
+              <RotateCcw className="h-2.5 w-2.5" />
+              Undo apply
+            </Button>
+          )}
           {/* Model Picker */}
           <div className="relative min-w-0" ref={modelPickerRef}>
             <button

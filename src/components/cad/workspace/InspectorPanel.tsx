@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Settings, Shield, Activity, Clock,
-  History, Plus, BoxSelect, FileCode, Loader2,
+  History, Plus, BoxSelect, FileCode, Loader2, Sparkles,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
@@ -62,7 +62,7 @@ export function InspectorPanel({
     RESEARCH: 'MODEL',
     DEPS: 'MODEL',
     SCAD: 'CODE',
-    AI: 'CODE',
+    AI: 'ASSIST',
     VALIDATE: 'VALIDATION',
     LOG: 'HISTORY',
     NOTES: 'HISTORY',
@@ -75,7 +75,7 @@ export function InspectorPanel({
 
     switch (normalizedActiveTab) {
       case 'SPEC':
-        return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} onNavigate={onSetActiveTab} />
+        return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} />
       case 'PARAMETERS':
         return <ParameterPanel job={selectedJob} onUpdate={onUpdate} />
       case 'MODEL':
@@ -91,17 +91,10 @@ export function InspectorPanel({
         )
       case 'VALIDATION':
         return <ValidationPanel job={selectedJob} />
+      case 'ASSIST':
+        return <ChatPanel key={selectedJob.id} job={selectedJob} onApplyScad={onApplyScad} />
       case 'CODE':
-        return (
-          <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(240px,3fr)_minmax(220px,2fr)]">
-            <div className="min-h-0 min-w-0 overflow-hidden">
-              <ScadEditor job={selectedJob} onUpdate={onUpdate} onApply={onApplyScad} />
-            </div>
-            <div className="min-h-0 min-w-0 overflow-hidden border-t border-[color:var(--app-border)]">
-              <ChatPanel key={selectedJob.id} job={selectedJob} onApplyScad={onApplyScad} />
-            </div>
-          </div>
-        )
+        return <ScadEditor job={selectedJob} onUpdate={onUpdate} onApply={onApplyScad} />
       case 'HISTORY':
         return (
           <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(160px,0.55fr)_minmax(140px,0.5fr)]">
@@ -117,7 +110,7 @@ export function InspectorPanel({
           </div>
         )
       default:
-        return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} onNavigate={onSetActiveTab} />
+        return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} />
     }
   }
 
@@ -126,7 +119,7 @@ export function InspectorPanel({
       <div className="flex h-full min-h-0 min-w-0 flex-col bg-[var(--app-surface)]">
         {selectedJob ? (
           <Tabs value={normalizedActiveTab} onValueChange={(v) => {
-            const tabOrder = ['SPEC', 'PARAMETERS', 'MODEL', 'CODE', 'VALIDATION', 'HISTORY']
+            const tabOrder = ['SPEC', 'PARAMETERS', 'ASSIST', 'VALIDATION', 'HISTORY', 'CODE']
             const newIdx = tabOrder.indexOf(v)
             const oldIdx = tabOrder.indexOf(normalizedActiveTab)
             onSetTabDirection(newIdx > oldIdx ? 1 : -1)
@@ -148,10 +141,10 @@ export function InspectorPanel({
               {[
                 { key: 'SPEC', label: 'SPEC', icon: BoxSelect },
                 { key: 'PARAMETERS', label: 'PARAMS', icon: Settings },
-                { key: 'MODEL', label: 'MODEL', icon: Activity },
-                { key: 'CODE', label: 'CODE', icon: FileCode },
+                { key: 'ASSIST', label: 'ASSIST', icon: Sparkles },
                 { key: 'VALIDATION', label: 'VALID', icon: Shield },
                 { key: 'HISTORY', label: 'HISTORY', icon: History },
+                { key: 'CODE', label: 'CODE', icon: FileCode },
               ].map(tab => (
                 <TabsTrigger
                   key={tab.key}

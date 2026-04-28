@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronRight, Copy, CheckCircle } from 'lucide-react'
+import { copyText } from '@/lib/clipboard'
 
 interface BreadcrumbNavProps {
   jobId: string
@@ -32,13 +33,12 @@ export function BreadcrumbNav({ jobId, activeTab, onNavigateHome, onNavigateJobs
   const jobPrefix = jobId.slice(0, 8)
   const tabLabel = TAB_LABELS[activeTab] || activeTab
 
-  const handleCopyId = () => {
-    navigator.clipboard.writeText(jobId).then(() => {
+  const handleCopyId = async () => {
+    const ok = await copyText(jobId)
+    if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    }).catch(() => {
-      // Fallback: no-op
-    })
+    }
   }
 
   return (

@@ -2,30 +2,19 @@
 
 import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, XCircle, ChevronRight } from 'lucide-react'
+import { CheckCircle2, XCircle } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Badge } from '@/components/ui/badge'
 import { PIPELINE_STEPS, ExecutionLog, parseJSON, getPipelineProgress } from './types'
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
   return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`
-}
-
-// ─── Average step times for estimation ──────────────────────────────────────
-
-const AVERAGE_STEP_TIMES: Record<string, number> = {
-  NEW: 1,
-  SCAD_GENERATED: 8,
-  RENDERED: 5,
-  VALIDATED: 3,
-  DELIVERED: 1,
 }
 
 interface PipelineVisualizationProps {
@@ -92,20 +81,27 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
 
   // Map pipeline step to inspector tab for click navigation
   const stepToTabMap: Record<string, string> = {
-    'NEW': 'PARAMS',
-    'SCAD_GENERATED': 'SCAD',
-    'RENDERED': 'PARAMS',
-    'VALIDATED': 'VALIDATE',
-    'DELIVERED': 'PARAMS',
+    'NEW': 'SPEC',
+    'SCAD_GENERATED': 'CODE',
+    'RENDERED': 'SPEC',
+    'VALIDATED': 'VALIDATION',
+    'DELIVERED': 'SPEC',
   }
 
   // Determine effective current index for connecting line fill
   // For failed states, fill up to (but not including) the failed step
   const effectiveCurrentIdx = isFailed ? failedStepIdx : currentIdx
 
+  const currentStep = PIPELINE_STEPS[Math.max(currentIdx, 0)]
+  const currentLabel = isFailed
+    ? `${failedStepKey?.replace(/_/g, ' ') || 'VALIDATION'} needs review`
+    : state === 'DELIVERED'
+      ? 'Ready'
+      : currentStep?.label || 'Queued'
+
   return (
-    <div className="flex items-center gap-2 px-2 py-1">
-      <div className="flex items-center gap-0.5">
+    <div className="flex min-w-0 items-center gap-2 px-2 py-1">
+      <div className="flex items-center gap-1">
         {PIPELINE_STEPS.map((step, idx) => {
           const isTerminalState = state === 'DELIVERED' || state === 'CANCELLED'
           const isCompleted = isFailed
@@ -132,15 +128,15 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <motion.div
-                      className={`flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-md transition-all duration-300 ${
+                      className={`relative flex h-6 w-6 items-center justify-center rounded-md transition-all duration-200 ${
                         isClickable ? 'cursor-pointer hover:bg-[var(--app-hover-subtle)]' : 'cursor-default'
                       } ${
-                        isFailedStep ? 'text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20' :
-                        isCurrent && !isFailed ? 'text-amber-300 bg-amber-500/10 ring-1 ring-amber-500/20' :
-                        isCompleted ? 'text-lime-400' :
+                        isFailedStep ? 'text-rose-500 bg-rose-500/10' :
+                        isCurrent && !isFailed ? 'text-[var(--app-accent-text)] bg-[var(--app-accent-bg)]' :
+                        isCompleted ? 'text-[var(--app-text-muted)]' :
                         'text-[var(--app-text-dim)]'
                       }`}
-                      whileHover={isClickable ? { scale: 1.12 } : undefined}
+                      whileHover={isClickable ? { scale: 1.06 } : undefined}
                       whileTap={isClickable ? { scale: 0.95 } : undefined}
                       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                       onClick={() => {
@@ -151,16 +147,15 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                     >
                       <div className="relative">
                         {isFailedStep ? (
-                          <XCircle className="w-3.5 h-3.5" />
+                          <XCircle className="h-3.5 w-3.5" />
                         ) : isCompleted ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <CheckCircle2 className="h-3.5 w-3.5" />
                         ) : (
-                          <Icon className={`w-3.5 h-3.5 ${isCurrent && !isFailed ? 'animate-pulse' : ''}`} />
+                          <Icon className="h-3.5 w-3.5" />
                         )}
-                        {/* Pulsing dot on the current active step */}
                         {isCurrent && !isFailed && !isCompleted && (
                           <motion.div
-                            className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-400"
+                            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--app-accent)]"
                             animate={{
                               scale: [1, 1.5, 1],
                               opacity: [1, 0.5, 1],
@@ -169,23 +164,6 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                           />
                         )}
                       </div>
-                      <span className="text-[8px] font-mono tracking-wider">{step.label}</span>
-                      {/* Time spent indicator below completed steps */}
-                      {isCompleted && duration !== undefined && (
-                        <span className="text-[7px] font-mono text-lime-500/60">{formatDuration(duration)}</span>
-                      )}
-                      {/* Estimated time for upcoming steps */}
-                      {!isCompleted && !isCurrent && !isFailedStep && (
-                        <span className="text-[7px] font-mono text-[var(--app-text-dim)]">~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
-                      )}
-                      {/* Running indicator for current step */}
-                      {isCurrent && !isFailed && (
-                        <span className="text-[7px] font-mono text-amber-400/60">running</span>
-                      )}
-                      {/* Failed indicator */}
-                      {isFailedStep && (
-                        <span className="text-[7px] font-mono text-rose-400/80">failed</span>
-                      )}
                     </motion.div>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs max-w-[200px]">
@@ -209,18 +187,15 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                 </Tooltip>
               </TooltipProvider>
 
-              {/* Connecting line between steps */}
               {idx < PIPELINE_STEPS.length - 1 && (
-                <div className="relative flex items-center mx-0.5">
-                  {/* Background line */}
-                  <div className="w-4 h-0.5 bg-[var(--app-surface-raised)] rounded-full" />
-                  {/* Animated filled line */}
+                <div className="relative mx-0.5 flex items-center">
+                  <div className="h-px w-4 rounded-full bg-[var(--app-border)]" />
                   <AnimatePresence>
                     {isLineCompleted && (
                       <motion.div
-                        className="absolute top-1/2 -translate-y-1/2 h-0.5 rounded-full"
+                        className="absolute top-1/2 h-px -translate-y-1/2 rounded-full"
                         style={{
-                          backgroundColor: isLineFailed ? '#f43f5e' : '#84cc16',
+                          backgroundColor: isLineFailed ? 'var(--app-danger)' : 'var(--app-text-muted)',
                         }}
                         initial={{ width: 0 }}
                         animate={{ width: 16 }}
@@ -229,47 +204,31 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                       />
                     )}
                   </AnimatePresence>
-                  {/* Failed line to the failed step */}
                   {isFailed && idx === failedStepIdx - 1 && (
                     <motion.div
-                      className="absolute top-1/2 -translate-y-1/2 h-0.5 rounded-full"
-                      style={{ backgroundColor: '#f43f5e' }}
+                      className="absolute top-1/2 h-px -translate-y-1/2 rounded-full"
+                      style={{ backgroundColor: 'var(--app-danger)' }}
                       initial={{ width: 0 }}
                       animate={{ width: 16 }}
                       transition={{ duration: 0.4, delay: idx * 0.08 }}
                     />
                   )}
-                  <ChevronRight className={`w-2.5 h-2.5 relative z-10 linear-transition ${
-                    idx < effectiveCurrentIdx ? 'text-lime-500/60' :
-                    isFailed && idx === failedStepIdx - 1 ? 'text-rose-500/60' :
-                    'text-[var(--app-text-dim)]'
-                  }`} />
                 </div>
               )}
             </div>
           )
         })}
       </div>
-      {/* Progress percentage label */}
-      {currentIdx >= 0 && (
-        <Badge
-          variant="outline"
-          className={`text-[9px] h-4 ml-1 ${
-            isFailed ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-            progress === 100 ? 'bg-lime-500/10 text-lime-400 border-lime-500/20' :
-            'bg-amber-500/10 text-amber-400 border-amber-500/20'
-          }`}
-        >
-          {isFailed ? 'FAILED' : `${progress}%`}
-        </Badge>
-      )}
-
-      {/* Mini progress bar below pipeline */}
-      <div className="pipeline-mini-progress w-12 ml-1">
+      <span className={`hidden min-w-0 truncate text-[10px] font-medium lg:inline ${
+        isFailed ? 'text-rose-500' : 'text-[var(--app-text-muted)]'
+      }`}>
+        {currentLabel}
+      </span>
+      <div className="pipeline-mini-progress ml-1 w-14">
         <div
           className={`pipeline-mini-progress-fill ${
             isFailed ? 'bg-rose-500' :
-            progress === 100 ? 'bg-lime-500' :
+            progress === 100 ? 'bg-[var(--app-text-muted)]' :
             'bg-[var(--app-accent)]'
           }`}
           style={{ width: `${isFailed ? Math.max(progress - 20, 20) : progress}%` }}

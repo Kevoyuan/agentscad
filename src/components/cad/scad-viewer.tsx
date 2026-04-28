@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { highlightScad } from '@/lib/scad-highlight'
+import { copyText } from '@/lib/clipboard'
 
 export function ScadViewer({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false)
@@ -29,10 +30,12 @@ export function ScadViewer({ code }: { code: string | null }) {
     </div>
   )
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopy = async () => {
+    const ok = await copyText(code)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const lines = highlightedCode.split('\n')

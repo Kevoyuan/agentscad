@@ -105,7 +105,7 @@ export function MainWorkspace() {
     const found = state.allJobs.find(j => j.id === jobId)
     if (found) {
       state.setSelectedJob(found)
-      state.setActiveTab('PARAMS')
+      state.setActiveTab('SPEC')
     }
   }
 
@@ -209,7 +209,7 @@ export function MainWorkspace() {
                       const found = state.allJobs.find(j => j.id.slice(0, 8) === event.jobId)
                       if (found) {
                         state.setSelectedJob(found)
-                        state.setActiveTab('PARAMS')
+                        state.setActiveTab('SPEC')
                       }
                       state.setShowActivityFeed(false)
                     }}
@@ -274,7 +274,7 @@ export function MainWorkspace() {
             onDragStart={state.handleDragStart}
             onDragEnd={state.handleDragEnd}
             onDragCancel={state.handleDragCancel}
-            onSelectJob={(job) => { state.selectJob(job, 'PARAMS') }}
+            onSelectJob={(job) => { state.selectJob(job, 'SPEC') }}
             onToggleSelect={state.toggleSelect}
             onProcess={state.handleProcess}
             onCancel={(j) => state.setCancelTarget(j)}
@@ -335,11 +335,8 @@ export function MainWorkspace() {
         jobCountFlash={state.jobCountFlash}
         deliveredCount={state.stateCounts['DELIVERED'] || 0}
         failedCount={(state.stateCounts['VALIDATION_FAILED'] || 0) + (state.stateCounts['GEOMETRY_FAILED'] || 0) + (state.stateCounts['RENDER_FAILED'] || 0)}
-        dependencyCount={state.linkedJobCount}
-        uptime={state.uptime}
         successRate={state.successRate}
         onExport={state.exportAllData}
-        formatUptime={state.formatUptime}
       />
 
       {/* ── Dialogs ──────────────────────────────────────────────────────── */}
@@ -402,7 +399,6 @@ export function MainWorkspace() {
                   { keys: ['?', ''], desc: 'Toggle shortcuts' },
                   { keys: ['1', '-', '6'], desc: 'Switch inspector tab' },
                   { keys: ['E', ''], desc: 'Edit SCAD code' },
-                  { keys: ['D', ''], desc: 'Show dependencies' },
                   { keys: ['H', ''], desc: 'Show history (LOG)' },
                   { keys: ['S', ''], desc: 'Open stats dashboard' },
                   { keys: ['T', ''], desc: 'Open theme settings' },
@@ -448,10 +444,10 @@ export function MainWorkspace() {
                 {[
                   { key: '1', tab: 'SPEC' },
                   { key: '2', tab: 'PARAMS' },
-                  { key: '3', tab: 'MODEL' },
-                  { key: '4', tab: 'CODE' },
-                  { key: '5', tab: 'VALIDATE' },
-                  { key: '6', tab: 'HISTORY' },
+                  { key: '3', tab: 'ASSIST' },
+                  { key: '4', tab: 'VALID' },
+                  { key: '5', tab: 'HISTORY' },
+                  { key: '6', tab: 'CODE' },
                 ].map((s) => (
                   <div key={s.tab} className="flex items-center justify-between gap-2">
                     <span className="text-[10px] text-[var(--app-text-muted)] font-mono">{s.tab}</span>
@@ -535,7 +531,7 @@ export function MainWorkspace() {
         open={state.showCommandPalette}
         onOpenChange={state.setShowCommandPalette}
         jobs={state.allJobs}
-        onSelectJob={(job) => { state.selectJob(job, 'PARAMS') }}
+        onSelectJob={(job) => { state.selectJob(job, 'SPEC') }}
         actions={commandPaletteActions}
       />
     </div>

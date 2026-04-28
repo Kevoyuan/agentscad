@@ -75,10 +75,6 @@ export function KeyboardShortcuts({
       if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onSetActiveTab('CODE')
       }
-      // D: Show dependencies
-      if (e.key === 'd' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
-        onSetActiveTab('MODEL')
-      }
       // H: Show history (LOG tab)
       if (e.key === 'h' && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onSetActiveTab('HISTORY')
@@ -92,7 +88,7 @@ export function KeyboardShortcuts({
         onShowSettings(true)
       }
       // 1-6: Switch inspector tabs
-      const tabMap: Record<string, string> = { '1': 'SPEC', '2': 'PARAMETERS', '3': 'MODEL', '4': 'CODE', '5': 'VALIDATION', '6': 'HISTORY' }
+      const tabMap: Record<string, string> = { '1': 'SPEC', '2': 'PARAMETERS', '3': 'ASSIST', '4': 'VALIDATION', '5': 'HISTORY', '6': 'CODE' }
       if (tabMap[e.key] && !e.metaKey && !e.ctrlKey && !isInputFocused && !showComposer) {
         onSetActiveTab(tabMap[e.key])
       }

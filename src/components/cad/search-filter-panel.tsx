@@ -258,7 +258,7 @@ export function SearchFilterPanel({
           <Input
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
-            placeholder="Search jobs... (⌘K for command palette)"
+            placeholder="Search runs"
             className="h-7 pl-7 pr-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
             suppressHydrationWarning
           />
@@ -287,7 +287,7 @@ export function SearchFilterPanel({
                 }}
               >
                 <Clock className="w-3 h-3" />
-                {filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Time' : 'Prio'}
+                  {filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Time' : 'P'}
               </Button>
             </TooltipTrigger>
             <TooltipContent><p className="text-xs">{filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Switch to priority sort' : 'Switch to time sort'}</p></TooltipContent>
@@ -328,8 +328,8 @@ export function SearchFilterPanel({
           return (
             <button
               key={f.key}
-              className={`shrink-0 text-[9px] font-mono px-2.5 py-1.5 rounded-md transition-colors min-h-[28px] ${
-                isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
+              className={`shrink-0 text-[9px] font-medium px-2 py-1 rounded-sm transition-colors min-h-[24px] ${
+                isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)]'
               }`}
               onClick={() => {
                 if (f.key === 'ALL') {

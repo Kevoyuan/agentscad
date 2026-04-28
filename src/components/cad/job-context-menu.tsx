@@ -13,6 +13,7 @@ import {
   ContextMenuShortcut,
 } from '@/components/ui/context-menu'
 import { Job, CANCELABLE_STATES } from './types'
+import { copyText } from '@/lib/clipboard'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -42,12 +43,12 @@ export function JobContextMenu({
   const isProcessing = ['SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING', 'HUMAN_REVIEW'].includes(job.state)
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(job.id)
+    void copyText(job.id)
   }
 
   const handleOpenInNewTab = () => {
     const url = `${window.location.origin}/?job=${job.id}`
-    navigator.clipboard.writeText(url)
+    void copyText(url)
   }
 
   return (

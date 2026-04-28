@@ -1,21 +1,19 @@
 'use client'
 
-import { AlertTriangle, BoxSelect, Cpu, FileCode, Hammer, RotateCcw, Ruler, Wrench } from 'lucide-react'
+import { AlertTriangle, Cpu, RotateCcw, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Job, parseJSON } from './types'
-import { CadConstraintChip, CadExportChecklist, CadMetric, CadPanel, CadSectionHeader } from './cad-primitives'
+import { CadConstraintChip, CadExportChecklist, CadPanel, CadSectionHeader } from './cad-primitives'
 import { getPartFamilyLabel } from './part-family-icon'
 
 export function SpecPanel({
   job,
   onProcess,
   onRepair,
-  onNavigate,
 }: {
   job: Job
   onProcess: (job: Job) => void
   onRepair: (job: Job) => void
-  onNavigate: (tab: string) => void
 }) {
   const values = parseJSON<Record<string, number>>(job.parameterValues, {})
   const failed = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(job.state)
@@ -73,23 +71,7 @@ export function SpecPanel({
           </CadPanel>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <CadMetric label="State" value={job.state.replace(/_/g, ' ')} tone={failed ? 'danger' : job.state === 'DELIVERED' ? 'success' : 'accent'} />
-          <CadMetric label="Priority" value={`P${job.priority}`} tone={job.priority >= 8 ? 'warning' : 'neutral'} />
-          <CadMetric label="Params" value={Object.keys(values).length || '0'} />
-          <CadMetric label="Artifacts" value={job.stlPath ? 'STL' : 'preview'} tone={job.stlPath ? 'success' : 'warning'} />
-        </div>
-
         <CadExportChecklist job={job} />
-
-        <CadPanel title="Shortcuts" eyebrow="inspect">
-          <div className="grid grid-cols-2 gap-2 p-3">
-            <button className="cad-chip justify-center" onClick={() => onNavigate('PARAMETERS')}><Ruler className="h-3 w-3" />Parameters</button>
-            <button className="cad-chip justify-center" onClick={() => onNavigate('MODEL')}><BoxSelect className="h-3 w-3" />Model</button>
-            <button className="cad-chip justify-center" onClick={() => onNavigate('CODE')}><FileCode className="h-3 w-3" />Code</button>
-            <button className="cad-chip justify-center" onClick={() => onNavigate('VALIDATION')}><Hammer className="h-3 w-3" />Validation</button>
-          </div>
-        </CadPanel>
 
         {(job.builderName || job.generationPath) && (
           <div className="flex items-center gap-2 px-1 text-[10px] font-mono text-[var(--cad-text-muted)]">
