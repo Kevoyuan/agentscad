@@ -116,12 +116,9 @@ export const PIPELINE_STEPS = [
 export const FILTER_STATES = [
   { key: 'ALL', label: 'ALL' },
   { key: 'NEW', label: 'NEW' },
-  { key: 'SCAD_GENERATED', label: 'GEN' },
-  { key: 'RENDERED', label: 'RENDER' },
-  { key: 'VALIDATED', label: 'VALID' },
+  { key: 'HUMAN_REVIEW', label: 'REVIEW' },
   { key: 'DELIVERED', label: 'DONE' },
-  { key: 'CANCELLED', label: 'CANCELLED' },
-  { key: 'FAILED', label: 'FAILED', stateKey: 'VALIDATION_FAILED' },
+  { key: 'FAILED', label: 'BLOCKED', stateKey: 'VALIDATION_FAILED' },
 ]
 
 export const CANCELABLE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']

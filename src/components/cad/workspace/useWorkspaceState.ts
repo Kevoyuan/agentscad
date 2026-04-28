@@ -25,6 +25,7 @@ import {
 import { buildCustomerId } from '@/components/cad/tag-badges'
 import { Notification, NotificationType } from '@/components/cad/notification-center'
 import { ActivityEvent, ActivityEventType } from '@/components/cad/job-activity-feed'
+import { copyText } from '@/lib/clipboard'
 
 export function useWorkspaceState() {
   const { theme, setTheme, resolvedTheme } = useTheme()
@@ -52,8 +53,8 @@ export function useWorkspaceState() {
   const [showSettings, setShowSettings] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<Job | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [activeTab, setActiveTab] = useState('PARAMS')
-  const [prevTab, setPrevTab] = useState('PARAMS')
+  const [activeTab, setActiveTab] = useState('SPEC')
+  const [prevTab, setPrevTab] = useState('SPEC')
   const [tabDirection, setTabDirection] = useState(1)
   const [prevJobId, setPrevJobId] = useState<string | null>(null)
   const [jobCountFlash, setJobCountFlash] = useState(false)
@@ -206,7 +207,7 @@ export function useWorkspaceState() {
   const selectedJobRef = useRef<Job | null>(null)
   selectedJobRef.current = selectedJob
 
-  const selectJob = useCallback(async (job: Job, tab = 'PARAMS') => {
+  const selectJob = useCallback(async (job: Job, tab = 'SPEC') => {
     setSelectedJob(job)
     setActiveTab(tab)
     try {
@@ -392,6 +393,8 @@ export function useWorkspaceState() {
           toast({ title: 'Delivered!', description: 'All deliverables ready', duration: 2000 })
           addNotification('job_completed', 'Job Delivered', `Job ${job.id.slice(0, 8)} - All deliverables ready`)
           addActivityEvent('delivered', job.inputRequest.slice(0, 30), job.id.slice(0, 8), 'Delivered')
+        } else if (step === 'validation_failed') {
+          toast({ title: 'Rendered for review', description: 'Preview is available; validation blockers are listed in the inspector', duration: 2600 })
         }
       })
       await loadJobs()
@@ -437,6 +440,8 @@ export function useWorkspaceState() {
           toast({ title: 'Validated', description: 'Applied SCAD checks passed', duration: 1500 })
         } else if (step === 'delivered') {
           toast({ title: 'Apply complete', description: 'SCAD, render, and parameters are now in sync', duration: 2000 })
+        } else if (step === 'validation_failed') {
+          toast({ title: 'Rendered for review', description: 'Applied SCAD rendered. Validation blockers remain before export.', duration: 2800 })
         } else if (step === 'render_failed') {
           toast({ title: 'Render failed', description: String(data.error || 'Applied SCAD could not be rendered'), variant: 'destructive', duration: 3500 })
         }
@@ -570,7 +575,8 @@ export function useWorkspaceState() {
 
   const handleQuickShare = useCallback((job: Job) => {
     const url = `${window.location.origin}?job=${job.id}`
-    navigator.clipboard.writeText(url).then(() => {
+    copyText(url).then((ok) => {
+      if (!ok) throw new Error('Clipboard unavailable')
       toast({ title: 'Link copied to clipboard', description: `Share link for job ${job.id.slice(0, 8)}`, duration: 2000 })
     }).catch(() => {
       toast({ title: 'Failed to copy link', variant: 'destructive', duration: 2000 })
@@ -602,14 +608,14 @@ export function useWorkspaceState() {
 
   const stateCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const j of jobs) {
+    for (const j of allJobs) {
       if (['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(j.state)) {
         counts['FAILED'] = (counts['FAILED'] || 0) + 1
       }
       counts[j.state] = (counts[j.state] || 0) + 1
     }
     return counts
-  }, [jobs])
+  }, [allJobs])
 
   const linkedJobCount = useMemo(() => {
     return allJobs.filter(j => j.parentId).length

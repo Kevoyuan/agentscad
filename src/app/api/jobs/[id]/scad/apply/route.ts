@@ -194,27 +194,27 @@ export async function POST(
           const criticalFailures = getCriticalValidationFailures(validationResults)
 
           if (criticalFailures.length > 0) {
-            const failedJob = await db.job.update({
+            const reviewJob = await db.job.update({
               where: { id },
               data: {
-                state: 'VALIDATION_FAILED',
+                state: 'HUMAN_REVIEW',
                 validationResults: JSON.stringify(validationResults),
                 executionLogs: appendLog(
                   (await db.job.findUnique({ where: { id } }))?.executionLogs,
-                  'VALIDATION_FAILED',
-                  `Applied SCAD validation failed: ${criticalFailures.map((rule) => `${rule.rule_id} ${rule.rule_name}`).join(', ')}`
+                  'HUMAN_REVIEW',
+                  `Applied SCAD rendered artifacts kept for review; validation blockers: ${criticalFailures.map((rule) => `${rule.rule_id} ${rule.rule_name}`).join(', ')}`
                 ),
               },
             })
 
             sendEvent({
-              state: 'VALIDATION_FAILED',
+              state: 'HUMAN_REVIEW',
               step: 'validation_failed',
-              message: 'Applied SCAD failed visual or engineering validation.',
+              message: 'Applied SCAD rendered successfully; validation blockers require review or repair before export.',
               validationResults,
-              job: failedJob,
+              job: reviewJob,
             })
-            broadcastWs('job:update', { jobId: id, state: 'VALIDATION_FAILED', action: 'validation_failed' }).catch(() => {})
+            broadcastWs('job:update', { jobId: id, state: 'HUMAN_REVIEW', action: 'validation_review' }).catch(() => {})
             controller.close()
             return
           }

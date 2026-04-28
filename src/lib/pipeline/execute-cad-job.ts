@@ -449,23 +449,24 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
       await db.job.update({
         where: { id: jobId },
         data: {
-          state: "VALIDATION_FAILED",
+          state: "HUMAN_REVIEW",
           validationResults: JSON.stringify(validationResults),
+          reportPath: `/artifacts/${jobId}/report`,
           executionLogs: appendLog(
             (await db.job.findUnique({ where: { id: jobId } }))?.executionLogs,
-            "VALIDATION_FAILED",
-            `Validation failed: ${criticalFailures.map((rule) => `${rule.rule_id} ${rule.rule_name}`).join(", ")}`
+            "HUMAN_REVIEW",
+            `Rendered artifacts kept for review; validation blockers: ${criticalFailures.map((rule) => `${rule.rule_id} ${rule.rule_name}`).join(", ")}`
           ),
         },
       });
 
       sendEvent({
-        state: "VALIDATION_FAILED",
+        state: "HUMAN_REVIEW",
         step: "validation_failed",
-        message: "Validation failed - critical design-intent or mesh rules did not pass",
+        message: "Rendered successfully; validation blockers require review or repair before export",
         validationResults,
       });
-      broadcastWs("job:update", { jobId, state: "VALIDATION_FAILED", action: "validation_failed" }).catch(() => {});
+      broadcastWs("job:update", { jobId, state: "HUMAN_REVIEW", action: "validation_review" }).catch(() => {});
       return;
     }
 

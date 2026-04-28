@@ -75,7 +75,6 @@ function getActionsForState(
     case 'VALIDATED':
     case 'DEBUGGING':
     case 'REPAIRING':
-    case 'HUMAN_REVIEW':
       return [
         {
           id: 'cancel',
@@ -84,6 +83,32 @@ function getActionsForState(
           shortcut: '',
           onClick: () => props.onCancel(job),
           variant: 'warning',
+        },
+      ]
+
+    case 'HUMAN_REVIEW':
+      return [
+        {
+          id: 'reprocess',
+          label: 'Reprocess',
+          icon: <RotateCcw className="w-3.5 h-3.5" />,
+          shortcut: '',
+          onClick: () => props.onReprocess(job),
+          variant: 'success',
+        },
+        {
+          id: 'download-scad',
+          label: 'Download SCAD',
+          icon: <Download className="w-3.5 h-3.5" />,
+          shortcut: '',
+          onClick: () => props.onDownloadScad(job),
+        },
+        {
+          id: 'view-log',
+          label: 'View Log',
+          icon: <FileText className="w-3.5 h-3.5" />,
+          shortcut: '5',
+          onClick: () => props.onViewLog(job),
         },
       ]
 

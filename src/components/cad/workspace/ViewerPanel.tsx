@@ -154,7 +154,11 @@ export function ViewerPanel({
 
             {/* Center Content: Conditional based on job state */}
             {(() => {
-              const isActiveProcessing = !['NEW', 'DELIVERED', 'CANCELLED'].includes(selectedJob.state) &&
+              const canShowRenderedViewer = Boolean(selectedJob.stlPath) &&
+                ['DELIVERED', 'HUMAN_REVIEW'].includes(selectedJob.state) &&
+                !isSelectedProcessing
+              const isActiveProcessing = !canShowRenderedViewer &&
+                !['NEW', 'DELIVERED', 'CANCELLED'].includes(selectedJob.state) &&
                 !['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(selectedJob.state)
               const isFailed = ['VALIDATION_FAILED', 'GEOMETRY_FAILED', 'RENDER_FAILED'].includes(selectedJob.state)
               const isCancelable = CANCELABLE_STATES.includes(selectedJob.state)
@@ -184,10 +188,30 @@ export function ViewerPanel({
                 )
               }
 
-              // DELIVERED: Show 3D viewer
-              if (selectedJob.state === 'DELIVERED') {
+              // Rendered artifact states: show the actual STL/preview, even if validation needs review.
+              if (selectedJob.state === 'DELIVERED' || canShowRenderedViewer) {
                 return (
                   <div className="flex-1 p-2 min-h-0 relative">
+                    {selectedJob.state === 'HUMAN_REVIEW' && (
+                      <div className="absolute top-4 left-4 right-4 z-10 cad-viewport-glass rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <AlertTriangle className="w-4 h-4 text-[var(--cad-warning)] shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-medium text-[var(--cad-text)]">Rendered with validation blockers</p>
+                            <p className="text-[9px] text-[var(--cad-text-muted)] truncate">Preview and STL are available. Reprocess or edit before export.</p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="h-7 text-[10px] gap-1.5 bg-[var(--cad-accent)] hover:bg-[var(--app-accent-hover)] shrink-0"
+                          onClick={() => onProcess(selectedJob)}
+                          disabled={isProcessing}
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Reprocess
+                        </Button>
+                      </div>
+                    )}
                     {!selectedJob.stlPath && (
                       <div className="absolute top-4 left-4 right-4 z-10 cad-viewport-glass rounded-lg px-3 py-2 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
