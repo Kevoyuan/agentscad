@@ -55,9 +55,19 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
   const charRatio = notes.length / MAX_CHARS
   const charColor = charRatio > 0.9 ? 'text-rose-400' : charRatio > 0.7 ? 'text-amber-400' : 'text-emerald-400'
 
-  // Simple markdown-like preview
-  const renderPreview = (text: string) => {
+  // Escape HTML entities to prevent XSS before applying markdown formatting
+  const escapeHtml = (text: string) => {
     return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+  }
+
+  // Simple markdown-like preview — applied after HTML escaping
+  const renderPreview = (text: string) => {
+    return escapeHtml(text)
       .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-[var(--app-text-secondary)] mt-2 mb-1">$1</h3>')
       .replace(/^## (.+)$/gm, '<h2 class="text-sm font-bold text-[var(--app-text-primary)] mt-3 mb-1">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold text-[var(--app-text-primary)] mt-3 mb-1">$1</h1>')
