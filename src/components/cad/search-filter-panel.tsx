@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X, ChevronDown, ChevronUp,
-  Calendar, Filter, ArrowUpDown, RotateCcw, Hash,
+  Calendar, Clock, Filter, ArrowUpDown, RotateCcw, Hash,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
