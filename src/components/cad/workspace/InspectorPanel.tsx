@@ -33,6 +33,7 @@ export function InspectorPanel({
   onSetPrevTab,
   onSetTabDirection,
   onUpdate,
+  onPreviewParameters,
   onApplyScad,
   onProcess,
   onRepair,
@@ -49,6 +50,7 @@ export function InspectorPanel({
   onSetPrevTab: (tab: string) => void
   onSetTabDirection: (dir: number) => void
   onUpdate: () => void
+  onPreviewParameters: (job: Job, parameterValues: Record<string, number>) => void
   onApplyScad: (job: Job, scadSource: string) => Promise<void>
   onProcess: (job: Job) => void
   onRepair: (job: Job) => void
@@ -77,7 +79,13 @@ export function InspectorPanel({
       case 'SPEC':
         return <SpecPanel job={selectedJob} onProcess={onProcess} onRepair={onRepair} />
       case 'PARAMETERS':
-        return <ParameterPanel job={selectedJob} onUpdate={onUpdate} />
+        return (
+          <ParameterPanel
+            job={selectedJob}
+            onUpdate={onUpdate}
+            onPreviewUpdate={(parameterValues) => onPreviewParameters(selectedJob, parameterValues)}
+          />
+        )
       case 'MODEL':
         return (
           <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(180px,0.55fr)]">

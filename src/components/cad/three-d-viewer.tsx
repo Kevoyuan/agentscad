@@ -283,6 +283,9 @@ export function ThreeDViewer({ job }: { job: Job }) {
 
   const values = parseJSON<Record<string, number>>(job.parameterValues, {})
   const partFamily = job.partFamily || 'unknown'
+  const geometryKey = job.stlPath
+    ? `${job.stlPath}:${job.updatedAt || ''}`
+    : `${job.state}:${job.parameterValues || ''}:${partFamily}`
   const dimensionSummary = (() => {
     const width = values.width ?? values.phone_width ?? values.outer_diameter ?? values.diameter
     const depth = values.depth ?? values.phone_length ?? values.thickness
@@ -427,10 +430,12 @@ export function ThreeDViewer({ job }: { job: Job }) {
           try {
             const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js')
             const loader = new STLLoader()
+            const cacheKey = encodeURIComponent(job.updatedAt || job.parameterValues || '')
+            const stlUrl = `${job.stlPath}${job.stlPath.includes('?') ? '&' : '?'}v=${cacheKey}`
 
             const geometry = await new Promise<any>((resolve, reject) => {
               loader.load(
-                job.stlPath!,
+                stlUrl,
                 (geo: any) => resolve(geo),
                 undefined,
                 (err: any) => reject(err),
@@ -563,7 +568,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
         }
       }
     }
-  }, [job.state, job.stlPath, job.parameterValues, partFamily])
+  }, [geometryKey, controlsState.darkBg, controlsState.showAxes, controlsState.showDimensions, controlsState.showGrid, controlsState.wireframe])
 
   if (job.state === 'NEW' || job.state === 'SCAD_GENERATED') {
     return (

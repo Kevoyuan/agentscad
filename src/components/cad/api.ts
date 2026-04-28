@@ -67,7 +67,9 @@ export async function updateParameters(id: string, parameterValues: Record<strin
       if (errorData?.error) {
         message = errorData.validationErrors?.length
           ? `${errorData.error}: ${errorData.validationErrors.join(', ')}`
-          : errorData.error
+          : errorData.details
+            ? `${errorData.error}: ${errorData.details}`
+            : errorData.error
       }
     } catch {
       // Keep the generic message when the response body is unavailable.

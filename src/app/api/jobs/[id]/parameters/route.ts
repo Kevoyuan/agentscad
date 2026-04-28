@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { appendLog } from "@/lib/stores/job-store";
-import { broadcastWs } from "@/lib/ws-broadcast";
+import { buildRenderFailureLog, renderScadArtifacts } from "@/lib/tools/scad-renderer";
+import { clearValidationCache } from "@/lib/tools/validation-tool";
 import { trackVersion } from "@/lib/version-tracker";
 
 interface RouteParams {
@@ -105,6 +106,15 @@ export async function PATCH(
       );
     }
 
+    const shouldRender = Boolean(job.scadSource) && job.state !== "NEW" && job.state !== "CANCELLED";
+    const renderedArtifacts = shouldRender
+      ? await renderScadArtifacts(id, job.scadSource as string, currentValues)
+      : null;
+
+    if (renderedArtifacts) {
+      clearValidationCache();
+    }
+
     // Track version history before updating
     await trackVersion(id, "parameters", job.parameterValues, JSON.stringify(currentValues));
 
@@ -113,31 +123,38 @@ export async function PATCH(
       where: { id },
       data: {
         parameterValues: JSON.stringify(currentValues),
-        // Parameter edits invalidate rendered artifacts. Keep the state so the
-        // viewport can show an immediate procedural preview until reprocessing.
-        ...(job.state !== "NEW" && job.state !== "CANCELLED"
-          ? { stlPath: null, pngPath: null }
+        ...(renderedArtifacts
+          ? {
+              stlPath: renderedArtifacts.stlPath,
+              pngPath: renderedArtifacts.pngPath,
+              renderLog: JSON.stringify(renderedArtifacts.renderLog),
+            }
           : {}),
         executionLogs: appendLog(
           job.executionLogs,
           "PARAMETERS_UPDATED",
-          `Parameters updated: ${Object.keys(parameters).join(", ")}; render artifacts marked stale`
+          renderedArtifacts
+            ? `Parameters updated and locally rendered: ${Object.keys(parameters).join(", ")} (${renderedArtifacts.renderLog.render_time_ms}ms)`
+            : `Parameters updated: ${Object.keys(parameters).join(", ")}`
         ),
       },
     });
-
-    // Broadcast WebSocket event
-    broadcastWs("job:update", { jobId: id, state: updatedJob.state, action: "parameters_updated" }).catch(() => {});
 
     return NextResponse.json({
       job: updatedJob,
       updatedParameters: Object.keys(parameters),
       parameterValues: currentValues,
+      rendered: Boolean(renderedArtifacts),
     });
   } catch (error) {
     console.error("Error updating parameters:", error);
+    const message = error instanceof Error ? error.message : "Failed to update parameters";
     return NextResponse.json(
-      { error: "Failed to update parameters" },
+      {
+        error: "Failed to update and render parameters",
+        details: message,
+        renderLog: JSON.stringify(buildRenderFailureLog(0, [message])),
+      },
       { status: 500 }
     );
   }

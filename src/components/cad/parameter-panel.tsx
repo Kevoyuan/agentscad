@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Wrench, Loader2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -14,9 +14,11 @@ import { staggerContainer, staggerChild, staggerTransition, slideInLeft, slideIn
 export function ParameterPanel({
   job,
   onUpdate,
+  onPreviewUpdate,
 }: {
   job: Job
   onUpdate: () => void | Promise<void>
+  onPreviewUpdate?: (parameterValues: Record<string, number>) => void
 }) {
   // The parameterSchema in the DB can be either:
   // - A ParameterSchema object { part_family, design_summary, parameters: [...] }
@@ -27,7 +29,6 @@ export function ParameterPanel({
   const [localValues, setLocalValues] = useState(values)
   const [isUpdating, setIsUpdating] = useState(false)
   const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set())
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export function ParameterPanel({
     }
     setLocalValues(defaults)
     setChangedKeys(new Set())
+    onPreviewUpdate?.(defaults)
     setIsUpdating(true)
     try {
       await updateParameters(job.id, defaults)
@@ -64,7 +66,7 @@ export function ParameterPanel({
     } finally {
       setIsUpdating(false)
     }
-  }, [schema, job.id, onUpdate, toast])
+  }, [schema, job.id, onPreviewUpdate, onUpdate, toast])
 
   if (!schema) return (
     <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
@@ -83,6 +85,7 @@ export function ParameterPanel({
   const handleParamChange = (key: string, value: number, defaultValue: number) => {
     const newValues = { ...localValues, [key]: value }
     setLocalValues(newValues)
+    onPreviewUpdate?.(newValues)
     // Track changed keys for pulse animation
     if (value !== defaultValue) {
       setChangedKeys(prev => new Set(prev).add(key))
@@ -93,20 +96,26 @@ export function ParameterPanel({
         return next
       })
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
-      setIsUpdating(true)
-      try {
-        await updateParameters(job.id, newValues)
-        onUpdate()
-        toast({ title: 'Parameter updated', description: `${key} = ${value}`, duration: 2000 })
-      } catch (err) {
-        console.error('Parameter update failed:', err)
-        toast({ title: 'Update failed', description: 'Failed to save parameter change', variant: 'destructive', duration: 3000 })
-      } finally {
-        setIsUpdating(false)
-      }
-    }, 600)
+  }
+
+  const handleParamCommit = async (key: string, value: number) => {
+    const newValues = { ...localValues, [key]: value }
+    setIsUpdating(true)
+    try {
+      await updateParameters(job.id, newValues)
+      onUpdate()
+      toast({ title: 'Parameter rendered', description: `${key} = ${value}`, duration: 2000 })
+    } catch (err) {
+      console.error('Parameter update failed:', err)
+      toast({
+        title: 'Render failed',
+        description: err instanceof Error ? err.message : 'Failed to save parameter change',
+        variant: 'destructive',
+        duration: 4000,
+      })
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   const handleResetParam = async (key: string, defaultValue: number) => {
@@ -117,6 +126,7 @@ export function ParameterPanel({
       next.delete(key)
       return next
     })
+    onPreviewUpdate?.(newValues)
     setIsUpdating(true)
     try {
       await updateParameters(job.id, newValues)
@@ -269,6 +279,7 @@ export function ParameterPanel({
                             max={max}
                             step={step}
                             onValueChange={([v]) => handleParamChange(param.key, v, param.value)}
+                            onValueCommit={([v]) => handleParamCommit(param.key, v)}
                             disabled={isUpdating || !param.editable}
                             className="py-0.5 relative z-10"
                           />

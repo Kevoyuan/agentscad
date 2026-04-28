@@ -317,6 +317,13 @@ export function MainWorkspace() {
             onSetPrevTab={state.setPrevTab}
             onSetTabDirection={state.setTabDirection}
             onUpdate={state.loadJobs}
+            onPreviewParameters={(job, parameterValues) => {
+              const previewJob = {
+                ...job,
+                parameterValues: JSON.stringify(parameterValues),
+              }
+              state.setSelectedJob(previewJob)
+            }}
             onApplyScad={state.handleApplyScad}
             onProcess={state.handleProcess}
             onRepair={state.handleRepair}
