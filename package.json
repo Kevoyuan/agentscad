@@ -62,7 +62,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.2",
     "input-otp": "^1.4.2",
@@ -89,8 +88,7 @@
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
     "z-ai-web-dev-sdk": "^0.0.17",
-    "zod": "^4.0.2",
-    "zustand": "^5.0.6"
+    "zod": "^4.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
