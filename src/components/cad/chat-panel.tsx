@@ -73,6 +73,15 @@ function findMatchingBrace(source: string, openIndex: number) {
   return -1
 }
 
+function findLastTopLevelCall(source: string) {
+  let last: RegExpMatchArray | null = null
+  const callRegex = /^\s*[A-Za-z_][A-Za-z0-9_]*\s*\([^;{}]*\)\s*;\s*$/gm
+  for (const match of source.matchAll(callRegex)) {
+    last = match
+  }
+  return last
+}
+
 function extractModuleBlocks(source: string) {
   const blocks: Array<{ name: string; block: string }> = []
   const moduleRegex = /\bmodule\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)\s*\{/g
@@ -88,6 +97,47 @@ function extractModuleBlocks(source: string) {
   return blocks
 }
 
+function extractScadCodeBlocks(markdown: string) {
+  const blocks: string[] = []
+  const fenceRegex = /```(?:openscad|scad)\s*\n([\s\S]*?)```/gi
+  for (const match of markdown.matchAll(fenceRegex)) {
+    const source = match[1].trim()
+    if (source) blocks.push(source)
+  }
+  return blocks
+}
+
+function extractStandaloneCalls(source: string) {
+  const moduleNames = new Set(extractModuleBlocks(source).map(block => block.name))
+  const calls: string[] = []
+  const callRegex = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\([^;{}]*\)\s*;\s*$/gm
+  for (const match of source.matchAll(callRegex)) {
+    if (moduleNames.has(match[1])) calls.push(match[0].trim())
+  }
+  return Array.from(new Set(calls))
+}
+
+function insertIntoPrintableDifference(source: string, call: string) {
+  const printableMatch = /\bmodule\s+printable_[A-Za-z0-9_]*\s*\([^)]*\)\s*\{/.exec(source)
+    || /\bmodule\s+[A-Za-z0-9_]*case[A-Za-z0-9_]*\s*\([^)]*\)\s*\{/.exec(source)
+  if (!printableMatch || printableMatch.index === undefined) return source
+
+  const moduleOpen = printableMatch.index + printableMatch[0].lastIndexOf('{')
+  const moduleClose = findMatchingBrace(source, moduleOpen)
+  if (moduleClose === -1) return source
+
+  const moduleBody = source.slice(moduleOpen + 1, moduleClose)
+  const differenceMatch = /\bdifference\s*\(\s*\)\s*\{/.exec(moduleBody)
+  if (!differenceMatch || differenceMatch.index === undefined) return source
+
+  const differenceOpen = moduleOpen + 1 + differenceMatch.index + differenceMatch[0].lastIndexOf('{')
+  const differenceClose = findMatchingBrace(source, differenceOpen)
+  if (differenceClose === -1 || differenceClose > moduleClose) return source
+  if (source.slice(differenceOpen, differenceClose).includes(call)) return source
+
+  return `${source.slice(0, differenceClose)}        ${call}\n${source.slice(differenceClose)}`
+}
+
 function mergeScadPatch(currentSource: string, patchSource: string) {
   let nextSource = currentSource
   const changes: string[] = []
@@ -95,11 +145,18 @@ function mergeScadPatch(currentSource: string, patchSource: string) {
   for (const moduleBlock of extractModuleBlocks(patchSource)) {
     const targetRegex = new RegExp(`\\bmodule\\s+${moduleBlock.name}\\s*\\([^)]*\\)\\s*\\{`, 'g')
     const targetMatch = targetRegex.exec(nextSource)
-    if (!targetMatch) continue
-    const openIndex = targetMatch.index + targetMatch[0].lastIndexOf('{')
-    const closeIndex = findMatchingBrace(nextSource, openIndex)
-    if (closeIndex === -1) continue
-    nextSource = `${nextSource.slice(0, targetMatch.index)}${moduleBlock.block}${nextSource.slice(closeIndex + 1)}`
+    if (targetMatch) {
+      const openIndex = targetMatch.index + targetMatch[0].lastIndexOf('{')
+      const closeIndex = findMatchingBrace(nextSource, openIndex)
+      if (closeIndex === -1) continue
+      nextSource = `${nextSource.slice(0, targetMatch.index)}${moduleBlock.block}${nextSource.slice(closeIndex + 1)}`
+      changes.push(`module ${moduleBlock.name}`)
+      continue
+    }
+
+    const finalCall = findLastTopLevelCall(nextSource)
+    const insertAt = finalCall?.index ?? nextSource.length
+    nextSource = `${nextSource.slice(0, insertAt).trimEnd()}\n\n${moduleBlock.block}\n\n${nextSource.slice(insertAt).trimStart()}`
     changes.push(`module ${moduleBlock.name}`)
   }
 
@@ -107,15 +164,61 @@ function mergeScadPatch(currentSource: string, patchSource: string) {
   for (const match of patchSource.matchAll(assignmentRegex)) {
     const [, , key, value] = match
     const targetRegex = new RegExp(`^(\\s*)${key}\\s*=\\s*([^;]+);`, 'm')
-    if (!targetRegex.test(nextSource)) continue
-    nextSource = nextSource.replace(targetRegex, (_full, indent) => `${indent}${key} = ${value.trim()};`)
+    if (targetRegex.test(nextSource)) {
+      nextSource = nextSource.replace(targetRegex, (_full, indent) => `${indent}${key} = ${value.trim()};`)
+    } else {
+      const firstModule = /\bmodule\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/.exec(nextSource)
+      const insertAt = firstModule?.index ?? 0
+      nextSource = `${nextSource.slice(0, insertAt).trimEnd()}\n${key} = ${value.trim()};\n\n${nextSource.slice(insertAt).trimStart()}`
+    }
     changes.push(key)
+  }
+
+  for (const call of extractStandaloneCalls(patchSource)) {
+    const before = nextSource
+    nextSource = insertIntoPrintableDifference(nextSource, call)
+    if (nextSource !== before) changes.push(call)
   }
 
   return {
     source: nextSource,
     changes: Array.from(new Set(changes)),
   }
+}
+
+function MessagePatchButton({
+  blocks,
+  onApply,
+  className = '',
+}: {
+  blocks: string[]
+  onApply: (source: string, mode: 'replace' | 'patch') => Promise<void>
+  className?: string
+}) {
+  const [isApplying, setIsApplying] = useState(false)
+
+  const handleApply = useCallback(async () => {
+    setIsApplying(true)
+    try {
+      await onApply(blocks.join('\n\n'), 'patch')
+    } finally {
+      setIsApplying(false)
+    }
+  }, [blocks, onApply])
+
+  if (blocks.length < 2) return null
+
+  return (
+    <button
+      onClick={handleApply}
+      disabled={isApplying}
+      className={`flex items-center gap-1 rounded bg-[var(--app-accent-bg)] px-1.5 py-0.5 font-mono text-[8px] text-[var(--app-accent-text)] disabled:cursor-wait disabled:opacity-60 ${className}`}
+      title="Apply every SCAD patch block in this assistant message"
+    >
+      <Wand2 className="h-2.5 w-2.5" />
+      {isApplying ? 'Rendering...' : 'Apply All & Render'}
+    </button>
+  )
 }
 
 function ScadApplyButton({
@@ -682,7 +785,7 @@ export function ChatPanel({
                 <div className="flex items-center gap-1 mb-1">
                   <Sparkles className="w-2.5 h-2.5 text-[var(--app-accent-text)]" />
                   <span className="text-[8px] font-mono text-[var(--app-accent-text)]">AgentSCAD</span>
-                  <span className="text-[8px] font-mono text-[var(--app-text-dim)] ml-auto flex items-center gap-0.5">
+                  <span className="ml-auto text-[8px] font-mono text-[var(--app-text-dim)] flex items-center gap-0.5">
                     <Clock className="w-2 h-2" />{formatTimestamp(msg.timestamp)}
                   </span>
                 </div>
@@ -699,6 +802,11 @@ export function ChatPanel({
                   <ReactMarkdown components={assistantMarkdownComponents}>
                     {msg.content}
                   </ReactMarkdown>
+                  <MessagePatchButton
+                    blocks={extractScadCodeBlocks(msg.content)}
+                    onApply={handleApplyScad}
+                    className="mt-2 w-full justify-center py-1"
+                  />
                 </div>
               ) : (
                 <div className="space-y-2">

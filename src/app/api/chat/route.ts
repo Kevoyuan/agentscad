@@ -41,7 +41,11 @@ export async function POST(request: NextRequest) {
 
 Be concise, technical, and helpful. When discussing code, use code blocks with the appropriate language tag.
 
-When proposing a full replacement SCAD file or an editable SCAD patch, wrap the code in a single \`\`\`openscad code block so it can be applied directly.`;
+When proposing OpenSCAD changes, optimize for one-click application:
+- Prefer returning one complete, renderable replacement SCAD file in a single \`\`\`openscad code block.
+- If you explain a smaller patch, still finish with one consolidated \`\`\`openscad code block that contains the complete updated SCAD source.
+- Do not split one edit across separate parameter/module/call code blocks unless the user explicitly asks for manual instructions.
+- Keep prose outside the code block brief; the code block must be self-contained and ready for Apply & Render.`;
 
     let systemPrompt = (await loadSkill("scad-chat")) || SKILL_FALLBACK;
 
@@ -64,6 +68,12 @@ When proposing a full replacement SCAD file or an editable SCAD patch, wrap the 
 - Parameter Schema: ${paramSchema ? JSON.stringify(paramSchema, null, 2) : "N/A"}
 - Current Parameter Values: ${paramValues ? JSON.stringify(paramValues, null, 2) : "N/A"}
 ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\`\`\`` : ""}`;
+
+        systemPrompt += `\n\nSCAD response contract:
+- If the user asks for a geometry/code modification, return exactly one final \`\`\`openscad code block containing the complete updated SCAD file.
+- Preserve existing working code and parameters unless the requested fix requires changing them.
+- For phone cases and other coordinate-sensitive parts, verify positions numerically against the current dimensions before claiming they are placed correctly.
+- Avoid giving fragmented snippets as the primary output; snippets are only acceptable as explanation before the final complete code block.`;
 
         if (job.validationResults) {
           try {
