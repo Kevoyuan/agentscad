@@ -4,7 +4,7 @@ AgentSCAD is an AI-native CAD agent that turns natural-language part requests in
 
 It generates parametric SCAD, renders STL and preview images, validates geometry and visual intent, routes failed designs through repair or human review, and learns from user edits over time.
 
-![AgentSCAD system overview](./docs/images/agentscad-overview.svg)
+![AgentSCAD system overview](./docs/images/agentscad_overview.png)
 
 ## Why AgentSCAD?
 
