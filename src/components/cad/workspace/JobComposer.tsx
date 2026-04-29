@@ -51,19 +51,19 @@ export function JobComposer({
       id: 'mimo-v2.5-pro',
       name: 'MiMo-V2.5-Pro',
       provider: 'Xiaomi MiMo',
-      description: '默认低延迟 CAD 草稿模型',
+      description: 'Default low-latency CAD draft model',
     },
     {
       id: 'deepseek-v4-pro',
       name: 'DeepSeek V4 Pro',
       provider: 'DeepSeek',
-      description: '更强推理，适合复杂 OpenSCAD 生成',
+      description: 'Stronger reasoning, suitable for complex OpenSCAD generation',
     },
     {
       id: 'openai/gpt-5.5',
       name: 'GPT-5.5',
       provider: 'OpenRouter',
-      description: '高质量推理，适合复杂 CAD 方案',
+      description: 'High-quality reasoning, suitable for complex CAD solutions',
     },
   ]
   const specGroups = [

@@ -35,6 +35,8 @@ Most text-to-CAD demos stop at code generation. AgentSCAD treats CAD as an artif
 - **Managed OpenSCAD libraries**: Approved libraries such as BOSL2, Round-Anything, and MCAD can be installed into a local managed bundle with license gates.
 - **Multi-provider LLM support**: The runtime can route generation through OpenAI, Anthropic, Google, DeepSeek, OpenRouter, Zhipu, Qwen, Mistral, and other configured providers.
 
+![Create a CAD job from natural language, reusable case memory, model selection, and manufacturing constraints.](./docs/images/spec.png)
+
 ## Quick Start
 
 Requirements: Node.js 18+ and OpenSCAD in your PATH.
@@ -83,6 +85,8 @@ Output:
 - `preview.png`: generated preview image.
 - Validation report: mesh, manufacturing, and visual-intent checks.
 - Editable parameters: constrained values exposed in the workspace UI.
+
+![Delivered CAD artifacts remain inspectable with preview, STL readiness, SCAD source, and validation status.](./docs/images/Example.png)
 
 AgentSCAD is centered around two CAD agents: a generation agent that creates OpenSCAD artifacts, and a repair agent that fixes failed geometry, validation blockers, or human-review edits. The workspace chat helper stays outside the main generation pipeline and is used for CAD explanations, parameter advice, and user-facing SCAD patches.
 
