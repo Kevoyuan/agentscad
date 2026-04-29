@@ -12,15 +12,49 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { Job, getStateHex } from './types'
+
 // ─── Types ──────────────────────────────────────────────────────────────
 
 interface FooterProps {
+  jobs: Job[]
   jobCount: number
   jobCountFlash: boolean
   deliveredCount: number
   failedCount: number
   successRate: number
   onExport: () => void
+}
+
+// ─── Global Timeline Component ──────────────────────────────────────────
+
+function GlobalTimeline({ jobs }: { jobs: Job[] }) {
+  const recentJobs = [...jobs].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ).slice(0, 40).reverse()
+
+  return (
+    <div className="flex items-center gap-0.5 h-3 px-2 border-x border-[color:var(--cad-border)] mx-4">
+      {recentJobs.map((job) => (
+        <TooltipProvider key={job.id} delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div 
+                className="w-1 h-3 rounded-[1px] transition-all hover:h-4 hover:opacity-100 opacity-60"
+                style={{ backgroundColor: getStateHex(job.state) }}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px] font-mono">
+              <p>{job.state}: {job.inputRequest.slice(0, 30)}...</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ))}
+      {recentJobs.length === 0 && (
+        <div className="text-[10px] text-[var(--cad-text-muted)] opacity-50 px-2 italic">Waiting for telemetry...</div>
+      )}
+    </div>
+  )
 }
 
 // ─── Memory Usage Hook ──────────────────────────────────────────────────
@@ -69,7 +103,7 @@ function FooterMetric({
             {children}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs font-mono">
+        <TooltipContent side="top" className="text-[11px] font-mono bg-[var(--cad-surface-raised)] border-[color:var(--cad-border-strong)] text-[var(--cad-text-secondary)]">
           <p>{tooltip}</p>
         </TooltipContent>
       </Tooltip>
@@ -80,12 +114,13 @@ function FooterMetric({
 // ─── Separator ──────────────────────────────────────────────────────────
 
 function SeparatorDot() {
-  return <span className="footer-separator" />
+  return <span className="footer-separator h-1 w-1 rounded-full bg-[var(--cad-border-strong)] mx-1" />
 }
 
 // ─── Footer Component ──────────────────────────────────────────────────
 
 export function Footer({
+  jobs,
   jobCount,
   jobCountFlash,
   deliveredCount,
@@ -97,38 +132,42 @@ export function Footer({
   const hasAttention = failedCount > 0
 
   return (
-    <footer className="relative flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
-      <div className="flex min-w-0 items-center gap-3 text-xs font-mono text-[var(--app-text-muted)]">
+    <footer className="relative flex items-center px-4 py-1.5 border-t border-[color:var(--cad-border)] bg-[var(--cad-surface)] shrink-0 overflow-hidden">
+      <div className="flex min-w-0 items-center gap-3 text-[11px] font-mono text-[var(--cad-text-muted)]">
         <FooterMetric tooltip="Jobs refresh automatically while the workspace is open">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 online-dot" />
-            <Activity className="w-2.5 h-2.5 text-emerald-500" />
-            Auto-refresh
+            <span className="w-1 h-1 rounded-full bg-[var(--cad-success)] status-pulse" />
+            <span className="hidden sm:inline opacity-70">AUTO-REFRESH</span>
           </span>
         </FooterMetric>
         <SeparatorDot />
         <FooterMetric tooltip="Total jobs in the system">
           <span className={jobCountFlash ? 'number-highlight' : ''}>
-            {jobCount} runs
+            {jobCount} RUNS
           </span>
         </FooterMetric>
         <SeparatorDot />
         <FooterMetric tooltip="Successfully delivered jobs">
-          <span>{deliveredCount} delivered</span>
+          <span className="text-[var(--cad-success)] opacity-90">{deliveredCount} OK</span>
         </FooterMetric>
         {hasAttention && (
           <>
             <SeparatorDot />
             <FooterMetric tooltip="Items needing attention">
-              <span className="text-rose-500/80">{failedCount} blockers</span>
+              <span className="text-[var(--cad-danger)] opacity-90">{failedCount} ERR</span>
             </FooterMetric>
           </>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-3 text-xs font-mono text-[var(--app-text-dim)]">
+
+      <div className="flex-1 flex justify-center">
+        <GlobalTimeline jobs={jobs} />
+      </div>
+
+      <div className="flex shrink-0 items-center gap-3 text-[11px] font-mono text-[var(--cad-text-muted)]">
         <FooterMetric tooltip="Delivery success rate (delivered vs failed)">
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5" />
+            <CheckCircle2 className="w-3 h-3" />
             {successRate}%
           </span>
         </FooterMetric>
@@ -137,7 +176,7 @@ export function Footer({
             <SeparatorDot />
             <FooterMetric tooltip="JavaScript heap memory usage">
               <span className="hidden xl:flex items-center gap-1">
-                <Cpu className="w-2.5 h-2.5" />
+                <Cpu className="w-3 h-3" />
                 {memoryUsage}
               </span>
             </FooterMetric>
@@ -145,10 +184,15 @@ export function Footer({
         )}
         <SeparatorDot />
         <FooterMetric tooltip="AgentSCAD application version">
-          <span>v0.9</span>
+          <span className="opacity-70 uppercase">v0.9-alpha</span>
         </FooterMetric>
-        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={onExport}>
-          <FileJson className="w-2.5 h-2.5" />Export
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-6 text-[10px] gap-1 text-[var(--cad-text-muted)] hover:text-[var(--cad-text-secondary)] hover:bg-[var(--cad-surface-raised)] border border-[color:var(--cad-border)] px-2 ml-1" 
+          onClick={onExport}
+        >
+          <FileJson className="w-2.5 h-2.5" />EXPORT
         </Button>
       </div>
     </footer>

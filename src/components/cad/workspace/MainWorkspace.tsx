@@ -337,6 +337,7 @@ export function MainWorkspace() {
 
       {/* Footer */}
       <Footer
+        jobs={state.allJobs}
         jobCount={state.allJobs.length}
         jobCountFlash={state.jobCountFlash}
         deliveredCount={state.stateCounts['DELIVERED'] || 0}

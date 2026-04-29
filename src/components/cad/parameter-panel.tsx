@@ -69,13 +69,13 @@ export function ParameterPanel({
   }, [schema, job.id, onPreviewUpdate, onUpdate])
 
   if (!schema) return (
-    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
-        <Wrench className="w-6 h-6 opacity-30" />
+    <div className="flex flex-col items-center justify-center h-full text-[var(--cad-text-muted)] gap-3 p-6">
+      <div className="w-12 h-12 rounded border border-[color:var(--cad-border-strong)] flex items-center justify-center opacity-40">
+        <Wrench className="w-6 h-6" />
       </div>
       <div className="text-center">
-        <p className="text-sm">No parameters available</p>
-        <p className="text-[13px] text-[var(--app-text-dim)] mt-1">Process a job to generate parameters</p>
+        <p className="text-sm font-medium">No parameters available</p>
+        <p className="text-[13px] text-[var(--cad-text-muted)] mt-1">Process a job to generate parameters</p>
       </div>
     </div>
   )
@@ -141,12 +141,12 @@ export function ParameterPanel({
   }
 
   const sourceColor: Record<string, string> = {
-    user: 'text-sky-400',
-    inferred: 'text-amber-400',
+    user: 'text-[var(--cad-info)]',
+    inferred: 'text-[var(--cad-warning)]',
     design_derived: 'text-[var(--cad-accent)]',
-    engineering: 'text-emerald-400',
-    derived: 'text-cyan-400',
-    llm_declared: 'text-emerald-400',
+    engineering: 'text-[var(--cad-success)]',
+    derived: 'text-[var(--cad-info)]',
+    llm_declared: 'text-[var(--cad-success)]',
   }
   const changedCount = changedKeys.size
 
@@ -235,7 +235,7 @@ export function ParameterPanel({
                             className="text-xs font-mono text-[var(--app-text-primary)] tabular-nums"
                             key={value}
                             initial={{ scale: 1.15, color: 'var(--cad-accent)' }}
-                            animate={{ scale: 1, color: '#e4e4e7' }}
+                            animate={{ scale: 1, color: 'var(--cad-text)' }}
                             transition={{ duration: 0.4, ease: 'easeOut' }}
                           >
                             {typeof localValues[param.key] === 'number' ? localValues[param.key].toFixed(precision) : param.value?.toFixed(precision) ?? '0'}
@@ -329,11 +329,11 @@ export function SchemaInfoPanel({ schemaStr }: { schemaStr: string }) {
   }
 
   const sourceColor: Record<string, string> = {
-    user: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    inferred: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    user: 'bg-[var(--cad-info)]/10 text-[var(--cad-info)] border-[color:var(--cad-info)]/20',
+    inferred: 'bg-[var(--cad-warning)]/10 text-[var(--cad-warning)] border-[color:var(--cad-warning)]/20',
     design_derived: 'bg-[var(--cad-accent-soft)] text-[var(--cad-accent)] border-[color:var(--cad-border)]',
-    engineering: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    derived: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    engineering: 'bg-[var(--cad-success)]/10 text-[var(--cad-success)] border-[color:var(--cad-success)]/20',
+    derived: 'bg-[var(--cad-info)]/10 text-[var(--cad-info)] border-[color:var(--cad-info)]/20',
   }
 
   return (

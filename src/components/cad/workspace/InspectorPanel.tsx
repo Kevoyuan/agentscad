@@ -186,11 +186,9 @@ export function InspectorPanel({
         ) : (
           <div className="relative flex flex-col items-center justify-center h-full text-[var(--app-text-muted)] gap-3 p-6">
             {/* Enhanced empty state with SVG illustration */}
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="empty-float opacity-30">
-              <rect x="8" y="8" width="48" height="48" rx="8" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" className="text-[var(--app-text-dim)]" />
-              <path d="M24 32h16M32 24v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--app-text-muted)]" />
-              <circle cx="32" cy="32" r="3" fill="currentColor" className="text-[var(--app-text-dim)]" />
-            </svg>
+            <div className="w-12 h-12 border border-dashed border-[var(--cad-border-strong)] rounded flex items-center justify-center opacity-40">
+              <BoxSelect className="w-6 h-6 text-[var(--cad-text-muted)]" />
+            </div>
             <div className="text-center mt-2">
               <p className="text-sm font-medium text-[var(--app-text-muted)]">Inspector Panel</p>
               <p className="text-[13px] text-[var(--app-text-dim)] mt-1 max-w-[200px]">Select a job from the list to view parameters, code, and pipeline details</p>

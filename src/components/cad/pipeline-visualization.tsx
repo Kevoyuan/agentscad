@@ -128,13 +128,13 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <motion.div
-                      className={`relative flex h-6 w-6 items-center justify-center rounded-md transition-all duration-200 ${
-                        isClickable ? 'cursor-pointer hover:bg-[var(--app-hover-subtle)]' : 'cursor-default'
+                      className={`relative flex h-6 w-6 items-center justify-center rounded transition-all duration-200 ${
+                        isClickable ? 'cursor-pointer hover:bg-[var(--cad-surface-raised)]' : 'cursor-default'
                       } ${
-                        isFailedStep ? 'text-rose-500 bg-rose-500/10' :
-                        isCurrent && !isFailed ? 'text-[var(--app-accent-text)] bg-[var(--app-accent-bg)]' :
-                        isCompleted ? 'text-[var(--app-text-muted)]' :
-                        'text-[var(--app-text-dim)]'
+                        isFailedStep ? 'text-[var(--cad-danger)] bg-[var(--cad-danger-bg)]' :
+                        isCurrent && !isFailed ? 'text-[var(--cad-accent)] bg-[var(--cad-accent-soft)]' :
+                        isCompleted ? 'text-[var(--cad-text-muted)]' :
+                        'text-[var(--cad-border-strong)]'
                       }`}
                       whileHover={isClickable ? { scale: 1.06 } : undefined}
                       whileTap={isClickable ? { scale: 0.95 } : undefined}
@@ -155,10 +155,10 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                         )}
                         {isCurrent && !isFailed && !isCompleted && (
                           <motion.div
-                            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--app-accent)]"
+                            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--cad-accent)]"
                             animate={{
-                              scale: [1, 1.5, 1],
-                              opacity: [1, 0.5, 1],
+                              scale: [1, 1.4, 1],
+                              opacity: [1, 0.4, 1],
                             }}
                             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                           />
@@ -195,7 +195,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                       <motion.div
                         className="absolute top-1/2 h-px -translate-y-1/2 rounded-full"
                         style={{
-                          backgroundColor: isLineFailed ? 'var(--app-danger)' : 'var(--app-text-muted)',
+                          backgroundColor: isLineFailed ? 'var(--cad-danger)' : 'var(--cad-text-muted)',
                         }}
                         initial={{ width: 0 }}
                         animate={{ width: 16 }}
@@ -207,7 +207,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                   {isFailed && idx === failedStepIdx - 1 && (
                     <motion.div
                       className="absolute top-1/2 h-px -translate-y-1/2 rounded-full"
-                      style={{ backgroundColor: 'var(--app-danger)' }}
+                      style={{ backgroundColor: 'var(--cad-danger)' }}
                       initial={{ width: 0 }}
                       animate={{ width: 16 }}
                       transition={{ duration: 0.4, delay: idx * 0.08 }}
@@ -227,9 +227,9 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
       <div className="pipeline-mini-progress ml-1 w-14">
         <div
           className={`pipeline-mini-progress-fill ${
-            isFailed ? 'bg-rose-500' :
-            progress === 100 ? 'bg-[var(--app-text-muted)]' :
-            'bg-[var(--app-accent)]'
+            isFailed ? 'bg-[var(--cad-danger)]' :
+            progress === 100 ? 'bg-[var(--cad-text-muted)]' :
+            'bg-[var(--cad-accent)]'
           }`}
           style={{ width: `${isFailed ? Math.max(progress - 20, 20) : progress}%` }}
         />
