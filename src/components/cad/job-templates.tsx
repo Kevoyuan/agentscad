@@ -72,7 +72,7 @@ export function JobTemplateCards({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase block">
+      <label className="text-[13px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase block">
         Templates
       </label>
       <div className="grid grid-cols-2 gap-2.5">
@@ -88,8 +88,8 @@ export function JobTemplateCards({
             >
               <Icon className="w-4 h-4 shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-[10px] font-medium leading-tight">{t.name}</p>
-                <p className="text-[9px] opacity-70 mt-0.5 leading-tight line-clamp-2">{t.description}</p>
+                <p className="text-[13px] font-medium leading-tight">{t.name}</p>
+                <p className="text-xs opacity-70 mt-0.5 leading-tight line-clamp-2">{t.description}</p>
               </div>
             </motion.button>
           )

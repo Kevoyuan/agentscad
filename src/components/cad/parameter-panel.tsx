@@ -6,7 +6,7 @@ import { Wrench, Loader2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Job, ParameterDef, ParameterSchema, parseJSON, safeNum } from './types'
 import { updateParameters } from './api'
 import { staggerContainer, staggerChild, staggerTransition, slideInLeft, slideInLeftTransition } from './motion-presets'
@@ -29,7 +29,7 @@ export function ParameterPanel({
   const [localValues, setLocalValues] = useState(values)
   const [isUpdating, setIsUpdating] = useState(false)
   const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set())
-  const { toast } = useToast()
+
 
   useEffect(() => {
     setLocalValues(values)
@@ -59,14 +59,14 @@ export function ParameterPanel({
     try {
       await updateParameters(job.id, defaults)
       onUpdate()
-      toast({ title: 'Parameters reset', description: 'All parameters reset to defaults', duration: 2000 })
+      toast.success('Parameters reset', { description: 'All parameters reset to defaults' })
     } catch (err) {
       console.error('Parameter reset failed:', err)
-      toast({ title: 'Reset failed', description: 'Failed to reset parameters', variant: 'destructive', duration: 3000 })
+      toast.error('Reset failed', { description: 'Failed to reset parameters' })
     } finally {
       setIsUpdating(false)
     }
-  }, [schema, job.id, onPreviewUpdate, onUpdate, toast])
+  }, [schema, job.id, onPreviewUpdate, onUpdate])
 
   if (!schema) return (
     <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
@@ -75,7 +75,7 @@ export function ParameterPanel({
       </div>
       <div className="text-center">
         <p className="text-sm">No parameters available</p>
-        <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Process a job to generate parameters</p>
+        <p className="text-[13px] text-[var(--app-text-dim)] mt-1">Process a job to generate parameters</p>
       </div>
     </div>
   )
@@ -104,13 +104,13 @@ export function ParameterPanel({
     try {
       await updateParameters(job.id, newValues)
       onUpdate()
-      toast({ title: 'Parameter rendered', description: `${key} = ${value}`, duration: 2000 })
+      toast.success('Parameter saved', {
+        description: `Set ${key} to ${value}`,
+      })
     } catch (err) {
       console.error('Parameter update failed:', err)
-      toast({
-        title: 'Render failed',
+      toast.error('Render failed', {
         description: err instanceof Error ? err.message : 'Failed to save parameter change',
-        variant: 'destructive',
         duration: 4000,
       })
     } finally {
@@ -131,10 +131,10 @@ export function ParameterPanel({
     try {
       await updateParameters(job.id, newValues)
       onUpdate()
-      toast({ title: 'Parameter reset', description: `${key} reset to default`, duration: 2000 })
+      toast.success('Parameter reset', { description: `${key} reset to default` })
     } catch (err) {
       console.error('Parameter reset failed:', err)
-      toast({ title: 'Reset failed', description: 'Failed to reset parameter', variant: 'destructive', duration: 3000 })
+      toast.error('Reset failed', { description: 'Failed to reset parameter' })
     } finally {
       setIsUpdating(false)
     }
@@ -152,30 +152,30 @@ export function ParameterPanel({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col">
-      <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-4 py-2">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Parameters</h3>
+      <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-3 py-1.5">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Parameters</h3>
         <div className="flex min-w-0 shrink-0 items-center gap-2">
           {changedCount > 0 && (
-            <Badge variant="outline" className="text-[9px] h-4 bg-[var(--cad-accent-soft)] text-[var(--cad-accent)] border-[color:var(--cad-border)]">
+            <Badge variant="outline" className="text-xs h-4 bg-[var(--cad-accent-soft)] text-[var(--cad-accent)] border-[color:var(--cad-border)]">
               {changedCount} changed
             </Badge>
           )}
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)]"
+            className="h-5 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)]"
             onClick={handleResetAll}
             disabled={isUpdating}
           >
             <RotateCcw className="w-2.5 h-2.5" />
             Reset All
           </Button>
-          <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
+          <Badge variant="outline" className="text-xs h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {schema.parameters.length} params
           </Badge>
           {isUpdating && (
-            <span className="flex items-center gap-1 text-[9px] font-mono text-[var(--cad-measure)]">
-              <Loader2 className="w-3 h-3 animate-spin" />
+            <span className="flex items-center gap-1 text-xs font-mono text-[var(--cad-measure)]">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
               saving
             </span>
           )}
@@ -196,7 +196,7 @@ export function ParameterPanel({
               transition={staggerTransition}
               className={`rounded-lg border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3 ${groupIdx > 0 ? 'border-t-[color:var(--cad-accent-soft)]' : ''}`}
             >
-              <div className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-3 px-1 flex items-center gap-1.5">
+              <div className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-3 px-1 flex items-center gap-1.5">
                 <div className="w-1 h-1 rounded-full bg-[var(--cad-accent)] opacity-70" />
                 {group}
               </div>
@@ -240,7 +240,7 @@ export function ParameterPanel({
                           >
                             {typeof localValues[param.key] === 'number' ? localValues[param.key].toFixed(precision) : param.value?.toFixed(precision) ?? '0'}
                           </motion.span>
-                          <span className="text-[9px] text-[var(--app-text-dim)]">{param.unit}</span>
+                          <span className="text-xs text-[var(--app-text-dim)]">{param.unit}</span>
                           {isChanged && (
                             <span className="rounded bg-[var(--cad-accent-soft)] px-1 py-0.5 text-[8px] font-mono text-[var(--cad-accent)]">
                               {delta > 0 ? '+' : ''}{delta.toFixed(precision)}
@@ -296,7 +296,7 @@ export function ParameterPanel({
                         <span>{max} {param.unit}</span>
                       </div>
                       {param.description && (
-                        <p className="text-[10px] text-[var(--app-text-dim)] leading-relaxed hidden group-hover/param:block transition-all">{param.description}</p>
+                        <p className="text-[13px] text-[var(--app-text-dim)] leading-relaxed hidden group-hover/param:block transition-all">{param.description}</p>
                       )}
                     </motion.div>
                   )
@@ -352,7 +352,7 @@ export function SchemaInfoPanel({ schemaStr }: { schemaStr: string }) {
         ))}
       </div>
       {schema.design_summary && (
-        <p className="text-[10px] text-[var(--app-text-muted)] leading-relaxed">{schema.design_summary}</p>
+        <p className="text-[13px] text-[var(--app-text-muted)] leading-relaxed">{schema.design_summary}</p>
       )}
     </div>
   )

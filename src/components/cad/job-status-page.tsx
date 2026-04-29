@@ -119,9 +119,9 @@ function FailureDiagnostics({ job }: { job: Job }) {
       <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
         <div className="flex items-center gap-2 text-amber-300">
           <AlertCircle className="h-4 w-4" />
-          <span className="text-[10px] font-mono uppercase tracking-widest">No diagnostic payload</span>
+          <span className="text-[13px] font-mono uppercase tracking-widest">No diagnostic payload</span>
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-[var(--cad-text-muted)]">
+        <p className="mt-2 text-sm leading-relaxed text-[var(--cad-text-muted)]">
           This job is failed, but no execution log, validation result, or render warning was returned with the job.
         </p>
       </div>
@@ -133,9 +133,9 @@ function FailureDiagnostics({ job }: { job: Job }) {
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-rose-300">
           <AlertCircle className="h-4 w-4" />
-          <span className="text-[10px] font-mono uppercase tracking-widest">Error diagnostics</span>
+          <span className="text-[13px] font-mono uppercase tracking-widest">Error diagnostics</span>
         </div>
-        <span className="text-[9px] font-mono text-[var(--cad-text-muted)]">
+        <span className="text-xs font-mono text-[var(--cad-text-muted)]">
           {failedLogs.length + failedValidation.length + renderMessages.length} items
         </span>
       </div>
@@ -143,26 +143,26 @@ function FailureDiagnostics({ job }: { job: Job }) {
         {failedLogs.map((log, idx) => (
           <div key={`log-${idx}`} className="rounded border border-rose-500/15 bg-black/15 px-2 py-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[9px] font-mono text-rose-300">{log.event}</span>
+              <span className="text-xs font-mono text-rose-300">{log.event}</span>
               <span className="text-[8px] font-mono text-[var(--cad-text-muted)]">{new Date(log.timestamp).toLocaleTimeString()}</span>
             </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--cad-text-secondary)]">{log.message}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--cad-text-secondary)]">{log.message}</p>
           </div>
         ))}
         {failedValidation.map((rule) => (
           <div key={rule.rule_id} className="rounded border border-amber-500/15 bg-amber-500/5 px-2 py-1.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="rounded bg-black/20 px-1 text-[8px] font-mono text-amber-300">{rule.rule_id}</span>
-              <span className="text-[10px] font-medium text-[var(--cad-text)]">{rule.rule_name}</span>
+              <span className="text-[13px] font-medium text-[var(--cad-text)]">{rule.rule_name}</span>
               {rule.is_critical && <span className="text-[8px] font-mono uppercase text-rose-300">critical</span>}
             </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--cad-text-secondary)]">{rule.message}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--cad-text-secondary)]">{rule.message}</p>
           </div>
         ))}
         {renderMessages.map((message, idx) => (
           <div key={`render-${idx}`} className="rounded border border-orange-500/15 bg-orange-500/5 px-2 py-1.5">
-            <span className="text-[9px] font-mono text-orange-300">RENDER</span>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--cad-text-secondary)]">{message}</p>
+            <span className="text-xs font-mono text-orange-300">RENDER</span>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--cad-text-secondary)]">{message}</p>
           </div>
         ))}
       </div>
@@ -201,57 +201,59 @@ function GenerationEvidence({
   const lineCount = scadSource ? scadSource.split('\n').length : 0
 
   return (
-    <div className="min-h-0">
-      <div className="grid min-h-0 gap-2 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-        <div className="min-h-0 rounded-lg border border-[color:var(--cad-border)] bg-black/10">
-          <div className="flex items-center justify-between gap-2 border-b border-[color:var(--cad-border)] px-2.5 py-2">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--cad-text-secondary)]">Inference Stream</span>
-            <span className="cad-status-dot" />
+    <div className="flex flex-1 min-h-0 flex-col 2xl:flex-row h-full">
+      {/* Inference Stream */}
+      <div className="flex flex-1 flex-col min-w-0 2xl:border-r border-[color:var(--app-border)]">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-6 py-3 bg-[var(--app-surface-raised)]/30">
+          <span className="text-xs font-mono uppercase tracking-widest text-[var(--app-text-primary)]">Inference Stream</span>
+          <span className="online-dot" />
+        </div>
+        {inferenceFacts.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 border-b border-[color:var(--app-border)] px-6 py-2 bg-[var(--app-surface)]">
+            {inferenceFacts.map((fact) => (
+              <span key={fact} className="rounded border border-[color:var(--app-border)] bg-[var(--app-surface-raised)] px-2 py-0.5 text-[10px] font-mono text-[var(--app-text-muted)]">
+                {fact}
+              </span>
+            ))}
           </div>
-          {inferenceFacts.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 border-b border-[color:var(--cad-border)] px-2.5 py-2">
-              {inferenceFacts.map((fact) => (
-                <span key={fact} className="rounded border border-[color:var(--cad-border)] bg-[var(--cad-surface)] px-1.5 py-0.5 text-[8px] font-mono text-[var(--cad-text-muted)]">
-                  {fact}
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="max-h-48 space-y-1.5 overflow-y-auto p-2 pr-1">
+        )}
+        <div className="flex-1 overflow-y-auto px-4 py-2">
+          <div className="divide-y divide-[color:var(--app-border)]">
             {(traceEvents.length ? traceEvents : [{ step: 'waiting', state: job.state, message: 'Waiting for inference stream...', timestamp: job.updatedAt || job.createdAt }]).map((event, idx) => (
               <motion.div
                 key={`${event.timestamp}-${idx}`}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded border border-[color:var(--cad-border)] bg-black/15 px-2 py-1.5"
+                className="py-3 px-2 hover:bg-[var(--app-hover-subtle)] transition-colors linear-transition group"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[9px] font-mono text-[var(--cad-accent)]">{event.step}</span>
-                  <span className="shrink-0 text-[8px] font-mono text-[var(--cad-text-muted)]">{new Date(event.timestamp).toLocaleTimeString()}</span>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="truncate text-xs font-mono font-medium text-[var(--app-accent-text)]">{event.step}</span>
+                  <span className="shrink-0 text-[10px] font-mono text-[var(--app-text-dim)] group-hover:text-[var(--app-text-muted)] transition-colors">{new Date(event.timestamp).toLocaleTimeString()}</span>
                 </div>
-                <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--cad-text-secondary)]">{event.message}</p>
+                <p className="text-[13px] leading-relaxed text-[var(--app-text-secondary)]">{event.message}</p>
               </motion.div>
             ))}
           </div>
         </div>
+      </div>
 
-        <div className="min-h-0 overflow-hidden rounded-lg border border-[color:var(--cad-border)] bg-[var(--app-code-bg)]">
-          <div className="flex items-center justify-between gap-2 border-b border-[color:var(--cad-border)] px-2.5 py-2">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--cad-text-secondary)]">SCAD Code</span>
-            <span className="rounded border border-[color:var(--cad-border)] bg-[var(--cad-surface)] px-1.5 py-0.5 text-[8px] font-mono text-[var(--cad-text-muted)]">
-              {lineCount ? `${lineCount} lines` : 'pending'}
-            </span>
-          </div>
-          {scadSource ? (
-            <pre className="max-h-48 overflow-auto p-2 text-[9px] font-mono leading-relaxed text-[var(--cad-text-secondary)]">
-              <code dangerouslySetInnerHTML={{ __html: highlightedScad }} />
-            </pre>
-          ) : (
-            <div className="flex h-28 items-center justify-center px-4 text-center text-[10px] leading-relaxed text-[var(--cad-text-muted)]">
-              SCAD source will appear as soon as generation completes.
-            </div>
-          )}
+      {/* SCAD Code */}
+      <div className="flex flex-1 flex-col min-w-0 border-t 2xl:border-t-0 border-[color:var(--app-border)] bg-[var(--app-code-bg)]">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-6 py-3 bg-[var(--app-surface-raised)]/30">
+          <span className="text-xs font-mono uppercase tracking-widest text-[var(--app-text-primary)]">SCAD Code</span>
+          <span className="rounded bg-[var(--app-surface-hover)] px-2 py-0.5 text-[10px] font-mono text-[var(--app-text-muted)]">
+            {lineCount ? `${lineCount} lines` : 'pending'}
+          </span>
         </div>
+        {scadSource ? (
+          <pre className="flex-1 overflow-auto p-6 text-[13px] font-mono leading-relaxed text-[var(--cad-text-secondary)]">
+            <code dangerouslySetInnerHTML={{ __html: highlightedScad }} />
+          </pre>
+        ) : (
+          <div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] leading-relaxed text-[var(--app-text-dim)]">
+            SCAD source will appear as soon as generation completes.
+          </div>
+        )}
       </div>
     </div>
   )
@@ -287,22 +289,23 @@ export function JobStatusPage({ job, streamEvents = [], onViewLogs, onViewError,
     : progress
 
   return (
-    <div className="h-full p-2 overflow-hidden">
+    <div className="h-full overflow-hidden bg-[var(--app-surface)]">
       <AnimatePresence mode="wait">
         <motion.div
           key={state}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
+          exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="h-full cad-viewport-shell flex min-h-0 flex-col gap-4 overflow-hidden p-4"
+          className="h-full flex flex-col min-h-0"
         >
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/70 px-4 py-3">
-            <div className="flex min-w-0 items-center gap-3">
+          {/* Header (Full Bleed) */}
+          <div className="flex shrink-0 items-center justify-between border-b border-[color:var(--app-border)] bg-[var(--app-surface)] px-6 py-4">
+            <div className="flex min-w-0 items-center gap-4">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${
                 isFailed ? 'border-rose-500/25 bg-rose-500/10 text-rose-300' :
                 isDelivered ? 'border-lime-500/25 bg-lime-500/10 text-lime-300' :
-                'border-[color:var(--cad-border)] bg-[var(--cad-accent-soft)] text-[var(--cad-accent)]'
+                'border-[color:var(--app-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
               }`}>
                 {isFailed ? <XCircle className="h-5 w-5" /> :
                  isDelivered ? <CheckCircle2 className="h-5 w-5" /> :
@@ -311,189 +314,186 @@ export function JobStatusPage({ job, streamEvents = [], onViewLogs, onViewError,
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className={`text-lg font-semibold tracking-tight ${
-                    isFailed ? 'text-rose-300' :
-                    isDelivered ? 'text-lime-300' :
-                    'text-[var(--cad-text)]'
+                    isFailed ? 'text-rose-400' :
+                    isDelivered ? 'text-lime-400' :
+                    'text-[var(--app-text-primary)]'
                   }`}>
                     {currentStepLabel}
                   </h2>
-                  <span className="rounded border border-[color:var(--cad-border)] bg-black/10 px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest text-[var(--cad-text-muted)]">
+                  <span className="rounded border border-[color:var(--app-border)] bg-[var(--app-surface-raised)] px-2 py-0.5 text-xs font-mono uppercase tracking-widest text-[var(--app-text-muted)]">
                     {state.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <p className="mt-1 truncate text-xs text-[var(--cad-text-muted)]">
-                  {latestEvent?.message || 'Queued CAD generation pipeline...'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex min-w-[180px] items-center gap-3">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--cad-border)]">
-                <motion.div
-                  className={`h-full rounded-full ${
-                    isFailed ? 'bg-rose-500' :
-                    isDelivered ? 'bg-lime-500' :
-                    'bg-[var(--cad-accent)]'
-                  }`}
-                  animate={{ width: `${effectiveProgress}%` }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
-                />
-              </div>
-              <span className={`shrink-0 text-[10px] font-mono ${
-                isFailed ? 'text-rose-400' :
-                isDelivered ? 'text-lime-400' :
-                'text-[var(--cad-measure)]'
-              }`}>
-                {effectiveProgress}%
-              </span>
-            </div>
-          </div>
-
-          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
-            <div className="flex min-h-0 flex-col gap-3">
-              <div className="min-h-0 flex-1 rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/45 p-2.5">
-                <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--cad-text-secondary)]">Run steps</span>
-                  <span className="text-[9px] font-mono text-[var(--cad-text-muted)]">
-                    {latestEvent ? new Date(latestEvent.timestamp).toLocaleTimeString() : 'waiting'}
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="truncate text-xs text-[var(--app-text-muted)]">
+                    {latestEvent?.message || 'Queued CAD generation pipeline...'}
                   </span>
-                </div>
-                <div className="space-y-1">
-                  {PIPELINE_STEPS.map((step, idx) => {
-                    const isCompleted = idx < currentIdx || isDelivered
-                    const isCurrent = idx === currentIdx && !isFailed && !isDelivered
-                    const isFailedStep = isFailed && step.key === state.replace('_FAILED', '')
-                    const StepIcon = step.icon
-                    const duration = stepDurations[step.key]
-
-                    return (
-                      <motion.div
-                        key={step.key}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: idx * 0.04 }}
-                        className={`flex items-center gap-2 rounded px-2 py-1.5 transition-colors ${
-                          isCurrent ? 'bg-[var(--cad-accent-soft)] ring-1 ring-[color:var(--cad-border-strong)]' :
-                          isFailedStep ? 'bg-rose-500/10 ring-1 ring-rose-500/20' :
-                          'hover:bg-[var(--app-hover-subtle)]'
-                        }`}
-                      >
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-lime-400" />
-                          ) : isFailedStep ? (
-                            <XCircle className="h-3.5 w-3.5 text-rose-400" />
-                          ) : isCurrent ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--app-accent-text)]" />
-                          ) : (
-                            <StepIcon className="h-3.5 w-3.5 text-[var(--app-state-neutral-dot)]" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`truncate text-[11px] font-medium ${
-                              isCompleted ? 'text-[var(--app-text-secondary)]' :
-                              isCurrent ? 'text-[var(--cad-accent)]' :
-                              isFailedStep ? 'text-rose-300' :
-                              'text-[var(--app-text-dim)]'
-                            }`}>
-                              {step.label}
-                            </span>
-                            {isCurrent && (
-                              <span className="rounded border border-[color:var(--cad-border)] bg-[var(--cad-accent-soft)] px-1 py-0.5 text-[7px] font-mono text-[var(--cad-accent)]">
-                                ACTIVE
-                              </span>
-                            )}
-                            {isFailedStep && (
-                              <span className="rounded border border-rose-500/30 bg-rose-500/20 px-1 py-0.5 text-[7px] font-mono text-rose-400">
-                                FAILED
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-[8px] font-mono text-[var(--app-text-dim)]">
-                          {isCurrent ? (
-                            <span className="text-[var(--cad-measure)]">Running</span>
-                          ) : isCompleted && duration ? (
-                            <span className="text-lime-500/60">{formatDuration(duration)}</span>
-                          ) : !isCompleted && !isFailedStep ? (
-                            <span>~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
-                          ) : null}
-                        </div>
-                      </motion.div>
-                    )
-                  })}
+                  {job.builderName && (
+                    <>
+                      <span className="text-[var(--app-border)]">&bull;</span>
+                      <span className="text-xs font-mono text-[var(--app-text-dim)] truncate max-w-[120px]">
+                        {job.builderName}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[var(--app-text-dim)]">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <LiveElapsed createdAt={job.createdAt} />
+            <div className="flex items-center gap-6">
+              {/* Progress Bar inside Header */}
+              <div className="hidden sm:flex items-center gap-3 w-48">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--app-border)]">
+                  <motion.div
+                    className={`h-full rounded-full ${
+                      isFailed ? 'bg-rose-500' :
+                      isDelivered ? 'bg-lime-500' :
+                      'bg-[var(--app-accent-text)]'
+                    }`}
+                    animate={{ width: `${effectiveProgress}%` }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                  />
+                </div>
+                <span className={`shrink-0 text-[13px] font-mono ${
+                  isFailed ? 'text-rose-400' :
+                  isDelivered ? 'text-lime-400' :
+                  'text-[var(--app-text-muted)]'
+                }`}>
+                  {effectiveProgress}%
                 </span>
-                {job.generationPath && (
-                  <span className="flex min-w-0 items-center gap-1 truncate">
-                    <Code2 className="w-3 h-3 shrink-0" />
-                    {job.generationPath}
-                  </span>
-                )}
               </div>
-            </div>
 
-            <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-lg border border-[color:var(--cad-border)] bg-[var(--cad-surface)]/35 p-3">
-              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[color:var(--cad-border)] pb-2">
-                <div>
-                  <h3 className="text-[11px] font-mono uppercase tracking-widest text-[var(--cad-text-secondary)]">Generation evidence</h3>
-                  <p className="mt-0.5 text-[10px] text-[var(--cad-text-muted)]">Inference stream, generated SCAD, and failure diagnostics</p>
-                </div>
-                {job.builderName && (
-                  <span className="hidden max-w-[240px] truncate rounded border border-[color:var(--cad-border)] bg-black/10 px-2 py-1 text-[9px] font-mono text-[var(--cad-text-muted)] sm:block">
-                    {job.builderName}
-                  </span>
+              {/* Action Buttons */}
+              <div className="flex shrink-0 items-center gap-3 border-l border-[color:var(--app-border)] pl-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-4 text-xs font-medium gap-2 border-[color:var(--app-border)] shadow-sm bg-[var(--app-surface)] text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)] hover:bg-[var(--app-surface-hover)] active:scale-[0.98] transition-all"
+                  onClick={onViewLogs}
+                >
+                  <FileText className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
+                  Logs
+                </Button>
+
+                {isCancelable && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-4 text-xs font-medium gap-2 border-rose-500/30 shadow-sm bg-[var(--app-surface)] text-rose-400 hover:text-rose-300 hover:border-rose-500/50 hover:bg-rose-500/10 active:scale-[0.98] transition-all"
+                    onClick={() => onCancel(job)}
+                  >
+                    <Ban className="w-3.5 h-3.5" />
+                    Cancel
+                  </Button>
                 )}
-              </div>
-              <div className="min-h-0 overflow-y-auto pr-1">
-                <GenerationEvidence job={job} streamEvents={streamEvents} />
-                {isFailed && <div className="mt-3"><FailureDiagnostics job={job} /></div>}
+
+                {isFailed && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-4 text-xs font-medium gap-2 border-amber-500/30 shadow-sm bg-[var(--app-surface)] text-amber-400 hover:text-amber-300 hover:border-amber-500/50 hover:bg-amber-500/10 active:scale-[0.98] transition-all"
+                    onClick={onViewError || onViewLogs}
+                  >
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Error Details
+                  </Button>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex shrink-0 items-center justify-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1.5 border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] hover:border-[color:var(--app-border)]"
-              onClick={onViewLogs}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              View Logs
-            </Button>
+          {/* Main Body (Sidebar + Content) */}
+          <div className="flex flex-1 min-h-0">
+            {/* Sidebar (Run Steps) */}
+            <div className="w-64 shrink-0 flex flex-col border-r border-[color:var(--app-border)] bg-[var(--app-surface-raised)]/20">
+              <div className="flex items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-6 py-3">
+                <span className="text-xs font-mono uppercase tracking-widest text-[var(--app-text-muted)]">Run steps</span>
+                <span className="text-xs font-mono text-[var(--app-text-dim)]">
+                  {latestEvent ? new Date(latestEvent.timestamp).toLocaleTimeString() : 'waiting'}
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+                {PIPELINE_STEPS.map((step, idx) => {
+                  const isCompleted = idx < currentIdx || isDelivered
+                  const isCurrent = idx === currentIdx && !isFailed && !isDelivered
+                  const isFailedStep = isFailed && step.key === state.replace('_FAILED', '')
+                  const StepIcon = step.icon
+                  const duration = stepDurations[step.key]
 
-            {isCancelable && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs gap-1.5 border-rose-500/30 text-rose-400 hover:text-rose-300 hover:border-rose-500/50 hover:bg-rose-500/10"
-                onClick={() => onCancel(job)}
-              >
-                <Ban className="w-3.5 h-3.5" />
-                Cancel Job
-              </Button>
-            )}
+                  return (
+                    <motion.div
+                      key={step.key}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: idx * 0.04 }}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
+                        isCurrent ? 'bg-[var(--app-accent-bg)] shadow-sm' :
+                        isFailedStep ? 'bg-rose-500/10' :
+                        'hover:bg-[var(--app-hover-subtle)]'
+                      }`}
+                    >
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-4 w-4 text-lime-400" />
+                        ) : isFailedStep ? (
+                          <XCircle className="h-4 w-4 text-rose-400" />
+                        ) : isCurrent ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-[var(--app-accent-text)]" />
+                        ) : (
+                          <StepIcon className="h-4 w-4 text-[var(--app-text-dim)]" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`truncate text-sm font-medium ${
+                            isCompleted ? 'text-[var(--app-text-secondary)]' :
+                            isCurrent ? 'text-[var(--app-text-primary)]' :
+                            isFailedStep ? 'text-rose-400' :
+                            'text-[var(--app-text-dim)]'
+                          }`}>
+                            {step.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-[10px] font-mono text-[var(--app-text-dim)]">
+                        {isCurrent ? (
+                          <span className="text-[var(--app-accent-text)]">Running</span>
+                        ) : isCompleted && duration ? (
+                          <span className="text-[var(--app-text-muted)]">{formatDuration(duration)}</span>
+                        ) : !isCompleted && !isFailedStep ? (
+                          <span>~{AVERAGE_STEP_TIMES[step.key] || 5}s</span>
+                        ) : null}
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+              {/* Bottom footer metadata in sidebar */}
+              <div className="mt-auto border-t border-[color:var(--app-border)] px-6 py-4">
+                <div className="flex flex-col gap-2 text-[13px] font-mono text-[var(--app-text-dim)]">
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <LiveElapsed createdAt={job.createdAt} />
+                  </span>
+                  {job.generationPath && (
+                    <span className="flex min-w-0 items-center gap-2 truncate">
+                      <Code2 className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{job.generationPath}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
-            {isFailed && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:text-amber-300 hover:border-amber-500/50 hover:bg-amber-500/10"
-                onClick={onViewError || onViewLogs}
-              >
-                <AlertCircle className="w-3.5 h-3.5" />
-                View Error
-              </Button>
-            )}
+            {/* Main Stage (Generation Evidence) */}
+            <div className="flex-1 flex flex-col min-w-0 bg-[var(--app-surface)]">
+              <GenerationEvidence job={job} streamEvents={streamEvents} />
+              {isFailed && (
+                <div className="shrink-0 p-6 border-t border-[color:var(--app-border)] bg-rose-500/5">
+                  <FailureDiagnostics job={job} />
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>

@@ -109,8 +109,8 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
   return (
     <div className="mt-3">
       <div className="flex items-center gap-1.5 mb-2">
-        <Brain className="w-3 h-3 text-[var(--app-accent-text)]" />
-        <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
+        <Brain className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
+        <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
           Case Memory
         </span>
         {isSearching && (
@@ -144,7 +144,7 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
                 <div className="flex items-start gap-2">
                   <PartFamilyIcon family={job.partFamily || 'unknown'} size={16} animate={false} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-[var(--app-text-secondary)] leading-tight line-clamp-2">
+                    <p className="text-[13px] text-[var(--app-text-secondary)] leading-tight line-clamp-2">
                       {job.inputRequest}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">
@@ -177,7 +177,7 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[10px] text-[var(--app-text-dim)] py-2 text-center"
+              className="text-[13px] text-[var(--app-text-dim)] py-2 text-center"
             >
               No similar past jobs found
             </motion.div>

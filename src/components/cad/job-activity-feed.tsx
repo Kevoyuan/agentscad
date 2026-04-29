@@ -90,7 +90,7 @@ export function JobActivityFeed({
       <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
         <div className="flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
-          <span className="text-[11px] font-medium text-[var(--app-text-secondary)]">Activity Feed</span>
+          <span className="text-sm font-medium text-[var(--app-text-secondary)]">Activity Feed</span>
           <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
             {filteredEvents.length}
           </span>
@@ -128,16 +128,16 @@ export function JobActivityFeed({
       </div>
 
       {/* Events List */}
-      <ScrollArea className="flex-1 max-h-80" ref={scrollRef}>
+      <ScrollArea className="flex-1 max-h-70" ref={scrollRef}>
         {filteredEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center gentle-float">
               <Activity className="w-5 h-5 text-[var(--app-text-dim)]" />
             </div>
-            <p className="text-[11px] text-[var(--app-text-dim)]">
+            <p className="text-sm text-[var(--app-text-dim)]">
               {filter === 'ALL' ? 'No activity yet' : `No ${filter} events`}
             </p>
-            <p className="text-[9px] text-[var(--app-text-dim)]">Events will appear here as jobs progress</p>
+            <p className="text-xs text-[var(--app-text-dim)]">Events will appear here as jobs progress</p>
           </div>
         ) : (
           <div className="divide-y divide-[color:var(--app-border)]">
@@ -160,10 +160,10 @@ export function JobActivityFeed({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-[var(--app-text-secondary)] truncate max-w-[120px]">
+                        <span className="text-[13px] text-[var(--app-text-secondary)] truncate max-w-[120px]">
                           {event.jobName.length > 20 ? event.jobName.slice(0, 20) + '...' : event.jobName}
                         </span>
-                        <span className="text-[9px] text-[var(--app-text-dim)]">{event.action}</span>
+                        <span className="text-xs text-[var(--app-text-dim)]">{event.action}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{event.jobId}</span>

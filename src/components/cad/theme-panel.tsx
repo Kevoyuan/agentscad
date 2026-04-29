@@ -216,7 +216,7 @@ export function ThemePanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Sun className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
-          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Theme Mode</span>
+          <span className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Theme Mode</span>
         </div>
         <div className="flex items-center gap-1.5">
           {THEME_MODES.map((mode) => {
@@ -233,7 +233,7 @@ export function ThemePanel() {
                 onClick={() => handleThemeChange(mode.value)}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-mono">{mode.label}</span>
+                <span className="text-xs font-mono">{mode.label}</span>
                 {isActive && (
                   <motion.div
                     layoutId="theme-mode-check"
@@ -248,7 +248,7 @@ export function ThemePanel() {
           })}
         </div>
         {theme === 'system' && (
-          <p className="text-[9px] text-[var(--app-text-dim)] mt-1.5 ml-1">
+          <p className="text-xs text-[var(--app-text-dim)] mt-1.5 ml-1">
             System preference: {resolvedTheme === 'dark' ? 'Dark' : 'Light'} mode detected
           </p>
         )}
@@ -260,7 +260,7 @@ export function ThemePanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Palette className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
-          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Accent Color</span>
+          <span className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Accent Color</span>
         </div>
         <div className="grid grid-cols-6 gap-2">
           {ACCENT_COLORS.map(accent => (
@@ -298,7 +298,7 @@ export function ThemePanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Type className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
-          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Font Size</span>
+          <span className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Font Size</span>
         </div>
         <div className="flex items-center gap-2">
           {FONT_SIZES.map(fs => (
@@ -327,7 +327,7 @@ export function ThemePanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <LayoutGrid className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
-          <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">UI Density</span>
+          <span className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">UI Density</span>
         </div>
         <div className="flex items-center gap-2">
           {UI_DENSITIES.map(d => (
@@ -359,7 +359,7 @@ export function ThemePanel() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-[var(--app-text-muted)]" />
-            <span className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Animations</span>
+            <span className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Animations</span>
           </div>
           <button
             className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
@@ -374,7 +374,7 @@ export function ThemePanel() {
             />
           </button>
         </div>
-        <p className="text-[9px] text-[var(--app-text-dim)] mt-1 ml-5">
+        <p className="text-xs text-[var(--app-text-dim)] mt-1 ml-5">
           {settings.animationsEnabled ? 'Animations enabled' : 'Reduced motion (respects prefers-reduced-motion)'}
         </p>
       </div>
@@ -385,10 +385,10 @@ export function ThemePanel() {
       <Button
         variant="ghost"
         size="sm"
-        className="w-full h-7 text-[10px] gap-1.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] border border-[color:var(--app-border)]"
+        className="w-full h-7 text-[13px] gap-1.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] border border-[color:var(--app-border)]"
         onClick={resetToDefaults}
       >
-        <RotateCcw className="w-3 h-3" />Reset to Defaults
+        <RotateCcw className="w-3.5 h-3.5" />Reset to Defaults
       </Button>
     </div>
   )

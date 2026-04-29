@@ -574,7 +574,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3">
         <div className="w-16 h-16 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center">
-          <Box className="w-8 h-8 opacity-20" />
+          <Box className="w-8 h-7 opacity-20" />
         </div>
         <span className="text-xs">Process job to generate 3D preview</span>
       </div>
@@ -584,9 +584,9 @@ export function ThreeDViewer({ job }: { job: Job }) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-4">
-        <AlertCircle className="w-8 h-8 text-rose-500/50" />
+        <AlertCircle className="w-8 h-7 text-rose-500/50" />
         <span className="text-xs text-rose-400">3D preview unavailable</span>
-        <span className="text-[10px] text-[var(--app-text-dim)]">{error}</span>
+        <span className="text-[13px] text-[var(--app-text-dim)]">{error}</span>
       </div>
     )
   }
@@ -599,7 +599,7 @@ export function ThreeDViewer({ job }: { job: Job }) {
             <div className="skeleton-loading w-full h-40 rounded-lg" />
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-[var(--app-accent-text)]" />
-              <span className="text-[10px] text-[var(--app-text-muted)]">Loading 3D preview...</span>
+              <span className="text-[13px] text-[var(--app-text-muted)]">Loading 3D preview...</span>
             </div>
           </div>
         </div>
@@ -622,9 +622,9 @@ export function ThreeDViewer({ job }: { job: Job }) {
       )}
       {controlsState.showDimensions && dimLabels.w && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[5] pointer-events-none flex items-center gap-3">
-          <span className="text-[9px] font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">W {dimLabels.w}</span>
-          <span className="text-[9px] font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">D {dimLabels.d}</span>
-          <span className="text-[9px] font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">H {dimLabels.h}</span>
+          <span className="text-xs font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">W {dimLabels.w}</span>
+          <span className="text-xs font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">D {dimLabels.d}</span>
+          <span className="text-xs font-mono text-[var(--cad-measure)] cad-viewport-glass rounded px-1.5 py-0.5">H {dimLabels.h}</span>
         </div>
       )}
       <div className="absolute bottom-2 left-2 z-[5] pointer-events-none">

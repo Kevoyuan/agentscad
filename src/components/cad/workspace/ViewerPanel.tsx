@@ -74,15 +74,15 @@ export function ViewerPanel({
                   <PartFamilyIcon family={selectedJob.partFamily || 'unknown'} size={18} className={getPartFamilyColor(selectedJob.partFamily)} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold text-[var(--cad-text)] truncate max-w-[180px]">{getPartFamilyLabel(selectedJob.partFamily)}</span>
+                      <span className="text-sm font-semibold text-[var(--cad-text)] truncate max-w-[180px]">{getPartFamilyLabel(selectedJob.partFamily)}</span>
                       {getDimensionSummary(selectedJob) && (
-                        <span className="hidden xl:inline-flex items-center gap-1 text-[9px] font-mono text-[var(--cad-text-muted)]">
-                          <Ruler className="w-3 h-3" />
+                        <span className="hidden xl:inline-flex items-center gap-1 text-xs font-mono text-[var(--cad-text-muted)]">
+                          <Ruler className="w-3.5 h-3.5" />
                           {getDimensionSummary(selectedJob)}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-[var(--cad-text-secondary)] leading-snug truncate max-w-[520px]">{selectedJob.inputRequest}</p>
+                    <p className="text-sm text-[var(--cad-text-secondary)] leading-snug truncate max-w-[520px]">{selectedJob.inputRequest}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -104,31 +104,31 @@ export function ViewerPanel({
                   <StateBadge state={selectedJob.state} size="md" />
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-[9px] font-mono">
+              <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
                 <span className="flex items-center gap-1 text-[var(--app-text-muted)]">
-                  <Clock className="w-3 h-3" />
+                  <Clock className="w-3.5 h-3.5" />
                   Created: {timeAgo(selectedJob.createdAt)}
                 </span>
                 {selectedJob.completedAt && (
                   <span className="flex items-center gap-1 text-[var(--app-success)]">
-                    <CheckCircle2 className="w-3 h-3" />
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     Completed: {timeAgo(selectedJob.completedAt)}
                   </span>
                 )}
                 {selectedJob.builderName && (
                   <span className="flex items-center gap-1 text-[var(--app-text-dim)]">
-                    <Cpu className="w-3 h-3" />
+                    <Cpu className="w-3.5 h-3.5" />
                     {selectedJob.builderName}
                   </span>
                 )}
                 {selectedJob.generationPath && (
                   <span className="flex items-center gap-1 text-[var(--app-text-dim)]">
-                    <Layers className="w-3 h-3" />
+                    <Layers className="w-3.5 h-3.5" />
                     {selectedJob.generationPath}
                   </span>
                 )}
                 <span className="hidden 2xl:flex items-center gap-1 text-[var(--cad-text-muted)]">
-                  <BoxSelect className="w-3 h-3" />
+                  <BoxSelect className="w-3.5 h-3.5" />
                   {selectedJob.stlPath ? 'STL loaded' : 'procedural preview'}
                 </span>
               </div>
@@ -197,17 +197,17 @@ export function ViewerPanel({
                         <div className="flex items-center gap-2 min-w-0">
                           <AlertTriangle className="w-4 h-4 text-[var(--cad-warning)] shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-[11px] font-medium text-[var(--cad-text)]">Rendered with validation blockers</p>
-                            <p className="text-[9px] text-[var(--cad-text-muted)] truncate">Preview and STL are available. Reprocess or edit before export.</p>
+                            <p className="text-sm font-medium text-[var(--cad-text)]">Rendered with validation blockers</p>
+                            <p className="text-xs text-[var(--cad-text-muted)] truncate">Preview and STL are available. Reprocess or edit before export.</p>
                           </div>
                         </div>
                         <Button
                           size="sm"
-                          className="h-7 text-[10px] gap-1.5 bg-[var(--cad-accent)] hover:bg-[var(--app-accent-hover)] shrink-0"
+                          className="h-7 text-[13px] gap-1.5 bg-[var(--cad-accent)] hover:bg-[var(--app-accent-hover)] shrink-0"
                           onClick={() => onProcess(selectedJob)}
                           disabled={isProcessing}
                         >
-                          <RotateCcw className="w-3 h-3" />
+                          <RotateCcw className="w-3.5 h-3.5" />
                           Reprocess
                         </Button>
                       </div>
@@ -217,17 +217,17 @@ export function ViewerPanel({
                         <div className="flex items-center gap-2 min-w-0">
                           <AlertTriangle className="w-4 h-4 text-[var(--cad-warning)] shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-[11px] font-medium text-[var(--cad-text)]">Preview is live from parameters</p>
-                            <p className="text-[9px] text-[var(--cad-text-muted)] truncate">Rendered STL is stale. Rebuild to produce manufacturable artifacts.</p>
+                            <p className="text-sm font-medium text-[var(--cad-text)]">Preview is live from parameters</p>
+                            <p className="text-xs text-[var(--cad-text-muted)] truncate">Rendered STL is stale. Rebuild to produce manufacturable artifacts.</p>
                           </div>
                         </div>
                         <Button
                           size="sm"
-                          className="h-7 text-[10px] gap-1.5 bg-[var(--cad-accent)] hover:bg-[var(--app-accent-hover)] shrink-0"
+                          className="h-7 text-[13px] gap-1.5 bg-[var(--cad-accent)] hover:bg-[var(--app-accent-hover)] shrink-0"
                           onClick={() => onProcess(selectedJob)}
                           disabled={isProcessing}
                         >
-                          <RotateCcw className="w-3 h-3" />
+                          <RotateCcw className="w-3.5 h-3.5" />
                           Rebuild STL
                         </Button>
                       </div>
@@ -241,15 +241,15 @@ export function ViewerPanel({
               return (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 cad-viewport-shell m-2">
                   <div className="w-16 h-16 rounded-lg cad-viewport-glass flex items-center justify-center">
-                    <Play className="w-8 h-8 opacity-60 text-[var(--cad-accent)]" />
+                    <Play className="w-8 h-7 opacity-60 text-[var(--cad-accent)]" />
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-[var(--cad-text)]">Ready for geometry</p>
-                    <p className="text-[10px] text-[var(--cad-text-muted)] mt-1">Run the pipeline to produce parameters, mesh, and validation.</p>
+                    <p className="text-[13px] text-[var(--cad-text-muted)] mt-1">Run the pipeline to produce parameters, mesh, and validation.</p>
                   </div>
                   <Button
                     size="sm"
-                    className="h-8 text-xs gap-1.5 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition"
+                    className="h-7 text-xs gap-1.5 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition"
                     onClick={() => onProcess(selectedJob)}
                     disabled={isProcessing}
                   >
@@ -271,11 +271,11 @@ export function ViewerPanel({
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-[var(--cad-text)]">No part selected</p>
-              <p className="text-[10px] text-[var(--cad-text-muted)] mt-1">Select a run or start a constrained mechanical part.</p>
+              <p className="text-[13px] text-[var(--cad-text-muted)] mt-1">Select a run or start a constrained mechanical part.</p>
             </div>
 
-            <Button size="sm" className="h-7 text-[10px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] mt-2" onClick={onShowComposer}>
-              <Plus className="w-3 h-3" />Create First Job
+            <Button size="sm" className="h-7 text-[13px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] mt-2" onClick={onShowComposer}>
+              <Plus className="w-3.5 h-3.5" />Create First Job
             </Button>
           </div>
         )}

@@ -109,7 +109,7 @@ export function SortableJobCard({
           onClick={() => onToggleSelect(job.id)}
           aria-label={isChecked ? 'Deselect job' : 'Select job'}
         >
-          {isChecked ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+          {isChecked ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
         </button>
       </div>
 
@@ -119,9 +119,9 @@ export function SortableJobCard({
             <p className="line-clamp-2 text-[12px] leading-snug text-[var(--app-text-secondary)]">{job.inputRequest}</p>
             <div className="mt-1 flex min-w-0 items-center gap-1.5">
               <StateBadge state={job.state} />
-              <span className="text-[9px] text-[var(--app-text-dim)]">{timeAgo(job.createdAt)}</span>
+              <span className="text-xs text-[var(--app-text-dim)]">{timeAgo(job.createdAt)}</span>
               <span className="text-[var(--app-text-dim)]">·</span>
-              <span className={`text-[9px] font-medium ${priorityTone}`}>P{job.priority}</span>
+              <span className={`text-xs font-medium ${priorityTone}`}>P{job.priority}</span>
             </div>
           </div>
           <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
@@ -152,25 +152,25 @@ export function SortableJobCard({
         {isSelected && <TagBadges customerId={job.customerId} maxDisplay={2} />}
         <div className="mt-2 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover/card:opacity-100" onClick={e => e.stopPropagation()}>
           {job.state === 'NEW' && (
-            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-emerald-500 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
-              <Play className="w-3 h-3" />Process
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-xs text-emerald-500 hover:bg-emerald-500/10" onClick={() => onProcess(job)}>
+              <Play className="w-3.5 h-3.5" />Process
             </Button>
           )}
           {FAILED_STATES.includes(job.state) && (
-            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-sky-500 hover:bg-sky-500/10" onClick={() => onProcess(job)}>
-              <RefreshCw className="w-3 h-3" />Retry
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-xs text-sky-500 hover:bg-sky-500/10" onClick={() => onProcess(job)}>
+              <RefreshCw className="w-3.5 h-3.5" />Retry
             </Button>
           )}
           {isCancelable && (
-            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-orange-500 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
-              <Ban className="w-3 h-3" />Cancel
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-xs text-orange-500 hover:bg-orange-500/10" onClick={() => onCancel(job)}>
+              <Ban className="w-3.5 h-3.5" />Cancel
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)]" onClick={() => onDuplicate(job)}>
-            <Repeat className="w-3 h-3" />Duplicate
+          <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-xs text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)]" onClick={() => onDuplicate(job)}>
+            <Repeat className="w-3.5 h-3.5" />Duplicate
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[9px] text-[var(--app-text-muted)] hover:bg-rose-500/10 hover:text-rose-500" onClick={() => onDelete(job.id)}>
-            <Trash2 className="w-3 h-3" />Delete
+          <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-xs text-[var(--app-text-muted)] hover:bg-rose-500/10 hover:text-rose-500" onClick={() => onDelete(job.id)}>
+            <Trash2 className="w-3.5 h-3.5" />Delete
           </Button>
         </div>
       </div>
@@ -192,7 +192,7 @@ export function DragOverlayCard({ job }: { job: Job }) {
           <p className="text-[12px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-            <span className={`text-[9px] font-medium ${priorityTone}`}>
+            <span className={`text-xs font-medium ${priorityTone}`}>
               P{job.priority}
             </span>
           </div>

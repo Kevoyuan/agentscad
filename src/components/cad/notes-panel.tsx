@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Job } from './types'
 import { updateNotes } from './api'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 const MAX_CHARS = 2000
 
@@ -18,7 +18,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
   const [showPreview, setShowPreview] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const { toast } = useToast()
+
 
   useEffect(() => {
     setNotes(job.notes || '')
@@ -31,9 +31,9 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
       onUpdate()
       setJustSaved(true)
       setTimeout(() => setJustSaved(false), 2000)
-      toast({ title: 'Notes saved', duration: 1500 })
+      toast.success('Notes saved')
     } catch {
-      toast({ title: 'Failed to save notes', variant: 'destructive', duration: 2000 })
+      toast.error('Failed to save notes')
     } finally {
       setIsSaving(false)
     }
@@ -74,18 +74,18 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
       .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--app-text-primary)]">$1</strong>')
       .replace(/\*(.+?)\*/g, '<em class="text-[var(--app-text-secondary)]">$1</em>')
       .replace(/^- (.+)$/gm, '<li class="ml-3 text-[var(--app-text-muted)]">• $1</li>')
-      .replace(/`(.+?)`/g, '<code class="bg-[var(--app-surface-hover)] px-1 rounded text-[var(--app-accent-text)] text-[10px]">$1</code>')
+      .replace(/`(.+?)`/g, '<code class="bg-[var(--app-surface-hover)] px-1 rounded text-[var(--app-accent-text)] text-[13px]">$1</code>')
       .replace(/\n/g, '<br />')
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
-          <StickyNote className="w-3 h-3 text-amber-400" />Notes
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
+          <StickyNote className="w-3.5 h-3.5 text-amber-400" />Notes
         </h3>
         <div className="flex items-center gap-2">
-          <span className={`text-[9px] font-mono tabular-nums ${charColor}`}>
+          <span className={`text-xs font-mono tabular-nums ${charColor}`}>
             {notes.length}/{MAX_CHARS}
           </span>
           {/* Auto-save indicator dot */}
@@ -100,18 +100,18 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
               />
             )}
           </AnimatePresence>
-          {isSaving && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+          {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />}
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)]"
+            className="h-5 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)]"
             onClick={() => setShowPreview(!showPreview)}
           >
-            {showPreview ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             {showPreview ? 'Edit' : 'Preview'}
           </Button>
-          <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleSave}>
-            <Save className="w-3 h-3" />Save
+          <Button variant="ghost" size="sm" className="h-5 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleSave}>
+            <Save className="w-3.5 h-3.5" />Save
           </Button>
         </div>
       </div>
@@ -125,7 +125,7 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="text-[11px] text-[var(--app-text-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] min-h-[200px]"
+                className="text-sm text-[var(--app-text-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] min-h-[200px]"
                 dangerouslySetInnerHTML={{ __html: notes ? renderPreview(notes) : '<span class="text-[var(--app-text-dim)] italic">No notes yet...</span>' }}
               />
             ) : (
@@ -147,12 +147,12 @@ export function NotesPanel({ job, onUpdate }: { job: Job; onUpdate: () => void }
           </AnimatePresence>
           {!showPreview && notes.length > 0 && (
             <div className="mt-3 space-y-2">
-              <div className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase flex items-center justify-between">
+              <div className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase flex items-center justify-between">
                 <span>Preview</span>
                 <span className="text-[8px] text-[var(--app-text-dim)]">Supports **bold**, *italic*, `code`</span>
               </div>
               <div
-                className="text-[11px] text-[var(--app-text-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] max-h-40 overflow-y-auto"
+                className="text-sm text-[var(--app-text-muted)] leading-relaxed whitespace-pre-wrap bg-[var(--app-surface)] rounded-lg p-3 border border-[color:var(--app-border)] max-h-40 overflow-y-auto"
                 dangerouslySetInnerHTML={{ __html: renderPreview(notes) }}
               />
             </div>

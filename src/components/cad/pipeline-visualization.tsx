@@ -169,19 +169,19 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
                   <TooltipContent side="bottom" className="text-xs max-w-[200px]">
                     <div className="font-mono font-semibold">{step.label}: {step.key.replace(/_/g, ' ')}</div>
                     {duration !== undefined && (
-                      <div className="text-[10px] text-[var(--app-text-muted)] mt-0.5">Duration: {formatDuration(duration)}</div>
+                      <div className="text-[13px] text-[var(--app-text-muted)] mt-0.5">Duration: {formatDuration(duration)}</div>
                     )}
                     {isCurrent && !isFailed && (
-                      <div className="text-[10px] text-amber-400 mt-0.5">Currently processing</div>
+                      <div className="text-[13px] text-amber-400 mt-0.5">Currently processing</div>
                     )}
                     {isFailedStep && (
-                      <div className="text-[10px] text-rose-400 mt-0.5">Failed at this step</div>
+                      <div className="text-[13px] text-rose-400 mt-0.5">Failed at this step</div>
                     )}
                     {isCompleted && (
-                      <div className="text-[10px] text-lime-400 mt-0.5">Completed</div>
+                      <div className="text-[13px] text-lime-400 mt-0.5">Completed</div>
                     )}
                     {isClickable && (
-                      <div className="text-[10px] text-[var(--app-text-muted)] mt-1">Click to view in inspector</div>
+                      <div className="text-[13px] text-[var(--app-text-muted)] mt-1">Click to view in inspector</div>
                     )}
                   </TooltipContent>
                 </Tooltip>
@@ -219,7 +219,7 @@ export function PipelineVisualization({ state, job, onStepClick }: PipelineVisua
           )
         })}
       </div>
-      <span className={`hidden min-w-0 truncate text-[10px] font-medium lg:inline ${
+      <span className={`hidden min-w-0 truncate text-[13px] font-medium lg:inline ${
         isFailed ? 'text-rose-500' : 'text-[var(--app-text-muted)]'
       }`}>
         {currentLabel}

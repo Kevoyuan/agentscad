@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get("state") as JobState | null;
     const limitParam = searchParams.get("limit");
     const offsetParam = searchParams.get("offset");
+    const includeCount = searchParams.get("count") !== "false";
 
     const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10), 1), 100) : 50;
     const offset = offsetParam ? Math.max(parseInt(offsetParam, 10), 0) : 0;
@@ -43,39 +44,56 @@ export async function GET(request: NextRequest) {
     const summary = searchParams.get("summary") === "true";
     const where = state ? { state } : {};
 
-    // In summary mode, omit large text fields to reduce payload size
-    const summaryOmit = summary
-      ? {
-          scadSource: true, parameterSchema: true, parameterValues: true,
-          researchResult: true, intentResult: true, designResult: true,
-          renderLog: true, validationResults: true, executionLogs: true, notes: true,
-          generationPath: true,
-        }
-      : undefined;
-
-    const [jobs, total] = await Promise.all([
-      db.job.findMany({
+    const take = includeCount ? limit : limit + 1;
+    const jobs = summary
+      ? await db.job.findMany({
+          where,
+          orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+          take,
+          skip: offset,
+          select: {
+            id: true,
+            state: true,
+            inputRequest: true,
+            customerId: true,
+            priority: true,
+            modelId: true,
+            partFamily: true,
+            builderName: true,
+            stlPath: true,
+            pngPath: true,
+            reportPath: true,
+            parentId: true,
+            retryCount: true,
+            maxRetries: true,
+            createdAt: true,
+            updatedAt: true,
+            completedAt: true,
+          },
+        })
+      : await db.job.findMany({
         where,
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-        take: limit,
+        take,
         skip: offset,
-        omit: summaryOmit,
         include: {
           parent: { select: { id: true, inputRequest: true, state: true, partFamily: true } },
           children: { select: { id: true, inputRequest: true, state: true, partFamily: true } },
         },
-      }),
-      db.job.count({ where }),
-    ]);
+      });
+
+    const hasExtraJob = !includeCount && jobs.length > limit;
+    const pageJobs = hasExtraJob ? jobs.slice(0, limit) : jobs;
+    const total = includeCount ? await db.job.count({ where }) : offset + pageJobs.length + (hasExtraJob ? 1 : 0);
 
     return NextResponse.json({
-      jobs,
+      jobs: pageJobs,
       total,
       pagination: {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: includeCount ? offset + limit < total : hasExtraJob,
       },
     });
   } catch (error) {

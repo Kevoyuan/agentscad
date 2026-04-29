@@ -256,7 +256,7 @@ export function QuickActionsBar(props: QuickActionsBarProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-6 px-2 text-[9px] gap-1.5 ${classes.button} ${classes.hover} transition-colors`}
+                      className={`h-6 px-2 text-xs gap-1.5 ${classes.button} ${classes.hover} transition-colors`}
                       onClick={action.onClick}
                       disabled={action.id === 'process' && props.isProcessing}
                     >
@@ -267,7 +267,7 @@ export function QuickActionsBar(props: QuickActionsBarProps) {
                   <TooltipContent side="bottom" className="text-xs">
                     <span>{action.label}</span>
                     {action.shortcut && (
-                      <span className="ml-2 text-[var(--app-text-muted)] font-mono text-[9px]">[{action.shortcut}]</span>
+                      <span className="ml-2 text-[var(--app-text-muted)] font-mono text-xs">[{action.shortcut}]</span>
                     )}
                   </TooltipContent>
                 </Tooltip>

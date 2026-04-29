@@ -93,19 +93,19 @@ export function JobListPanel({
               className="overflow-hidden border-b border-[color:var(--app-border)] bg-[var(--app-batch-bar-bg)]"
             >
               <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-[9px] font-mono text-[var(--app-batch-bar-text)]">{selectedIds.size} selected</span>
+                <span className="text-xs font-mono text-[var(--app-batch-bar-text)]">{selectedIds.size} selected</span>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-amber-400 hover:text-amber-300" onClick={() => onBatchAction('reprocess')}>
-                    <RotateCcw className="w-3 h-3" />Reprocess
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1 text-amber-400 hover:text-amber-300" onClick={() => onBatchAction('reprocess')}>
+                    <RotateCcw className="w-3.5 h-3.5" />Reprocess
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-orange-400 hover:text-orange-300" onClick={() => onBatchAction('cancel')}>
-                    <Ban className="w-3 h-3" />Cancel
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1 text-orange-400 hover:text-orange-300" onClick={() => onBatchAction('cancel')}>
+                    <Ban className="w-3.5 h-3.5" />Cancel
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 gap-1 text-rose-400 hover:text-rose-300" onClick={() => onBatchAction('delete')}>
-                    <Trash2 className="w-3 h-3" />Delete
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1 text-rose-400 hover:text-rose-300" onClick={() => onBatchAction('delete')}>
+                    <Trash2 className="w-3.5 h-3.5" />Delete
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 text-[9px] px-2 text-[var(--app-text-muted)]" onClick={() => onBatchAction('delete')} aria-label="Clear selection">
-                    <X className="w-3 h-3" />
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-[var(--app-text-muted)]" onClick={() => onBatchAction('delete')} aria-label="Clear selection">
+                    <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
@@ -162,7 +162,7 @@ export function JobListPanel({
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-[var(--app-text-muted)]">No jobs found</p>
-                      <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Create a new job or adjust filters</p>
+                      <p className="text-[13px] text-[var(--app-text-dim)] mt-1">Create a new job or adjust filters</p>
                     </div>
                   </div>
                 )}

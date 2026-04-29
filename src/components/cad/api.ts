@@ -3,7 +3,7 @@ import { Job } from './types'
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function fetchJobs(state?: string): Promise<{ jobs: Job[]; pagination: { total: number } }> {
-  const url = state ? `/api/jobs?state=${state}&limit=50&summary=true` : '/api/jobs?limit=50&summary=true'
+  const url = state ? `/api/jobs?state=${state}&limit=50&summary=true&count=false` : '/api/jobs?limit=50&summary=true&count=false'
   const res = await fetch(url)
   if (!res.ok) throw new Error('Failed to fetch jobs')
   return res.json()

@@ -30,7 +30,7 @@ export function CadPanel({
 export function CadSectionHeader({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 px-1">
-      <h3 className="text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--cad-text-muted)]">{children}</h3>
+      <h3 className="text-[13px] font-mono uppercase tracking-[0.18em] text-[var(--cad-text-muted)]">{children}</h3>
       {action}
     </div>
   )
@@ -72,7 +72,7 @@ export function CadMetric({
       </div>
       <div className="mt-1 flex items-baseline gap-1 font-mono tabular-nums">
         <span className="text-sm text-[var(--cad-text)]">{value}</span>
-        {unit && <span className="text-[9px] text-[var(--cad-text-muted)]">{unit}</span>}
+        {unit && <span className="text-xs text-[var(--cad-text-muted)]">{unit}</span>}
       </div>
     </div>
   )
@@ -125,19 +125,19 @@ export function CadExportChecklist({ job }: { job: Job }) {
                 ? <CheckCircle2 className="h-3.5 w-3.5 text-[var(--cad-success)]" />
                 : <CircleAlert className="h-3.5 w-3.5 text-[var(--cad-warning)]" />
               }
-              <span className="text-[11px] text-[var(--cad-text-secondary)]">{check.label}</span>
+              <span className="text-sm text-[var(--cad-text-secondary)]">{check.label}</span>
             </div>
-            <span className="text-[9px] font-mono text-[var(--cad-text-muted)]">{check.detail}</span>
+            <span className="text-xs font-mono text-[var(--cad-text-muted)]">{check.detail}</span>
           </div>
         ))}
         {warnings.length > 0 && (
-          <div className="flex items-center gap-2 rounded-md border border-[color:var(--cad-border)] px-2 py-1.5 text-[10px] text-[var(--cad-warning)]">
+          <div className="flex items-center gap-2 rounded-md border border-[color:var(--cad-border)] px-2 py-1.5 text-[13px] text-[var(--cad-warning)]">
             <Circle className="h-3 w-3" />
             {warnings.length} non-blocking warning{warnings.length === 1 ? '' : 's'}
           </div>
         )}
         {skipped.length > 0 && (
-          <div className="flex items-center gap-2 rounded-md border border-[color:var(--cad-border)] px-2 py-1.5 text-[10px] text-[var(--cad-warning)]">
+          <div className="flex items-center gap-2 rounded-md border border-[color:var(--cad-border)] px-2 py-1.5 text-[13px] text-[var(--cad-warning)]">
             <CircleAlert className="h-3 w-3" />
             {skipped.length} validation rule{skipped.length === 1 ? '' : 's'} skipped
           </div>

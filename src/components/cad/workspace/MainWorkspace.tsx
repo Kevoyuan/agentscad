@@ -127,13 +127,13 @@ export function MainWorkspace() {
       />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
+      <header className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-[var(--app-accent)] flex items-center justify-center">
               <Box className="w-3.5 h-3.5 text-white" />
             </div>
-            <h1 className="text-sm font-semibold text-[var(--app-text-primary)]">
+            <h1 className="text-sm font-semibold tracking-tight text-[var(--app-text-primary)]">
               AgentSCAD
             </h1>
           </div>
@@ -150,8 +150,8 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowStats(true)} aria-label="Stats Dashboard">
-                  <BarChart3 className="w-3 h-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowStats(true)} aria-label="Stats Dashboard">
+                  <BarChart3 className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Stats Dashboard (S)</p></TooltipContent>
@@ -160,8 +160,8 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowCompare(true)} aria-label="Compare Jobs">
-                  <GitCompare className="w-3 h-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowCompare(true)} aria-label="Compare Jobs">
+                  <GitCompare className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Compare Jobs</p></TooltipContent>
@@ -178,11 +178,11 @@ export function MainWorkspace() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
+              className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
               onClick={() => state.setShowActivityFeed(!state.showActivityFeed)}
               aria-label="Activity Feed"
             >
-              <Activity className="w-3 h-3" />
+              <Activity className="w-3.5 h-3.5" />
               {state.activityEvents.length > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
@@ -200,7 +200,7 @@ export function MainWorkspace() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.95 }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="absolute right-0 top-8 w-80 linear-surface linear-border rounded-lg linear-shadow-md z-50 max-h-[420px]"
+                  className="absolute right-0 top-8 w-80 bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_24px_-6px_rgba(0,0,0,0.3)] rounded-lg z-50 max-h-[420px]"
                 >
                   <JobActivityFeed
                     events={state.activityEvents}
@@ -221,11 +221,11 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => {
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => {
                   const next = (state.mounted && state.resolvedTheme === 'dark') ? 'light' : 'dark'
                   state.setTheme(next)
                 }} aria-label="Toggle theme">
-                  {!state.mounted ? <div className="w-3 h-3" aria-hidden="true" /> : state.resolvedTheme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+                  {!state.mounted ? <div className="w-3.5 h-3.5" aria-hidden="true" /> : state.resolvedTheme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Toggle {!state.mounted ? 'Theme' : state.resolvedTheme === 'dark' ? 'Light' : 'Dark'} Mode</p></TooltipContent>
@@ -234,8 +234,8 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowSettings(true)} aria-label="Theme & Settings">
-                  <Palette className="w-3 h-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowSettings(true)} aria-label="Theme & Settings">
+                  <Palette className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Theme & Settings</p></TooltipContent>
@@ -244,15 +244,15 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowShortcuts(true)} aria-label="Keyboard Shortcuts">
-                  <Keyboard className="w-3 h-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowShortcuts(true)} aria-label="Keyboard Shortcuts">
+                  <Keyboard className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Shortcuts (?)</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="h-8 text-[10px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition px-3" onClick={() => state.setShowComposer(true)}>
-            <Plus className="w-3 h-3" />New Job
+          <Button size="sm" className="h-7 text-[13px] gap-1 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] linear-transition px-3" onClick={() => state.setShowComposer(true)}>
+            <Plus className="w-3.5 h-3.5" />New Job
           </Button>
         </div>
       </header>
@@ -365,7 +365,7 @@ export function MainWorkspace() {
 
       {/* Cancel Confirmation */}
       <AlertDialog open={!!state.cancelTarget} onOpenChange={() => state.setCancelTarget(null)}>
-        <AlertDialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] dialog-enter">
+        <AlertDialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl dialog-enter">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">Cancel Job?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-[var(--app-text-muted)]">
@@ -383,7 +383,7 @@ export function MainWorkspace() {
 
       {/* Keyboard Shortcuts Dialog */}
       <Dialog open={state.showShortcuts} onOpenChange={state.setShowShortcuts}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-md dialog-enter" aria-describedby="shortcuts-description">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-md dialog-enter" aria-describedby="shortcuts-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Keyboard className="w-4 h-4 text-[var(--app-accent-text)]" />Keyboard Shortcuts
@@ -397,8 +397,8 @@ export function MainWorkspace() {
             {/* Navigation */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <ArrowUpDown className="w-3 h-3 text-[var(--app-accent-text)]" />
-                <span className="text-[10px] font-mono tracking-widest text-[var(--app-accent-text)] uppercase">Navigation</span>
+                <ArrowUpDown className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
+                <span className="text-[13px] font-mono tracking-widest text-[var(--app-accent-text)] uppercase">Navigation</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
@@ -410,7 +410,7 @@ export function MainWorkspace() {
                   { keys: ['T', ''], desc: 'Open theme settings' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
+                    <span className="text-[13px] text-[var(--app-text-muted)]">{s.desc}</span>
                     <div className="flex items-center gap-0.5">
                       {s.keys.map((k, i) => k ? <span key={i} className="keyboard-key">{k}</span> : <span key={i} />)}
                     </div>
@@ -421,8 +421,8 @@ export function MainWorkspace() {
             {/* Job Actions */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Play className="w-3 h-3 text-emerald-400" />
-                <span className="text-[10px] font-mono tracking-widest text-emerald-400 uppercase">Job Actions</span>
+                <Play className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[13px] font-mono tracking-widest text-emerald-400 uppercase">Job Actions</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
@@ -432,7 +432,7 @@ export function MainWorkspace() {
                   { keys: ['Del'], desc: 'Delete selected' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
+                    <span className="text-[13px] text-[var(--app-text-muted)]">{s.desc}</span>
                     <div className="flex items-center gap-0.5">
                       {s.keys.map((k, i) => <span key={i} className="keyboard-key">{k}</span>)}
                     </div>
@@ -443,8 +443,8 @@ export function MainWorkspace() {
             {/* Inspector */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Settings className="w-3 h-3 text-amber-400" />
-                <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase">Inspector Tabs</span>
+                <Settings className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[13px] font-mono tracking-widest text-amber-400 uppercase">Inspector Tabs</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
@@ -456,7 +456,7 @@ export function MainWorkspace() {
                   { key: '6', tab: 'CODE' },
                 ].map((s) => (
                   <div key={s.tab} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[var(--app-text-muted)] font-mono">{s.tab}</span>
+                    <span className="text-[13px] text-[var(--app-text-muted)] font-mono">{s.tab}</span>
                     <span className="keyboard-key">{s.key}</span>
                   </div>
                 ))}
@@ -465,8 +465,8 @@ export function MainWorkspace() {
             {/* General */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-3 h-3 text-cyan-400" />
-                <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">General</span>
+                <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[13px] font-mono tracking-widest text-cyan-400 uppercase">General</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
@@ -474,7 +474,7 @@ export function MainWorkspace() {
                   { keys: ['?'], desc: 'Toggle this panel' },
                 ].map((s) => (
                   <div key={s.desc} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[var(--app-text-muted)]">{s.desc}</span>
+                    <span className="text-[13px] text-[var(--app-text-muted)]">{s.desc}</span>
                     <div className="flex items-center gap-0.5">
                       {s.keys.map((k, i) => <span key={i} className="keyboard-key">{k}</span>)}
                     </div>
@@ -488,7 +488,7 @@ export function MainWorkspace() {
 
       {/* Stats Dashboard */}
       <Dialog open={state.showStats} onOpenChange={state.setShowStats}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-2xl dialog-enter" aria-describedby="stats-description" aria-labelledby="stats-dashboard-title">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-2xl dialog-enter" aria-describedby="stats-description" aria-labelledby="stats-dashboard-title">
           <DialogHeader>
             <DialogTitle id="stats-dashboard-title" className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[var(--app-accent-text)]" />Stats Dashboard
@@ -503,7 +503,7 @@ export function MainWorkspace() {
 
       {/* Job Compare */}
       <Dialog open={state.showCompare} onOpenChange={state.setShowCompare}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-4xl max-h-[80vh] dialog-enter" aria-describedby="compare-description">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-4xl max-h-[80vh] dialog-enter" aria-describedby="compare-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <GitCompare className="w-4 h-4 text-[var(--app-accent-text)]" />Compare Jobs
@@ -518,7 +518,7 @@ export function MainWorkspace() {
 
       {/* Theme & Settings */}
       <Dialog open={state.showSettings} onOpenChange={state.setShowSettings}>
-        <DialogContent className="bg-[var(--app-surface-95)] border-[color:var(--app-border)] max-w-sm dialog-enter" aria-describedby="settings-description">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-sm dialog-enter" aria-describedby="settings-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Palette className="w-4 h-4 text-[var(--app-accent-text)]" />Theme & Settings

@@ -42,7 +42,7 @@ export function StateBadge({ state, size = 'sm', timestamp }: { state: string; s
     <div className="text-xs">
       <div className="font-mono font-semibold">{state}</div>
       {timestamp && (
-        <div className="text-[10px] opacity-70 mt-0.5">{formatTimestamp(timestamp)}</div>
+        <div className="text-[13px] opacity-70 mt-0.5">{formatTimestamp(timestamp)}</div>
       )}
     </div>
   )
@@ -52,7 +52,7 @@ export function StateBadge({ state, size = 'sm', timestamp }: { state: string; s
       <TooltipTrigger asChild>
         <motion.span
           key={state}
-          className={`inline-flex items-center rounded-sm font-medium relative ${size === 'xs' ? 'gap-1 text-[8px] px-1 py-0.5' : size === 'sm' ? 'gap-1.5 text-[9px] px-1.5 py-0.5' : 'gap-1.5 text-[10px] px-2 py-0.5'} ${isFailed ? 'text-rose-600 dark:text-rose-400' : isDelivered ? 'text-emerald-700 dark:text-emerald-400' : isReview ? 'text-amber-600 dark:text-amber-400' : isProcessing ? 'text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)]'} bg-transparent border border-transparent linear-transition`}
+          className={`inline-flex items-center rounded-sm font-medium relative ${size === 'xs' ? 'gap-1 text-[8px] px-1 py-0.5' : size === 'sm' ? 'gap-1.5 text-xs px-1.5 py-0.5' : 'gap-1.5 text-[13px] px-2 py-0.5'} ${isFailed ? 'text-rose-600 dark:text-rose-400' : isDelivered ? 'text-emerald-700 dark:text-emerald-400' : isReview ? 'text-amber-600 dark:text-amber-400' : isProcessing ? 'text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)]'} bg-transparent border border-transparent linear-transition`}
           initial={{ scale: 1.06 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}

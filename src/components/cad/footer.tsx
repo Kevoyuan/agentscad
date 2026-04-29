@@ -69,7 +69,7 @@ function FooterMetric({
             {children}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-[9px] font-mono">
+        <TooltipContent side="top" className="text-xs font-mono">
           <p>{tooltip}</p>
         </TooltipContent>
       </Tooltip>
@@ -98,7 +98,7 @@ export function Footer({
 
   return (
     <footer className="relative flex items-center justify-between px-4 py-1.5 border-t border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
-      <div className="flex min-w-0 items-center gap-3 text-[9px] font-mono text-[var(--app-text-muted)]">
+      <div className="flex min-w-0 items-center gap-3 text-xs font-mono text-[var(--app-text-muted)]">
         <FooterMetric tooltip="Jobs refresh automatically while the workspace is open">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 online-dot" />
@@ -125,7 +125,7 @@ export function Footer({
           </>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-3 text-[9px] font-mono text-[var(--app-text-dim)]">
+      <div className="flex shrink-0 items-center gap-3 text-xs font-mono text-[var(--app-text-dim)]">
         <FooterMetric tooltip="Delivery success rate (delivered vs failed)">
           <span className="flex items-center gap-1">
             <CheckCircle2 className="w-2.5 h-2.5" />
@@ -147,7 +147,7 @@ export function Footer({
         <FooterMetric tooltip="AgentSCAD application version">
           <span>v0.9</span>
         </FooterMetric>
-        <Button variant="ghost" size="sm" className="h-4 text-[8px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={onExport}>
+        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={onExport}>
           <FileJson className="w-2.5 h-2.5" />Export
         </Button>
       </div>

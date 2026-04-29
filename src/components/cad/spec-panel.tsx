@@ -49,7 +49,7 @@ export function SpecPanel({
             <div className="space-y-3 p-3">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--cad-warning)]" />
-                <p className="text-[11px] leading-relaxed text-[var(--cad-text-secondary)]">
+                <p className="text-sm leading-relaxed text-[var(--cad-text-secondary)]">
                   {failed
                     ? 'If artifacts already exist, Auto Repair will restore the run without regenerating geometry. Otherwise retry the pipeline.'
                     : 'Parameters changed after render. Rebuild STL before export.'}
@@ -57,12 +57,12 @@ export function SpecPanel({
               </div>
               <div className="flex gap-2">
                 {failed && (
-                  <Button size="sm" className="h-7 gap-1.5 bg-[var(--cad-accent)] text-[10px]" onClick={() => onRepair(job)}>
+                  <Button size="sm" className="h-7 gap-1.5 bg-[var(--cad-accent)] text-[13px]" onClick={() => onRepair(job)}>
                     <Wrench className="h-3 w-3" />
                     Auto Repair
                   </Button>
                 )}
-                <Button size="sm" variant="outline" className="h-7 gap-1.5 border-[color:var(--cad-border)] text-[10px]" onClick={() => onProcess(job)}>
+                <Button size="sm" variant="outline" className="h-7 gap-1.5 border-[color:var(--cad-border)] text-[13px]" onClick={() => onProcess(job)}>
                   <RotateCcw className="h-3 w-3" />
                   {failed ? 'Retry Pipeline' : 'Rebuild STL'}
                 </Button>
@@ -74,7 +74,7 @@ export function SpecPanel({
         <CadExportChecklist job={job} />
 
         {(job.builderName || job.generationPath) && (
-          <div className="flex items-center gap-2 px-1 text-[10px] font-mono text-[var(--cad-text-muted)]">
+          <div className="flex items-center gap-2 px-1 text-[13px] font-mono text-[var(--cad-text-muted)]">
             <Cpu className="h-3 w-3" />
             {[job.builderName, job.generationPath].filter(Boolean).join(' / ')}
           </div>

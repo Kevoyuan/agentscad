@@ -175,9 +175,12 @@ Current limitations:
 | Build | `bun run build` |
 | Test | `bun test` or `bun run test` |
 | Lint | `bun run lint` |
+| Audit dependency licenses | `bun run license:audit` |
 | Check OpenSCAD libraries | `npm run scad:libs:check` |
 | Install default OpenSCAD libraries | `npm run scad:libs:install` |
 | Install GPL OpenSCAD libraries explicitly | `npm run scad:libs:install:gpl` |
+
+Reviewed third-party license obligations are tracked in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md). Run `bun run license:audit` before changing package dependencies or OpenSCAD library policy.
 
 ## Project Structure
 

@@ -42,7 +42,7 @@ export function BreadcrumbNav({ jobId, activeTab, onNavigateHome, onNavigateJobs
   }
 
   return (
-    <nav className="flex items-center gap-1 h-6 text-[9px] font-mono shrink-0 breadcrumb-fade-in" aria-label="Breadcrumb">
+    <nav className="flex items-center gap-1 h-6 text-xs font-mono shrink-0 breadcrumb-fade-in" aria-label="Breadcrumb">
       <button
         className="text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors duration-150"
         onClick={onNavigateHome}

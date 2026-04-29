@@ -254,12 +254,12 @@ export function SearchFilterPanel({
       {/* Search Row - Always visible */}
       <div className="px-3 py-2 flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--app-text-dim)]" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--app-text-dim)]" />
           <Input
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
             placeholder="Search runs"
-            className="h-7 pl-7 pr-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
+            className="h-7 pl-7 pr-7 text-sm bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
             suppressHydrationWarning
           />
           {filters.search && (
@@ -267,7 +267,7 @@ export function SearchFilterPanel({
               className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors"
               onClick={() => updateFilter('search', '')}
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -277,7 +277,7 @@ export function SearchFilterPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-1.5 gap-1 text-[9px] font-mono ${filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
+                className={`h-7 px-1.5 gap-1 text-xs font-mono ${filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
                 onClick={() => {
                   if (filters.sortBy === 'created' && filters.sortOrder === 'desc') {
                     onFiltersChange({ ...filters, sortBy: 'priority', sortOrder: 'desc' })
@@ -286,7 +286,7 @@ export function SearchFilterPanel({
                   }
                 }}
               >
-                <Clock className="w-3 h-3" />
+                <Clock className="w-3.5 h-3.5" />
                   {filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Time' : 'P'}
               </Button>
             </TooltipTrigger>
@@ -328,7 +328,7 @@ export function SearchFilterPanel({
           return (
             <button
               key={f.key}
-              className={`shrink-0 text-[9px] font-medium px-2 py-1 rounded-sm transition-colors min-h-[24px] ${
+              className={`shrink-0 text-xs font-medium px-2 py-1 rounded-sm transition-colors min-h-[24px] ${
                 isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)]'
               }`}
               onClick={() => {
@@ -362,7 +362,7 @@ export function SearchFilterPanel({
               <div className="flex items-start gap-4">
                 {/* Priority Range */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Priority Range
                   </label>
                   <div className="flex items-center gap-2">
@@ -374,8 +374,8 @@ export function SearchFilterPanel({
                       onChange={e => updateFilter('priorityMin', Math.min(Number(e.target.value), filters.priorityMax))}
                       className="flex-1 accent-violet-500 h-1"
                     />
-                    <span className="text-[9px] font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMin}</span>
-                    <span className="text-[9px] text-[var(--app-text-dim)]">—</span>
+                    <span className="text-xs font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMin}</span>
+                    <span className="text-xs text-[var(--app-text-dim)]">—</span>
                     <input
                       type="range"
                       min={1}
@@ -384,20 +384,20 @@ export function SearchFilterPanel({
                       onChange={e => updateFilter('priorityMax', Math.max(Number(e.target.value), filters.priorityMin))}
                       className="flex-1 accent-violet-500 h-1"
                     />
-                    <span className="text-[9px] font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMax}</span>
+                    <span className="text-xs font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMax}</span>
                   </div>
                 </div>
 
                 {/* Date Range */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Date Range
                   </label>
                   <div className="flex items-center gap-1">
                     {DATE_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
-                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
+                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.dateRange === opt.key
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -414,14 +414,14 @@ export function SearchFilterPanel({
                         type="date"
                         value={filters.dateFrom || ''}
                         onChange={e => updateFilter('dateFrom', e.target.value || null)}
-                        className="h-6 text-[10px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
+                        className="h-6 text-[13px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
                       />
-                      <span className="text-[9px] text-[var(--app-text-dim)]">to</span>
+                      <span className="text-xs text-[var(--app-text-dim)]">to</span>
                       <Input
                         type="date"
                         value={filters.dateTo || ''}
                         onChange={e => updateFilter('dateTo', e.target.value || null)}
-                        className="h-6 text-[10px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
+                        className="h-6 text-[13px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
                       />
                     </div>
                   )}
@@ -432,12 +432,12 @@ export function SearchFilterPanel({
               <div className="flex items-start gap-4">
                 {/* Part Family */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Part Family
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
-                      className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
+                      className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                         !filters.partFamily
                           ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                           : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -449,7 +449,7 @@ export function SearchFilterPanel({
                     {partFamilies.map(pf => (
                       <button
                         key={pf}
-                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
+                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.partFamily === pf
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -464,12 +464,12 @@ export function SearchFilterPanel({
 
                 {/* Builder Name */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Builder
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
-                      className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
+                      className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                         !filters.builderName
                           ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                           : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -481,7 +481,7 @@ export function SearchFilterPanel({
                     {builderNames.map(bn => (
                       <button
                         key={bn}
-                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
+                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.builderName === bn
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -496,14 +496,14 @@ export function SearchFilterPanel({
 
                 {/* Sort */}
                 <div className="flex-1">
-                  <label className="text-[9px] font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
                     Sort By
                   </label>
                   <div className="flex items-center gap-1">
                     {SORT_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
-                        className={`text-[9px] px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
+                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
                           filters.sortBy === opt.key
                             ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                             : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
@@ -514,11 +514,11 @@ export function SearchFilterPanel({
                       </button>
                     ))}
                     <button
-                      className="text-[9px] px-1.5 py-1 rounded-md text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
+                      className="text-xs px-1.5 py-1 rounded-md text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
                       onClick={() => updateFilter('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
                       title={filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                     >
-                      <ArrowUpDown className={`w-3 h-3 transition-transform ${filters.sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                      <ArrowUpDown className={`w-3.5 h-3.5 transition-transform ${filters.sortOrder === 'asc' ? 'rotate-180' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -527,13 +527,13 @@ export function SearchFilterPanel({
               {/* Clear All */}
               {activeCount > 0 && (
                 <div className="flex items-center justify-between pt-1 border-t border-[color:var(--app-border-separator)]">
-                  <span className="text-[9px] text-[var(--app-text-dim)]">
+                  <span className="text-xs text-[var(--app-text-dim)]">
                     {activeCount} active filter{activeCount !== 1 ? 's' : ''}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-5 text-[9px] gap-1 text-rose-400 hover:text-rose-300"
+                    className="h-5 text-xs gap-1 text-rose-400 hover:text-rose-300"
                     onClick={clearAll}
                   >
                     <RotateCcw className="w-2.5 h-2.5" />Clear all filters

@@ -93,30 +93,30 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col">
       {/* Header */}
-      <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-4 py-2">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-2">
-          <GitBranch className="w-3 h-3" />
+      <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-3 py-1.5">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-2">
+          <GitBranch className="w-3.5 h-3.5" />
           Dependencies
         </h3>
         <div className="flex shrink-0 items-center gap-2">
-          <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
+          <Badge variant="outline" className="text-xs h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {dependencyCount} link{dependencyCount !== 1 ? 's' : ''}
           </Badge>
           {!isLinking ? (
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 text-[9px] gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)]"
+              className="h-5 text-xs gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)]"
               onClick={() => setIsLinking(true)}
               disabled={isSaving}
             >
-              <Link2 className="w-3 h-3" />Link
+              <Link2 className="w-3.5 h-3.5" />Link
             </Button>
           ) : (
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
+              className="h-5 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]"
               onClick={() => { setIsLinking(false); setSearchQuery('') }}
             >
               Cancel
@@ -138,12 +138,12 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
               >
                 <div className="rounded-lg border border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] p-3 space-y-2">
                   <div className="flex items-center gap-2">
-                    <Search className="w-3 h-3 text-[var(--app-accent-text)]" />
+                    <Search className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
                     <Input
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Search for parent job..."
-                      className="h-6 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
+                      className="h-6 text-sm bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
                       autoFocus
                     />
                   </div>
@@ -160,7 +160,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                         >
                           <PartFamilyIcon family={candidate.partFamily || 'unknown'} size="xs" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] text-[var(--app-text-secondary)] truncate group-hover:text-[var(--app-accent-text)] transition-colors">
+                            <p className="text-[13px] text-[var(--app-text-secondary)] truncate group-hover:text-[var(--app-accent-text)] transition-colors">
                               {candidate.inputRequest.slice(0, 50)}
                             </p>
                             <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{candidate.id.slice(0, 8)}</span>
@@ -170,7 +170,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-[var(--app-text-dim)] text-center py-2">No jobs found</p>
+                    <p className="text-[13px] text-[var(--app-text-dim)] text-center py-2">No jobs found</p>
                   )}
                 </div>
               </motion.div>
@@ -186,8 +186,8 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-1"
               >
-                <div className="text-[9px] font-mono text-[var(--app-text-dim)] uppercase tracking-wider flex items-center gap-1">
-                  <ChevronDown className="w-3 h-3" />Parent
+                <div className="text-xs font-mono text-[var(--app-text-dim)] uppercase tracking-wider flex items-center gap-1">
+                  <ChevronDown className="w-3.5 h-3.5" />Parent
                 </div>
                 <div className="relative ml-2">
                   {/* Connecting line */}
@@ -201,7 +201,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                   >
                     <PartFamilyIcon family={parentJob.partFamily || 'unknown'} size="xs" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-[var(--app-text-secondary)] truncate group-hover:text-[var(--app-accent-text)] transition-colors">
+                      <p className="text-[13px] text-[var(--app-text-secondary)] truncate group-hover:text-[var(--app-accent-text)] transition-colors">
                         {parentJob.inputRequest.slice(0, 50)}
                       </p>
                       <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{parentJob.id.slice(0, 8)}</span>
@@ -214,21 +214,21 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                       onClick={(e) => { e.stopPropagation(); handleUnlink() }}
                       disabled={isSaving}
                     >
-                      <Unlink className="w-3 h-3" />
+                      <Unlink className="w-3.5 h-3.5" />
                     </Button>
                   </motion.div>
                 </div>
               </motion.div>
             ) : !isLinking && (
               <div className="text-center py-3">
-                <p className="text-[10px] text-[var(--app-text-dim)]">No parent linked</p>
+                <p className="text-[13px] text-[var(--app-text-dim)]">No parent linked</p>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 text-[9px] gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)] mt-1"
+                  className="h-5 text-xs gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)] mt-1"
                   onClick={() => setIsLinking(true)}
                 >
-                  <Link2 className="w-3 h-3" />Link to parent
+                  <Link2 className="w-3.5 h-3.5" />Link to parent
                 </Button>
               </div>
             )}
@@ -237,10 +237,10 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
             <div className="relative">
               <div className="flex items-center gap-2 px-2 py-2 rounded-md border border-[color:var(--app-border)] bg-[var(--app-empty-bg)]">
                 <div className="w-5 h-5 rounded-md bg-violet-500/80 flex items-center justify-center shrink-0">
-                  <FileCode className="w-3 h-3 text-white" />
+                  <FileCode className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-[var(--app-text-primary)] truncate font-medium">
+                  <p className="text-[13px] text-[var(--app-text-primary)] truncate font-medium">
                     {job.inputRequest.slice(0, 50)}
                   </p>
                   <span className="text-[8px] font-mono text-[var(--app-text-muted)]">{job.id.slice(0, 8)}</span>
@@ -256,8 +256,8 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
             {/* Child jobs */}
             {childJobs.length > 0 && (
               <div className="space-y-1">
-                <div className="text-[9px] font-mono text-[var(--app-text-dim)] uppercase tracking-wider flex items-center gap-1">
-                  <ChevronRight className="w-3 h-3" />Children ({childJobs.length})
+                <div className="text-xs font-mono text-[var(--app-text-dim)] uppercase tracking-wider flex items-center gap-1">
+                  <ChevronRight className="w-3.5 h-3.5" />Children ({childJobs.length})
                 </div>
                 {childJobs.map((child, idx) => (
                   <motion.div
@@ -278,7 +278,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                     >
                       <PartFamilyIcon family={child.partFamily || 'unknown'} size="xs" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-[var(--app-text-secondary)] truncate group-hover:text-cyan-300 transition-colors">
+                        <p className="text-[13px] text-[var(--app-text-secondary)] truncate group-hover:text-cyan-300 transition-colors">
                           {child.inputRequest.slice(0, 50)}
                         </p>
                         <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{child.id.slice(0, 8)}</span>
@@ -293,7 +293,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
             {/* Empty state for children */}
             {childJobs.length === 0 && !isLinking && job.parentId && (
               <div className="text-center py-2">
-                <p className="text-[10px] text-[var(--app-text-dim)]">No child jobs</p>
+                <p className="text-[13px] text-[var(--app-text-dim)]">No child jobs</p>
               </div>
             )}
           </div>
@@ -301,16 +301,16 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
           {/* Info box */}
           {!job.parentId && childJobs.length === 0 && !isLinking && (
             <div className="rounded-lg border border-[color:var(--app-border)] bg-[var(--app-empty-bg)] p-3 text-center">
-              <GitBranch className="w-8 h-8 text-[var(--app-text-dim)] mx-auto mb-2" />
-              <p className="text-[11px] text-[var(--app-text-muted)] mb-1">No dependencies</p>
-              <p className="text-[9px] text-[var(--app-text-dim)] mb-2">Link this job to a parent to build relationships between jobs</p>
+              <GitBranch className="w-8 h-7 text-[var(--app-text-dim)] mx-auto mb-2" />
+              <p className="text-sm text-[var(--app-text-muted)] mb-1">No dependencies</p>
+              <p className="text-xs text-[var(--app-text-dim)] mb-2">Link this job to a parent to build relationships between jobs</p>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 text-[9px] gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)]"
+                className="h-5 text-xs gap-1 text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)]"
                 onClick={() => setIsLinking(true)}
               >
-                <Link2 className="w-3 h-3" />Link to Parent
+                <Link2 className="w-3.5 h-3.5" />Link to Parent
               </Button>
             </div>
           )}

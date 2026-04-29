@@ -168,13 +168,13 @@ function ProgressRing({
           <span className="text-xs text-[var(--app-text-muted)]">%</span>
         </span>
         {label && (
-          <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-wider uppercase mt-0.5">
+          <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-wider uppercase mt-0.5">
             {label}
           </span>
         )}
       </div>
       {sublabel && (
-        <span className="absolute -bottom-4 text-[9px] font-mono text-[var(--app-text-dim)] tracking-wider">
+        <span className="absolute -bottom-4 text-xs font-mono text-[var(--app-text-dim)] tracking-wider">
           {sublabel}
         </span>
       )}
@@ -341,10 +341,10 @@ function StateDistributionBar({ jobsByState }: { jobsByState: Record<string, num
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: hex }}
               />
-              <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-wider uppercase">
+              <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-wider uppercase">
                 {seg.state.replace(/_/g, ' ')}
               </span>
-              <span className="text-[10px] text-[var(--app-text-muted)] tabular-nums">{seg.count}</span>
+              <span className="text-[13px] text-[var(--app-text-muted)] tabular-nums">{seg.count}</span>
             </div>
           )
         })}
@@ -370,8 +370,8 @@ function StatCard({
       className="relative rounded-xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3 overflow-hidden linear-surface-hover"
     >
       <div className="flex items-center gap-1.5 mb-2">
-        <Icon className="w-3 h-3 text-[var(--app-text-dim)]" />
-        <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
+        <Icon className="w-3.5 h-3.5 text-[var(--app-text-dim)]" />
+        <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
           {label}
         </span>
       </div>
@@ -507,13 +507,13 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
   if (events.length === 0) {
     return (
       <div className="text-center py-4">
-        <p className="text-[10px] text-[var(--app-text-dim)]">No recent activity</p>
+        <p className="text-[13px] text-[var(--app-text-dim)]">No recent activity</p>
       </div>
     )
   }
 
   return (
-    <div className="max-h-80 overflow-y-auto pr-1">
+    <div className="max-h-70 overflow-y-auto pr-1">
       {groupedEvents.map((group) => (
         <div key={group.label} className="mb-3 last:mb-0">
           <span className="text-[8px] font-mono text-[var(--app-text-dim)] tracking-widest uppercase block mb-1.5 sticky top-0 bg-[var(--app-surface)] py-0.5 z-10">
@@ -536,11 +536,11 @@ function ActivityTimeline({ jobs }: { jobs: Job[] }) {
                   className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--app-hover-subtle)] linear-transition"
                 >
                   <div className={`shrink-0 ${event.iconColor}`}>
-                    <IconComp className="w-3 h-3" />
+                    <IconComp className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[10px] text-[var(--app-text-secondary)] truncate flex-1">
+                      <p className="text-[13px] text-[var(--app-text-secondary)] truncate flex-1">
                         {event.jobName.slice(0, 50)}
                       </p>
                       <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${
@@ -681,7 +681,7 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
         {onClose && (
           <button
             onClick={onClose}
-            className="text-[10px] font-mono text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors"
+            className="text-[13px] font-mono text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] transition-colors"
           >
             ESC
           </button>
@@ -691,19 +691,19 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       {/* Top row: Key metrics */}
       <motion.div variants={staggerContainer} className="grid grid-cols-4 gap-2 mb-3">
         <StatCard icon={Layers} label="Total Jobs">
-          <div className="text-2xl font-bold text-[var(--app-text-primary)]">
+          <div className="text-2xl font-mono font-bold tracking-tighter text-[var(--app-text-primary)] tabular-nums">
             <AnimatedCounter value={stats.totalJobs} />
           </div>
-          <div className="text-[10px] text-[var(--app-text-dim)] mt-0.5">
+          <div className="text-[13px] text-[var(--app-text-dim)] mt-0.5 tabular-nums">
             <AnimatedCounter value={stats.jobsCreatedToday} /> today
           </div>
         </StatCard>
 
         <StatCard icon={Clock} label="Avg Time">
-          <div className="text-lg font-semibold text-cyan-400 tabular-nums">
+          <div className="text-xl font-mono font-bold tracking-tighter text-cyan-400 tabular-nums">
             {formatDuration(stats.avgProcessingTimeMs)}
           </div>
-          <div className="text-[10px] text-[var(--app-text-dim)] mt-0.5">
+          <div className="text-[13px] text-[var(--app-text-dim)] mt-0.5">
             processing time
           </div>
         </StatCard>
@@ -720,10 +720,10 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
         </StatCard>
 
         <StatCard icon={Zap} label="Top Family">
-          <div className="text-sm font-semibold text-[var(--app-accent-text)] truncate">
+          <div className="text-sm font-mono font-semibold tracking-tight text-[var(--app-accent-text)] truncate">
             {stats.mostCommonPartFamily.replace(/_/g, ' ')}
           </div>
-          <div className="text-[10px] text-[var(--app-text-dim)] mt-0.5">most common</div>
+          <div className="text-[13px] text-[var(--app-text-dim)] mt-0.5">most common</div>
         </StatCard>
       </motion.div>
 
@@ -733,8 +733,8 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
         className="rounded-xl linear-surface linear-border p-3 mb-3"
       >
         <div className="flex items-center gap-1.5 mb-3">
-          <TrendingUp className="w-3 h-3 text-[var(--app-text-dim)]" />
-          <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
+          <TrendingUp className="w-3.5 h-3.5 text-[var(--app-text-dim)]" />
+          <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
             Jobs by State
           </span>
         </div>
@@ -748,12 +748,12 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-[var(--app-text-dim)]" />
-            <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
+            <Activity className="w-3.5 h-3.5 text-[var(--app-text-dim)]" />
+            <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
               Activity (24h)
             </span>
           </div>
-          <span className="text-[10px] text-[var(--app-text-muted)] tabular-nums">
+          <span className="text-[13px] text-[var(--app-text-muted)] tabular-nums">
             {stats.recentActivity.reduce((a, b) => a + b.count, 0)} jobs
           </span>
         </div>
@@ -767,12 +767,12 @@ export function StatsDashboard({ jobs, onClose }: StatsDashboardProps) {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-[var(--app-text-dim)]" />
-            <span className="text-[9px] font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
+            <Clock className="w-3.5 h-3.5 text-[var(--app-text-dim)]" />
+            <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
               Recent Activity
             </span>
           </div>
-          <span className="text-[9px] font-mono text-[var(--app-text-dim)]">
+          <span className="text-xs font-mono text-[var(--app-text-dim)]">
             Last 10 events
           </span>
         </div>

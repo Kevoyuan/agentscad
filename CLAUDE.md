@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Start production server | `bun run start` |
 | Lint | `bun run lint` |
 | Test | `bun run test` |
+| Audit dependency licenses | `bun run license:audit` |
 | Check OpenSCAD libraries | `bun run scad:libs:check` |
 | Install default OpenSCAD libraries | `bun run scad:libs:install` |
 | Install GPL OpenSCAD libraries explicitly | `bun run scad:libs:install:gpl` |

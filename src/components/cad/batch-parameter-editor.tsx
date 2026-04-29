@@ -118,8 +118,8 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
           <div className="flex items-center gap-2">
-            <Sliders className="w-3 h-3 text-[var(--app-accent-text)]" />
-            <span className="text-[9px] font-mono tracking-widest text-[var(--app-accent-text)] uppercase">Batch Edit</span>
+            <Sliders className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
+            <span className="text-xs font-mono tracking-widest text-[var(--app-accent-text)] uppercase">Batch Edit</span>
             <Badge variant="outline" className="text-[8px] h-3.5 bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border-[color:var(--app-accent-border)]">
               {selectedJobs.length} jobs
             </Badge>
@@ -169,7 +169,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
                 <div key={param.key} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-[var(--app-text-secondary)]">{param.label}</span>
+                      <span className="text-[13px] text-[var(--app-text-secondary)]">{param.label}</span>
                       <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{param.key}</span>
                       {param.unit && <span className="text-[8px] text-[var(--app-text-dim)]">{param.unit}</span>}
                     </div>
@@ -179,7 +179,7 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
                           was {param.currentMin === param.currentMax ? param.currentMin : `${param.currentMin}–${param.currentMax}`}
                         </span>
                       )}
-                      <span className={`text-[10px] font-mono ${hasChange ? 'text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)]'}`}>
+                      <span className={`text-[13px] font-mono ${hasChange ? 'text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)]'}`}>
                         {typeof displayValue === 'number' ? displayValue.toFixed(param.step < 1 ? 1 : 0) : displayValue}
                         {param.unit ? ` ${param.unit}` : ''}
                       </span>

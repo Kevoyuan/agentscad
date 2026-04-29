@@ -117,12 +117,12 @@
   --app-selected-bg: rgba(37, 99, 235, 0.06);
   --app-code-copy-hover: rgba(15, 23, 42, 0.06);
   --app-empty-bg: rgba(15, 23, 42, 0.03);
-  --app-accent: #5e6ad2;
-  --app-accent-hover: #4f5fc6;
-  --app-accent-bg: rgba(94, 106, 210, 0.10);
-  --app-accent-border: rgba(94, 106, 210, 0.24);
-  --app-accent-text: #4f5fc6;
-  --app-accent-text-secondary: rgba(79, 95, 198, 0.72);
+  --app-accent: #3b82f6;
+  --app-accent-hover: #2563eb;
+  --app-accent-bg: rgba(59, 130, 246, 0.10);
+  --app-accent-border: rgba(59, 130, 246, 0.24);
+  --app-accent-text: #2563eb;
+  --app-accent-text-secondary: rgba(37, 99, 235, 0.72);
   --app-danger: #dc2626;
   --app-danger-bg: rgba(220, 38, 38, 0.08);
   --app-warning: #d97706;
@@ -161,8 +161,8 @@
   --cad-text: #111827;
   --cad-text-secondary: #475569;
   --cad-text-muted: #64748b;
-  --cad-accent: #5e6ad2;
-  --cad-accent-soft: rgba(94, 106, 210, 0.10);
+  --cad-accent: #3b82f6;
+  --cad-accent-soft: rgba(59, 130, 246, 0.10);
   --cad-grid: rgba(94, 106, 210, 0.06);
   --cad-measure: #0ea5e9;
   --cad-success: #0f9f6e;
@@ -242,12 +242,12 @@
   --app-selected-bg: rgba(74, 163, 255, 0.09);
   --app-code-copy-hover: rgba(255, 255, 255, 0.08);
   --app-empty-bg: rgba(255, 255, 255, 0.04);
-  --app-accent: #5e6ad2;
-  --app-accent-hover: #717beb;
-  --app-accent-bg: rgba(94, 106, 210, 0.16);
-  --app-accent-border: rgba(94, 106, 210, 0.35);
-  --app-accent-text: #a8b0ff;
-  --app-accent-text-secondary: rgba(168, 176, 255, 0.72);
+  --app-accent: #3b82f6;
+  --app-accent-hover: #60a5fa;
+  --app-accent-bg: rgba(59, 130, 246, 0.16);
+  --app-accent-border: rgba(59, 130, 246, 0.35);
+  --app-accent-text: #60a5fa;
+  --app-accent-text-secondary: rgba(96, 165, 250, 0.72);
   --app-danger: #f87171;
   --app-danger-bg: rgba(248, 113, 113, 0.1);
   --app-warning: #fbbf24;
@@ -286,8 +286,8 @@
   --cad-text: #eef3f8;
   --cad-text-secondary: #aab5c0;
   --cad-text-muted: #75808b;
-  --cad-accent: #5e6ad2;
-  --cad-accent-soft: rgba(94, 106, 210, 0.16);
+  --cad-accent: #3b82f6;
+  --cad-accent-soft: rgba(59, 130, 246, 0.16);
   --cad-grid: rgba(140, 145, 180, 0.14);
   --cad-measure: #76d8ff;
   --cad-success: #35c46f;
@@ -460,10 +460,10 @@ input:focus, textarea:focus, select:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 5px;
-  font-size: 9px;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
   font-family: var(--font-mono), monospace;
   font-weight: 500;
   color: var(--app-keyboard-text);
@@ -474,7 +474,7 @@ input:focus, textarea:focus, select:focus {
   white-space: nowrap;
   line-height: 1;
 }
-.keyboard-key-lg { min-width: 28px; height: 24px; font-size: 10px; padding: 0 6px; }
+.keyboard-key-lg { min-width: 30px; height: 26px; font-size: 12px; padding: 0 8px; }
 
 /* Code copy button */
 .code-copy-btn {
@@ -523,13 +523,15 @@ pre:hover .code-copy-btn { opacity: 1; }
   animation: status-pulse 2s ease-in-out infinite;
 }
 
-/* Online status dot (static) */
+/* Online status dot (breathing) */
 .online-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--app-success);
   display: inline-block;
+  animation: status-pulse 2.5s ease-in-out infinite;
+  box-shadow: 0 0 0 2px var(--app-success-bg);
 }
 
 /* Compare card border */

@@ -60,29 +60,29 @@ export function JobContextMenu({
         {/* Process / Reprocess */}
         {canProcess && (
           <ContextMenuItem
-            className="text-[11px] gap-2 text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10"
+            className="text-sm gap-2 text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10"
             onClick={() => onProcess(job)}
           >
             {job.state === 'DELIVERED' ? <RotateCcw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             {job.state === 'DELIVERED' ? 'Reprocess' : 'Process'}
-            <ContextMenuShortcut className="text-[9px] text-[var(--app-text-dim)]">⌘P</ContextMenuShortcut>
+            <ContextMenuShortcut className="text-xs text-[var(--app-text-dim)]">⌘P</ContextMenuShortcut>
           </ContextMenuItem>
         )}
 
         {/* Duplicate */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
+          className="text-sm gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={() => onDuplicate(job)}
         >
           <Copy className="w-3.5 h-3.5" />
           Duplicate
-          <ContextMenuShortcut className="text-[9px] text-[var(--app-text-dim)]">⌘D</ContextMenuShortcut>
+          <ContextMenuShortcut className="text-xs text-[var(--app-text-dim)]">⌘D</ContextMenuShortcut>
         </ContextMenuItem>
 
         {/* Cancel (for active states) */}
         {isCancelable && (
           <ContextMenuItem
-            className="text-[11px] gap-2 text-orange-400 focus:text-orange-300 focus:bg-orange-500/10"
+            className="text-sm gap-2 text-orange-400 focus:text-orange-300 focus:bg-orange-500/10"
             onClick={() => onCancel(job)}
           >
             <Ban className="w-3.5 h-3.5" />
@@ -93,7 +93,7 @@ export function JobContextMenu({
         <ContextMenuSeparator className="bg-[var(--app-surface-hover)]" />
 
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
+          className="text-sm gap-2 text-[var(--app-text-secondary)] focus:text-[var(--app-text-primary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={() => onLinkParent(job)}
         >
           <Link2 className="w-3.5 h-3.5" />
@@ -104,17 +104,17 @@ export function JobContextMenu({
 
         {/* Copy Job ID */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-[var(--app-hover-subtle)]"
+          className="text-sm gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={handleCopyId}
         >
           <Clipboard className="w-3.5 h-3.5" />
           Copy Job ID
-          <ContextMenuShortcut className="text-[9px] text-[var(--app-text-dim)]">⌘C</ContextMenuShortcut>
+          <ContextMenuShortcut className="text-xs text-[var(--app-text-dim)]">⌘C</ContextMenuShortcut>
         </ContextMenuItem>
 
         {/* Open in New Tab (copies URL) */}
         <ContextMenuItem
-          className="text-[11px] gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-[var(--app-hover-subtle)]"
+          className="text-sm gap-2 text-[var(--app-text-muted)] focus:text-[var(--app-text-secondary)] focus:bg-[var(--app-hover-subtle)]"
           onClick={handleOpenInNewTab}
         >
           <ExternalLink className="w-3.5 h-3.5" />
@@ -126,12 +126,12 @@ export function JobContextMenu({
         {/* Delete - destructive */}
         <ContextMenuItem
           variant="destructive"
-          className="text-[11px] gap-2 text-rose-400 focus:text-rose-300 focus:bg-rose-500/10"
+          className="text-sm gap-2 text-rose-400 focus:text-rose-300 focus:bg-rose-500/10"
           onClick={() => onDelete(job.id)}
         >
           <Trash2 className="w-3.5 h-3.5" />
           Delete
-          <ContextMenuShortcut className="text-[9px] text-rose-600/60">Del</ContextMenuShortcut>
+          <ContextMenuShortcut className="text-xs text-rose-600/60">Del</ContextMenuShortcut>
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

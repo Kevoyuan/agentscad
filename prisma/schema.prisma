@@ -39,6 +39,10 @@ model Job {
   parent          Job?     @relation("JobHierarchy", fields: [parentId], references: [id])
   children        Job[]    @relation("JobHierarchy")
   versions        JobVersion[]
+
+  @@index([priority, createdAt])
+  @@index([state, priority, createdAt])
+  @@index([parentId])
 }
 
 model JobVersion {

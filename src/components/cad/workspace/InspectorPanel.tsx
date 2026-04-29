@@ -157,7 +157,7 @@ export function InspectorPanel({
                 <TabsTrigger
                   key={tab.key}
                   value={tab.key}
-                  className="tab-indicator shrink-0 text-[9px] font-mono tracking-wider px-2.5 py-1.5 data-[state=active]:bg-[var(--app-accent-bg)] data-[state=active]:text-[var(--app-accent-text)] data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
+                  className="tab-indicator shrink-0 text-xs font-mono tracking-wider px-2.5 py-1.5 data-[state=active]:bg-[var(--app-accent-bg)] data-[state=active]:text-[var(--app-accent-text)] data-[state=active]:tab-active-glow rounded-sm h-auto min-h-0 transition-all duration-150"
                 >
                   {tab.label}
                 </TabsTrigger>
@@ -193,10 +193,10 @@ export function InspectorPanel({
             </svg>
             <div className="text-center mt-2">
               <p className="text-sm font-medium text-[var(--app-text-muted)]">Inspector Panel</p>
-              <p className="text-[10px] text-[var(--app-text-dim)] mt-1 max-w-[200px]">Select a job from the list to view parameters, code, and pipeline details</p>
+              <p className="text-[13px] text-[var(--app-text-dim)] mt-1 max-w-[200px]">Select a job from the list to view parameters, code, and pipeline details</p>
             </div>
-            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 mt-2 border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:border-[color:var(--app-border-strong)]" onClick={onShowComposer}>
-              <Plus className="w-3 h-3" />Create a Job to Begin
+            <Button size="sm" variant="outline" className="h-7 text-[13px] gap-1 mt-2 border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:border-[color:var(--app-border-strong)]" onClick={onShowComposer}>
+              <Plus className="w-3.5 h-3.5" />Create a Job to Begin
             </Button>
           </div>
         )}

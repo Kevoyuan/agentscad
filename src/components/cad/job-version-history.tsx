@@ -36,13 +36,13 @@ function ParameterDiff({ oldValue, newValue }: { oldValue: string | null; newVal
   }
 
   if (changes.length === 0) {
-    return <span className="text-[9px] text-[var(--app-text-dim)] italic">No specific changes detected</span>
+    return <span className="text-xs text-[var(--app-text-dim)] italic">No specific changes detected</span>
   }
 
   return (
     <div className="space-y-1 mt-1">
       {changes.map(c => (
-        <div key={c.key} className="flex items-center gap-2 text-[10px] font-mono">
+        <div key={c.key} className="flex items-center gap-2 text-[13px] font-mono">
           <span className="text-[var(--app-text-muted)] min-w-[60px]">{c.key}</span>
           <span className="text-rose-400 line-through">{c.old != null ? String(c.old) : '—'}</span>
           <span className="text-[var(--app-text-dim)]">→</span>
@@ -81,7 +81,7 @@ function ScadDiff({ oldValue, newValue }: { oldValue: string | null; newValue: s
   }
 
   return (
-    <div className="mt-1 font-mono text-[9px] max-h-32 overflow-y-auto rounded bg-[var(--app-bg)] border border-[color:var(--app-border)]">
+    <div className="mt-1 font-mono text-xs max-h-32 overflow-y-auto rounded bg-[var(--app-bg)] border border-[color:var(--app-border)]">
       {diffs.map((d, idx) => (
         <div
           key={idx}
@@ -110,13 +110,13 @@ function NotesDiff({ oldValue, newValue }: { oldValue: string | null; newValue: 
       {oldValue && (
         <div>
           <span className="text-[8px] text-[var(--app-text-dim)] uppercase">Before</span>
-          <p className="text-[10px] text-rose-300/80 line-through truncate max-w-full">{oldValue.slice(0, 100)}{oldValue.length > 100 ? '...' : ''}</p>
+          <p className="text-[13px] text-rose-300/80 line-through truncate max-w-full">{oldValue.slice(0, 100)}{oldValue.length > 100 ? '...' : ''}</p>
         </div>
       )}
       {newValue && (
         <div>
           <span className="text-[8px] text-[var(--app-text-dim)] uppercase">After</span>
-          <p className="text-[10px] text-emerald-300/80 truncate max-w-full">{newValue.slice(0, 100)}{newValue.length > 100 ? '...' : ''}</p>
+          <p className="text-[13px] text-emerald-300/80 truncate max-w-full">{newValue.slice(0, 100)}{newValue.length > 100 ? '...' : ''}</p>
         </div>
       )}
     </div>
@@ -166,8 +166,8 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
-        <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-[10px]">Loading history...</p>
+        <div className="w-8 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-[13px]">Loading history...</p>
       </div>
     )
   }
@@ -179,7 +179,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
           <History className="w-6 h-6 opacity-30" />
         </div>
         <p className="text-sm">No version history</p>
-        <p className="text-[10px] text-[var(--app-text-dim)]">Changes to parameters, SCAD, and notes will be tracked here</p>
+        <p className="text-[13px] text-[var(--app-text-dim)]">Changes to parameters, SCAD, and notes will be tracked here</p>
       </div>
     )
   }
@@ -187,12 +187,12 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)] shrink-0">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
-          <History className="w-3 h-3" />
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)] shrink-0">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5" />
           Version History
         </h3>
-        <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
+        <Badge variant="outline" className="text-xs h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
           {versions.length} changes
         </Badge>
       </div>
@@ -200,7 +200,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
       {/* Filter */}
       {Object.keys(fieldCounts).length > 1 && (
         <div className="flex items-center gap-1 px-4 py-1.5 border-b border-[color:var(--app-border)]">
-          <Search className="w-3 h-3 text-[var(--app-text-dim)]" />
+          <Search className="w-3.5 h-3.5 text-[var(--app-text-dim)]" />
           {['all', ...Object.keys(fieldCounts)].map(f => {
             const isActive = f === 'all' ? !filterField : filterField === f
             const info = f !== 'all' ? FIELD_INFO[f] : null
@@ -251,8 +251,8 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
                   >
                     <div className="flex items-center justify-between px-3 py-1.5">
                       <div className="flex items-center gap-1.5">
-                        <FieldIcon className={`w-3 h-3 ${fieldInfo.color}`} />
-                        <span className="text-[10px] font-medium text-[var(--app-text-secondary)]">{fieldInfo.label}</span>
+                        <FieldIcon className={`w-3.5 h-3.5 ${fieldInfo.color}`} />
+                        <span className="text-[13px] font-medium text-[var(--app-text-secondary)]">{fieldInfo.label}</span>
                         <span className="text-[8px] text-[var(--app-text-dim)]">changed</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
                           animate={{ rotate: isExpanded ? 180 : 0 }}
                           transition={{ duration: 0.15 }}
                         >
-                          <ChevronDown className="w-3 h-3 text-[var(--app-text-dim)]" />
+                          <ChevronDown className="w-3.5 h-3.5 text-[var(--app-text-dim)]" />
                         </motion.div>
                       </div>
                     </div>

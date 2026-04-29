@@ -76,13 +76,13 @@ function NotificationItem({
       }}
     >
       <div className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center ${config.bgColor}`}>
-        <Icon className={`w-3 h-3 ${config.color}`} />
+        <Icon className={`w-3.5 h-3.5 ${config.color}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-[11px] leading-tight ${notification.read ? 'text-[var(--app-text-muted)]' : 'text-[var(--app-text-secondary)]'}`}>
+        <p className={`text-sm leading-tight ${notification.read ? 'text-[var(--app-text-muted)]' : 'text-[var(--app-text-secondary)]'}`}>
           {notification.title}
         </p>
-        <p className="text-[9px] text-[var(--app-text-dim)] mt-0.5 truncate">{notification.description}</p>
+        <p className="text-xs text-[var(--app-text-dim)] mt-0.5 truncate">{notification.description}</p>
         <p className="text-[8px] text-[var(--app-text-dim)] mt-1 font-mono">{notifTimeAgo(notification.timestamp)}</p>
       </div>
       {!notification.read && (
@@ -131,10 +131,10 @@ export function NotificationCenter({
       <Button
         variant="ghost"
         size="sm"
-        className="h-6 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
+        className="h-6 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <Bell className="w-3 h-3" />
+        <Bell className="w-3.5 h-3.5" />
         {unreadCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
@@ -160,7 +160,7 @@ export function NotificationCenter({
             <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
               <div className="flex items-center gap-2">
                 <Bell className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
-                <span className="text-[11px] font-medium text-[var(--app-text-secondary)]">Notifications</span>
+                <span className="text-sm font-medium text-[var(--app-text-secondary)]">Notifications</span>
                 {unreadCount > 0 && (
                   <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
                     {unreadCount} new
@@ -194,20 +194,20 @@ export function NotificationCenter({
                   className="h-5 text-[8px] text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] px-0.5"
                   onClick={() => setIsOpen(false)}
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
 
             {/* Notifications List */}
-            <ScrollArea className="max-h-80">
+            <ScrollArea className="max-h-70">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center gentle-float">
                     <Bell className="w-5 h-5 text-[var(--app-text-dim)]" />
                   </div>
-                  <p className="text-[11px] text-[var(--app-text-dim)]">No notifications</p>
-                  <p className="text-[9px] text-[var(--app-text-dim)]">You&apos;re all caught up</p>
+                  <p className="text-sm text-[var(--app-text-dim)]">No notifications</p>
+                  <p className="text-xs text-[var(--app-text-dim)]">You&apos;re all caught up</p>
                 </div>
               ) : (
                 <div className="divide-y divide-[color:var(--app-border)]">

@@ -7,7 +7,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { ChatMessage, Job } from './types'
 import { sendChatMessageStream, fetchModels, ModelInfo } from './api'
 import { copyText } from '@/lib/clipboard'
@@ -47,9 +47,9 @@ function CodeCopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="code-copy-btn text-[9px] font-mono text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] bg-[var(--app-surface-raised)] px-1.5 py-0.5 rounded flex items-center gap-1"
+      className="code-copy-btn text-xs font-mono text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] bg-[var(--app-surface-raised)] hover:bg-[var(--app-surface-hover)] border border-[color:var(--app-border)] shadow-sm active:scale-[0.97] transition-all cursor-pointer px-2 py-1 rounded flex items-center gap-1.5"
     >
-      {copied ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+      {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
       {copied ? 'Copied' : 'Copy'}
     </button>
   )
@@ -212,10 +212,10 @@ function MessagePatchButton({
     <button
       onClick={handleApply}
       disabled={isApplying}
-      className={`flex items-center gap-1 rounded bg-[var(--app-accent-bg)] px-1.5 py-0.5 font-mono text-[8px] text-[var(--app-accent-text)] disabled:cursor-wait disabled:opacity-60 ${className}`}
+      className={`flex items-center gap-1.5 rounded bg-[var(--app-accent-text)] hover:brightness-110 active:brightness-95 px-2 py-1 font-mono text-xs text-white shadow-sm active:scale-[0.97] transition-all disabled:cursor-wait disabled:opacity-60 cursor-pointer border border-transparent ${className}`}
       title="Apply every SCAD patch block in this assistant message"
     >
-      <Wand2 className="h-2.5 w-2.5" />
+      <Wand2 className="h-3 w-3" />
       {isApplying ? 'Rendering...' : 'Apply All & Render'}
     </button>
   )
@@ -245,9 +245,9 @@ function ScadApplyButton({
     <button
       onClick={handleApply}
       disabled={isApplying}
-      className="text-[9px] font-mono text-[var(--app-accent-text)] hover:text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] px-1.5 py-0.5 rounded flex items-center gap-1 disabled:opacity-60 disabled:cursor-wait"
+      className="text-xs font-mono text-white bg-[var(--app-accent-text)] hover:brightness-110 active:brightness-95 shadow-sm active:scale-[0.97] transition-all px-2 py-1 rounded flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-wait border border-transparent cursor-pointer"
     >
-      <Wand2 className="w-2.5 h-2.5" />
+      <Wand2 className="w-3 h-3" />
       {isApplying ? 'Rendering...' : mode === 'replace' ? 'Apply & Render' : 'Patch & Render'}
     </button>
   )
@@ -307,7 +307,7 @@ export function ChatPanel({
   const abortRef = useRef<(() => void) | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelPickerRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
+
 
   // Persist chat messages to localStorage per job
   useEffect(() => {
@@ -350,18 +350,14 @@ export function ChatPanel({
     const firstVisionModel = models.find(model => model.multimodal)
     if (firstVisionModel) {
       setSelectedModel(firstVisionModel.id)
-      toast({
-        title: 'Switched to vision model',
+      toast.success('Switched to vision model', {
         description: `${firstVisionModel.name} can inspect pasted screenshots.`,
-        duration: 2600,
       })
       return true
     }
     setSelectedModel(DEFAULT_VISION_MODEL)
-    toast({
-      title: 'Switched to vision model',
+    toast.success('Switched to vision model', {
       description: 'MiMo-V2.5 can inspect pasted screenshots.',
-      duration: 2600,
     })
     return true
   }, [isMultimodal, models, toast])
@@ -374,11 +370,8 @@ export function ChatPanel({
 
   const ensureImagesCanSend = useCallback(() => {
     if (canAttachImages()) return true
-    toast({
-      title: 'No vision model available',
+    toast.error('No vision model available', {
       description: 'Paste support needs a multimodal model that can read images.',
-      variant: 'destructive',
-      duration: 3200,
     })
     return false
   }, [canAttachImages, toast])
@@ -396,10 +389,8 @@ export function ChatPanel({
       }
       reader.readAsDataURL(file)
     })
-    toast({
-      title: `${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} attached`,
+    toast.info(`${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} attached`, {
       description: source === 'paste' ? 'Screenshot pasted into the AI assistant.' : source === 'drop' ? 'Image dropped into the AI assistant.' : 'Image attached to the prompt.',
-      duration: 2200,
     })
     return true
   }, [ensureVisionModel, toast])
@@ -540,10 +531,8 @@ export function ChatPanel({
       if (mode === 'replace') {
         await onApplyScad(job, scadSource)
         if (previousSource) setLastAppliedSource(previousSource)
-        toast({
-          title: 'Applied and rendered',
-          description: 'The current SCAD was applied directly. No regeneration step was used.',
-          duration: 2600,
+        toast.success('Applied and rendered', {
+          description: 'The current SCAD was applied directly.',
         })
         return
       }
@@ -551,29 +540,21 @@ export function ChatPanel({
       const currentSource = previousSource
       const patchResult = mergeScadPatch(currentSource, scadSource)
       if (!currentSource || patchResult.changes.length === 0 || patchResult.source === currentSource) {
-        toast({
-          title: 'Patch needs context',
+        toast.warning('Patch needs context', {
           description: 'I could not safely match this snippet to the current file. Ask for a full SCAD block or apply it manually in Code.',
-          variant: 'destructive',
-          duration: 4200,
         })
         return
       }
 
       await onApplyScad(job, patchResult.source)
       setLastAppliedSource(currentSource)
-      toast({
-        title: 'Patched and rendered',
+      toast.success('Patched and rendered', {
         description: `Updated ${patchResult.changes.slice(0, 3).join(', ')}${patchResult.changes.length > 3 ? '...' : ''}. No regeneration step was used.`,
-        duration: 3000,
       })
     } catch (err) {
       console.error('Failed to apply AI SCAD:', err)
-      toast({
-        title: 'Apply failed',
+      toast.error('Apply failed', {
         description: err instanceof Error ? err.message : 'Failed to apply SCAD to the current job',
-        variant: 'destructive',
-        duration: 3500,
       })
     }
   }, [job, onApplyScad, toast])
@@ -584,17 +565,12 @@ export function ChatPanel({
     try {
       await onApplyScad(job, lastAppliedSource)
       setLastAppliedSource(currentSource || null)
-      toast({
-        title: 'Apply reverted',
+      toast.success('Apply reverted', {
         description: 'Restored the previous SCAD source and rendered it again.',
-        duration: 2800,
       })
     } catch (err) {
-      toast({
-        title: 'Undo failed',
+      toast.error('Undo failed', {
         description: err instanceof Error ? err.message : 'Could not restore previous SCAD',
-        variant: 'destructive',
-        duration: 3500,
       })
     }
   }, [job, lastAppliedSource, onApplyScad, toast])
@@ -608,13 +584,12 @@ export function ChatPanel({
       const canApplyScad = enableScadApply && (language === 'openscad' || language === 'scad')
       const applyMode = hasCompleteScadShape(codeStr) ? 'replace' : 'patch'
       return isInline ? (
-        <code className="bg-[var(--app-surface-raised)] px-1 py-0.5 rounded text-[10px] text-[var(--app-accent-text)]" {...props}>
+        <code className="bg-[var(--app-surface-raised)] px-1 py-0.5 rounded text-[13px] text-[var(--app-accent-text)]" {...props}>
           {children}
         </code>
       ) : (
-        <div className="relative">
-          <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-            {canApplyScad && <ScadApplyButton text={codeStr} mode={applyMode} onApply={handleApplyScad} />}
+        <div className="relative group flex flex-col my-1">
+          <div className="absolute right-2 top-2 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <CodeCopyButton text={codeStr} />
           </div>
           <SyntaxHighlighter
@@ -624,12 +599,17 @@ export function ChatPanel({
             customStyle={{
               fontSize: '10px',
               borderRadius: '6px',
-              margin: '4px 0',
+              margin: '0',
               padding: '8px',
             }}
           >
             {codeStr}
           </SyntaxHighlighter>
+          {canApplyScad && (
+            <div className="mt-1.5 flex justify-end">
+              <ScadApplyButton text={codeStr} mode={applyMode} onApply={handleApplyScad} />
+            </div>
+          )}
         </div>
       )
     },
@@ -638,7 +618,7 @@ export function ChatPanel({
   const assistantMarkdownComponents = useMemo(() => createMarkdownComponents(true), [createMarkdownComponents])
   const streamingMarkdownComponents = useMemo(() => createMarkdownComponents(false), [createMarkdownComponents])
 
-  const proseClasses = "prose prose-invert prose-xs max-w-none [&_pre]:rounded-md [&_pre]:bg-[var(--app-bg)] [&_pre]:border [&_pre]:border-[color:var(--app-border)] [&_pre]:p-2 [&_pre]:text-[10px] [&_pre]:leading-relaxed [&_code]:text-[var(--app-accent-text)] [&_code]:before:content-none [&_code]:after:content-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-[11px] [&_strong]:text-[var(--app-text-primary)] [&_a]:text-[var(--app-accent-text)]"
+  const proseClasses = "prose prose-invert prose-xs max-w-none [&_pre]:rounded-md [&_pre]:bg-[var(--app-bg)] [&_pre]:border [&_pre]:border-[color:var(--app-border)] [&_pre]:p-2 [&_pre]:text-[13px] [&_pre]:leading-relaxed [&_code]:text-[var(--app-accent-text)] [&_code]:before:content-none [&_code]:after:content-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-sm [&_strong]:text-[var(--app-text-primary)] [&_a]:text-[var(--app-accent-text)]"
 
   return (
     <div
@@ -657,14 +637,14 @@ export function ChatPanel({
         <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-lg border border-dashed border-[color:var(--app-accent)] bg-[var(--app-accent-bg)]/80 backdrop-blur-sm">
           <div className="rounded-lg border border-[color:var(--app-accent-border)] bg-[var(--app-surface)] px-3 py-2 text-center shadow-lg">
             <ImagePlus className="mx-auto mb-1 h-5 w-5 text-[var(--app-accent-text)]" />
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--app-accent-text)]">Drop screenshot</p>
-            <p className="mt-1 text-[10px] text-[var(--app-text-muted)]">Attach it to this CAD conversation</p>
+            <p className="font-mono text-[13px] uppercase tracking-widest text-[var(--app-accent-text)]">Drop screenshot</p>
+            <p className="mt-1 text-[13px] text-[var(--app-text-muted)]">Attach it to this CAD conversation</p>
           </div>
         </div>
       )}
       <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--app-border)] px-3 py-2">
-        <h3 className="flex min-w-0 items-center gap-1.5 truncate text-[10px] font-mono uppercase tracking-widest text-[var(--app-text-muted)]">
-          <Sparkles className="w-3 h-3 text-[var(--app-accent-text)]" />AI Assistant
+        <h3 className="flex min-w-0 items-center gap-1.5 truncate text-[13px] font-mono uppercase tracking-widest text-[var(--app-text-muted)]">
+          <Sparkles className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />AI Assistant
         </h3>
         <div className="flex min-w-0 shrink-0 items-center gap-1">
           {lastAppliedSource && (
@@ -681,7 +661,7 @@ export function ChatPanel({
           {/* Model Picker */}
           <div className="relative min-w-0" ref={modelPickerRef}>
             <button
-              className="flex max-w-36 items-center gap-1 truncate rounded px-1.5 py-0.5 font-mono text-[9px] text-[var(--app-text-muted)] transition-colors hover:text-[var(--app-text-secondary)] linear-surface-hover"
+              className="flex max-w-36 items-center gap-1 truncate rounded px-1.5 py-0.5 font-mono text-xs text-[var(--app-text-muted)] transition-all hover:text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] active:scale-[0.97] cursor-pointer"
               onClick={() => setShowModelPicker(!showModelPicker)}
             >
               <span className="truncate">{currentModel?.name || 'MiMo-V2.5-Pro'}</span>
@@ -721,7 +701,7 @@ export function ChatPanel({
                       return (
                         <button
                           key={model.id}
-                          className={`w-full text-left px-3 py-1.5 text-[10px] flex items-center gap-2 transition-colors ${
+                          className={`w-full text-left px-3 py-1.5 text-[13px] flex items-center gap-2 transition-colors ${
                             selectedModel === model.id ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-primary)] hover:bg-[var(--app-hover-subtle)]'
                           }`}
                           onClick={() => { setSelectedModel(model.id); setShowModelPicker(false) }}
@@ -756,13 +736,13 @@ export function ChatPanel({
             </div>
             <div className="text-center">
               <p className="text-xs">Ask about this CAD job</p>
-              <p className="text-[10px] text-[var(--app-text-dim)] mt-1">Using {currentModel?.name || 'MiMo-V2.5-Pro'} by {currentModel?.providerName || 'Xiaomi MiMo'}</p>
+              <p className="text-[13px] text-[var(--app-text-dim)] mt-1">Using {currentModel?.name || 'MiMo-V2.5-Pro'} by {currentModel?.providerName || 'Xiaomi MiMo'}</p>
             </div>
             <div className="mt-1 flex max-w-[280px] flex-wrap justify-center gap-1 px-2">
               {suggestions.map(q => (
                 <button
                   key={q}
-                  className="text-[9px] font-mono text-[var(--app-text-dim)] bg-[var(--app-surface-hover)] px-2 py-1 rounded-md hover:text-[var(--app-text-muted)] hover:bg-[var(--app-surface-raised)] transition-colors"
+                  className="text-xs font-mono text-[var(--app-text-dim)] bg-[var(--app-surface-hover)] px-2 py-1 rounded-md hover:text-[var(--app-text-muted)] hover:bg-[var(--app-surface-raised)] transition-colors"
                   onClick={() => setInput(q)}
                 >
                   {q}
@@ -776,7 +756,7 @@ export function ChatPanel({
             key={i}
               className={`flex min-w-0 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-            <div className={`max-w-[92%] overflow-hidden rounded-lg px-3 py-2 text-[11px] leading-relaxed ${
+            <div className={`max-w-[92%] overflow-hidden rounded-lg px-3 py-2 text-sm leading-relaxed ${
               msg.role === 'user'
                 ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                 : 'bg-[var(--app-surface-raised)] text-[var(--app-text-secondary)] border border-[color:var(--app-border)]'
@@ -837,7 +817,7 @@ export function ChatPanel({
         {/* Streaming message */}
         {isStreaming && streamingContent && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-lg px-3 py-2 text-[11px] leading-relaxed bg-[var(--app-surface-raised)] text-[var(--app-text-secondary)] border border-[color:var(--app-border)]">
+            <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed bg-[var(--app-surface-raised)] text-[var(--app-text-secondary)] border border-[color:var(--app-border)]">
               <div className="flex items-center gap-1 mb-1">
                 <Sparkles className="w-2.5 h-2.5 text-[var(--app-accent-text)] animate-pulse" />
                 <span className="text-[8px] font-mono text-[var(--app-accent-text)]">AgentSCAD</span>
@@ -856,8 +836,8 @@ export function ChatPanel({
           <div className="flex justify-start">
             <div className="bg-[var(--app-surface-raised)] border border-[color:var(--app-border)] rounded-lg px-3 py-2">
               <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 animate-spin text-[var(--app-accent-text)]" />
-                <span className="text-[10px] text-[var(--app-text-muted)]">Thinking...</span>
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-[var(--app-accent-text)]" />
+                <span className="text-[13px] text-[var(--app-text-muted)]">Thinking...</span>
                 <div className="flex gap-1 ml-1">
                   <span className="typing-wave-dot" />
                   <span className="typing-wave-dot" />
@@ -915,16 +895,16 @@ export function ChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder={isMultimodal ? 'Paste screenshot or ask about this CAD...' : 'Ask about this design...'}
-            className="h-7 min-w-0 bg-[var(--app-bg)] text-[11px] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
+            className="h-7 min-w-0 bg-[var(--app-bg)] text-sm border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
             disabled={isStreaming}
           />
           {isStreaming ? (
             <Button size="sm" className="h-7 w-7 p-0 bg-rose-600 hover:bg-rose-500 shrink-0 stop-btn-pulse" onClick={handleStop}>
-              <Square className="w-3 h-3" />
+              <Square className="w-3.5 h-3.5" />
             </Button>
           ) : (
             <Button size="sm" className="h-7 w-7 p-0 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] shrink-0" onClick={handleSend} disabled={!input.trim() && pendingImages.length === 0}>
-              <Send className="w-3 h-3" />
+              <Send className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>

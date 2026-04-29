@@ -9,6 +9,7 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "test": "bun test",
+    "license:audit": "node scripts/audit-licenses.mjs",
     "scad:libs:check": "python3 skills/scad-library-policy/scripts/check_scad_libraries.py",
     "scad:libs:install": "python3 skills/scad-library-policy/scripts/install_scad_libraries.py",
     "scad:libs:install:gpl": "python3 skills/scad-library-policy/scripts/install_scad_libraries.py --include-gpl",

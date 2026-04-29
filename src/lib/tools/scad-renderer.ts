@@ -20,7 +20,7 @@ function formatOpenScadDefineValue(value: unknown): string | null {
   return null;
 }
 
-function buildDefineArgs(definitions?: Record<string, unknown>): string {
+export function buildOpenScadDefineArgs(definitions?: Record<string, unknown>): string {
   if (!definitions) return "";
 
   return Object.entries(definitions)
@@ -56,7 +56,7 @@ export async function renderStl(
   stlFilePath: string,
   definitions?: Record<string, unknown>
 ): Promise<void> {
-  const defineArgs = buildDefineArgs(definitions);
+  const defineArgs = buildOpenScadDefineArgs(definitions);
   await execAsync(`openscad ${defineArgs} -o ${quoteShellArg(stlFilePath)} ${quoteShellArg(scadFilePath)}`, {
     env: await buildOpenScadExecEnv(),
   });
@@ -67,7 +67,7 @@ export async function renderPng(
   pngFilePath: string,
   definitions?: Record<string, unknown>
 ): Promise<void> {
-  const defineArgs = buildDefineArgs(definitions);
+  const defineArgs = buildOpenScadDefineArgs(definitions);
   await execAsync(`openscad ${defineArgs} -o ${quoteShellArg(pngFilePath)} --colorscheme=Tomorrow ${quoteShellArg(scadFilePath)}`, {
     env: await buildOpenScadExecEnv(),
   });

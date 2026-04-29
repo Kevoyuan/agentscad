@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 import { JobTemplateCards } from '@/components/cad/job-templates'
 import { CaseMemory } from '@/components/cad/case-memory'
@@ -45,7 +45,7 @@ export function JobComposer({
   onCreate: () => void
   onAiEnhance: () => void
 }) {
-  const { toast } = useToast()
+
   const generationModels = [
     {
       id: 'mimo-v2.5-pro',
@@ -110,12 +110,12 @@ export function JobComposer({
           {/* Recent Requests */}
           {recentRequests.length > 0 && (
             <div>
-              <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-1.5 block">Recent Requests</label>
+              <label className="text-[13px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-1.5 block">Recent Requests</label>
               <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                 {recentRequests.map((req, i) => (
                   <button
                     key={i}
-                    className="recent-request-item text-left text-[10px] text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)] px-2.5 py-1.5 rounded border border-[color:var(--app-border)] hover:border-[color:var(--app-accent-border)] hover:bg-[var(--app-surface-raised)] truncate transition-colors"
+                    className="recent-request-item text-left text-[13px] text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)] px-2.5 py-1.5 rounded border border-[color:var(--app-border)] hover:border-[color:var(--app-accent-border)] hover:bg-[var(--app-surface-raised)] truncate transition-colors"
                     onClick={() => onNewJobTextChange(req)}
                   >
                     {req.slice(0, 80)}{req.length > 80 ? '…' : ''}
@@ -129,7 +129,7 @@ export function JobComposer({
               <JobTemplateCards onSelect={(template) => onNewJobTextChange(template)} />
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase">Part intent</label>
+                  <label className="text-[13px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase">Part intent</label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -150,17 +150,15 @@ export function JobComposer({
                   maxLength={5000}
                 />
                 <div className="flex justify-between mt-1.5">
-                  <span className="text-[10px] text-[var(--app-text-muted)]">{newJobText.length}/5000</span>
-                  <span className="text-[10px] text-[var(--app-text-muted)]">⌘+Enter</span>
+                  <span className="text-[13px] text-[var(--app-text-muted)]">{newJobText.length}/5000</span>
+                  <span className="text-[13px] text-[var(--app-text-muted)]">⌘+Enter</span>
                 </div>
                 {/* Case Memory - Similar Past Jobs */}
                 <CaseMemory
                   searchQuery={newJobText}
                   onSuggestionClick={(job) => {
-                    toast({
-                      title: 'Similar job found',
+                    toast.info('Similar job found', {
                       description: job.inputRequest.slice(0, 60),
-                      duration: 3000,
                     })
                   }}
                 />
@@ -169,16 +167,16 @@ export function JobComposer({
 
             <div className="cad-panel p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono tracking-widest text-[var(--cad-text-secondary)] uppercase">Constraint chips</span>
-                <LockKeyhole className="w-3 h-3 text-[var(--cad-text-muted)]" />
+                <span className="text-[13px] font-mono tracking-widest text-[var(--cad-text-secondary)] uppercase">Constraint chips</span>
+                <LockKeyhole className="w-3.5 h-3.5 text-[var(--cad-text-muted)]" />
               </div>
               <div className="space-y-3">
                 {specGroups.map(group => {
                   const Icon = group.icon
                   return (
                     <div key={group.label} className="space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-[9px] font-mono tracking-widest uppercase text-[var(--cad-text-muted)]">
-                        <Icon className="w-3 h-3" />
+                      <div className="flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase text-[var(--cad-text-muted)]">
+                        <Icon className="w-3.5 h-3.5" />
                         {group.label}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
@@ -200,7 +198,7 @@ export function JobComposer({
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
+            <label className="text-[13px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
               <Brain className="w-2.5 h-2.5" />Generation Model
             </label>
             <div className="grid gap-2 sm:grid-cols-3">
@@ -216,24 +214,24 @@ export function JobComposer({
                   onClick={() => onNewJobModelIdChange(model.id)}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-mono font-semibold">{model.name}</span>
+                    <span className="text-sm font-mono font-semibold">{model.name}</span>
                     <span className="text-[8px] uppercase tracking-widest opacity-70">{model.provider}</span>
                   </div>
-                  <p className="mt-1 text-[9px] leading-snug opacity-75">{model.description}</p>
+                  <p className="mt-1 text-xs leading-snug opacity-75">{model.description}</p>
                 </button>
               ))}
             </div>
           </div>
           {/* Tags Input */}
           <div>
-            <label className="text-[10px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
+            <label className="text-[13px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase mb-2 flex items-center gap-1.5">
               <Tag className="w-2.5 h-2.5" />Tags
             </label>
             <Input
               value={newJobTags}
               onChange={e => onNewJobTagsChange(e.target.value)}
               placeholder="enclosure, prototype, urgent"
-              className="h-7 text-[11px] bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent-border)]"
+              className="h-7 text-sm bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent-border)]"
             />
             {newJobTags.trim() && (
               <div className="mt-1.5">

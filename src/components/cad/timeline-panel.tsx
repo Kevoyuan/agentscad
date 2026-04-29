@@ -12,9 +12,9 @@ export function TimelinePanel({ job }: { job: Job }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Timeline</h3>
-        <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Timeline</h3>
+        <Badge variant="outline" className="text-xs h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
           {logs.length} events
         </Badge>
       </div>
@@ -42,7 +42,7 @@ export function TimelinePanel({ job }: { job: Job }) {
                 log.event === 'VALIDATED' ? 'bg-emerald-500/10 text-emerald-400' :
                 'bg-[var(--app-surface-hover)] text-[var(--app-text-muted)]'
               }`}>{log.event}</span>
-              <span className="text-[11px] text-[var(--app-text-muted)] flex-1">{log.message}</span>
+              <span className="text-sm text-[var(--app-text-muted)] flex-1">{log.message}</span>
             </motion.div>
           ))}
           {logs.length === 0 && (

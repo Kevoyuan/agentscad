@@ -42,14 +42,14 @@ export function ScadViewer({ code }: { code: string | null }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">SCAD Source</h3>
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">SCAD Source</h3>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[9px] h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
+          <Badge variant="outline" className="text-xs h-4 bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] border-[color:var(--app-border)]">
             {lineCount} lines
           </Badge>
-          <Button variant="ghost" size="sm" className="h-5 text-[9px] gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleCopy}>
-            {copied ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+          <Button variant="ghost" size="sm" className="h-5 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={handleCopy}>
+            {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? 'Copied!' : 'Copy'}
           </Button>
         </div>
@@ -59,7 +59,7 @@ export function ScadViewer({ code }: { code: string | null }) {
           {/* Line numbers */}
           <div className="flex flex-col items-end pr-3 pl-4 py-4 select-none border-r border-[color:var(--app-border)]">
             {lines.map((_, idx) => (
-              <span key={idx} className="text-[10px] font-mono leading-relaxed text-[var(--app-text-dim)]">
+              <span key={idx} className="text-[13px] font-mono leading-relaxed text-[var(--app-text-dim)]">
                 {idx + 1}
               </span>
             ))}

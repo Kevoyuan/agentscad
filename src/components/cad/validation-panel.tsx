@@ -28,18 +28,18 @@ export function ValidationPanel({ job }: { job: Job }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--app-border)]">
-        <h3 className="text-[10px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Validation</h3>
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)]">
+        <h3 className="text-[13px] font-mono tracking-widest text-[var(--app-text-muted)] uppercase">Validation</h3>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <div className="w-8 h-1.5 rounded-full bg-[var(--app-surface-raised)] overflow-hidden">
               <div className={`h-full rounded-full transition-all ${score === 100 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${score}%` }} />
             </div>
-            <span className="text-[9px] font-mono text-[var(--app-text-muted)]">{score}%</span>
+            <span className="text-xs font-mono text-[var(--app-text-muted)]">{score}%</span>
           </div>
-          <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">{passed}✓</Badge>
-          {failed > 0 && <Badge variant="outline" className="text-[9px] h-4 bg-rose-500/10 text-rose-400 border-rose-500/20">{failed}✗</Badge>}
-          {skipped > 0 && <Badge variant="outline" className="text-[9px] h-4 bg-amber-500/10 text-amber-400 border-amber-500/20">{skipped} skipped</Badge>}
+          <Badge variant="outline" className="text-xs h-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">{passed}✓</Badge>
+          {failed > 0 && <Badge variant="outline" className="text-xs h-4 bg-rose-500/10 text-rose-400 border-rose-500/20">{failed}✗</Badge>}
+          {skipped > 0 && <Badge variant="outline" className="text-xs h-4 bg-amber-500/10 text-amber-400 border-amber-500/20">{skipped} skipped</Badge>}
         </div>
       </div>
       <ScrollArea className="flex-1">
@@ -72,7 +72,7 @@ export function ValidationPanel({ job }: { job: Job }) {
               }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-mono text-[var(--app-text-dim)] bg-[var(--app-surface-raised)] px-1 rounded">{r.rule_id}</span>
+                  <span className="text-xs font-mono text-[var(--app-text-dim)] bg-[var(--app-surface-raised)] px-1 rounded">{r.rule_id}</span>
                   <span className="text-xs text-[var(--app-text-secondary)]">{r.rule_name}</span>
                   {r.is_critical && (
                     <span className="flex items-center gap-0.5 text-[8px] text-amber-500">
@@ -86,7 +86,7 @@ export function ValidationPanel({ job }: { job: Job }) {
                   )}
                   <Badge variant="outline" className="text-[8px] h-3 px-1 border-[color:var(--app-border)] text-[var(--app-text-muted)]">{r.level}</Badge>
                 </div>
-                <p className="text-[11px] text-[var(--app-text-muted)] mt-0.5">{r.message}</p>
+                <p className="text-sm text-[var(--app-text-muted)] mt-0.5">{r.message}</p>
               </div>
             </motion.div>
           ))}
