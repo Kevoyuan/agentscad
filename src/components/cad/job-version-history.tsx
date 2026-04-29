@@ -174,9 +174,9 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
 
   if (versions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
-        <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
-          <History className="w-6 h-6 opacity-30" />
+      <div className="flex flex-col items-center justify-center h-full text-[var(--cad-text-muted)] gap-3 p-6">
+        <div className="w-12 h-12 rounded border border-[color:var(--cad-border-strong)] flex items-center justify-center opacity-40">
+          <History className="w-6 h-6" />
         </div>
         <p className="text-sm">No version history</p>
         <p className="text-[13px] text-[var(--app-text-dim)]">Changes to parameters, SCAD, and notes will be tracked here</p>

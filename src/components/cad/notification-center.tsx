@@ -203,9 +203,9 @@ export function NotificationCenter({
             <ScrollArea className="max-h-70">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center gentle-float">
-                    <Bell className="w-5 h-5 text-[var(--app-text-dim)]" />
-                  </div>
+                  <div className="w-10 h-10 rounded border border-[color:var(--cad-border-strong)] flex items-center justify-center opacity-40">
+                  <Activity className="w-5 h-5 text-[var(--cad-text-muted)]" />
+                </div>
                   <p className="text-sm text-[var(--app-text-dim)]">No notifications</p>
                   <p className="text-xs text-[var(--app-text-dim)]">You&apos;re all caught up</p>
                 </div>

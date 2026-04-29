@@ -22,9 +22,9 @@ export function ScadViewer({ code }: { code: string | null }) {
   }, [code])
 
   if (!code) return (
-    <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
-      <div className="w-12 h-12 rounded-xl bg-[var(--app-empty-bg)] flex items-center justify-center">
-        <FileCode className="w-6 h-6 opacity-30" />
+    <div className="flex flex-col items-center justify-center h-full text-[var(--cad-text-muted)] gap-3 p-6">
+      <div className="w-12 h-12 rounded border border-[color:var(--cad-border-strong)] flex items-center justify-center opacity-40">
+        <Box className="w-6 h-6" />
       </div>
       <p className="text-sm">No SCAD source</p>
     </div>
