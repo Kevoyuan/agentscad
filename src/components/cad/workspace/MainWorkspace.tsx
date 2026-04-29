@@ -130,8 +130,8 @@ export function MainWorkspace() {
       <header className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[var(--app-accent)] flex items-center justify-center">
-              <Box className="w-3.5 h-3.5 text-white" />
+            <div className="w-5 h-5 rounded bg-[var(--cad-accent)] flex items-center justify-center shadow-[0_0_12px_rgba(94,106,210,0.3)]">
+              <Box className="w-3 h-3 text-white" />
             </div>
             <h1 className="text-sm font-semibold tracking-tight text-[var(--app-text-primary)]">
               AgentSCAD
@@ -187,7 +187,7 @@ export function MainWorkspace() {
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-0.5 -right-0.5 min-w-[12px] h-[12px] rounded-full bg-amber-500 text-white text-[6px] font-bold flex items-center justify-center px-0.5"
+                  className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] rounded-full bg-[var(--cad-warning)] text-black text-[7px] font-bold flex items-center justify-center px-0.5"
                 >
                   {state.activityEvents.length > 9 ? '9+' : state.activityEvents.length}
                 </motion.span>

@@ -70,7 +70,7 @@ export function SortableJobCard({
   const progressPercent = getPipelineProgress(job.state)
   const progressColor = stateHex
 
-  const priorityTone = job.priority >= 8 ? 'text-rose-500' : job.priority >= 6 ? 'text-amber-500' : 'text-[var(--app-text-dim)]'
+  const priorityTone = job.priority >= 8 ? 'text-[var(--cad-danger)]' : job.priority >= 6 ? 'text-[var(--cad-warning)]' : 'text-[var(--cad-text-muted)]'
 
   return (
     <div
@@ -119,9 +119,9 @@ export function SortableJobCard({
             <p className="line-clamp-2 text-[12px] leading-snug text-[var(--app-text-secondary)]">{job.inputRequest}</p>
             <div className="mt-1 flex min-w-0 items-center gap-1.5">
               <StateBadge state={job.state} />
-              <span className="text-xs text-[var(--app-text-dim)]">{timeAgo(job.createdAt)}</span>
-              <span className="text-[var(--app-text-dim)]">·</span>
-              <span className={`text-xs font-medium ${priorityTone}`}>P{job.priority}</span>
+              <span className="text-[10px] font-mono text-[var(--cad-text-muted)]">{timeAgo(job.createdAt)}</span>
+              <span className="text-[var(--cad-border-strong)]">·</span>
+              <span className={`text-[10px] font-mono font-medium ${priorityTone}`}>P{job.priority}</span>
             </div>
           </div>
           <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
@@ -143,7 +143,7 @@ export function SortableJobCard({
               className="pipeline-mini-progress-fill"
               style={{
                 width: `${job.state === 'DELIVERED' ? 100 : progressPercent}%`,
-                backgroundColor: job.state === 'DELIVERED' ? 'var(--app-text-muted)' : (job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') ? 'var(--app-danger)' : progressColor
+                backgroundColor: job.state === 'DELIVERED' ? 'var(--cad-text-muted)' : (job.state === 'VALIDATION_FAILED' || job.state === 'GEOMETRY_FAILED' || job.state === 'RENDER_FAILED') ? 'var(--cad-danger)' : progressColor
               }}
             />
           </div>

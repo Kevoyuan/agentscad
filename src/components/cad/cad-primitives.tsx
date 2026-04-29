@@ -47,8 +47,8 @@ export function CadStatusDot({ tone = 'neutral' }: { tone?: 'neutral' | 'success
 
   return (
     <span
-      className="inline-block h-1.5 w-1.5 rounded-full"
-      style={{ background: color, boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 18%, transparent)` }}
+      className="inline-block h-1 w-1 rounded-full"
+      style={{ background: color, boxShadow: `0 0 0 2px color-mix(in srgb, ${color} 10%, transparent)` }}
     />
   )
 }

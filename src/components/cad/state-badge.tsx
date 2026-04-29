@@ -52,13 +52,31 @@ export function StateBadge({ state, size = 'sm', timestamp }: { state: string; s
       <TooltipTrigger asChild>
         <motion.span
           key={state}
-          className={`inline-flex items-center rounded-sm font-medium relative ${size === 'xs' ? 'gap-1 text-[8px] px-1 py-0.5' : size === 'sm' ? 'gap-1.5 text-xs px-1.5 py-0.5' : 'gap-1.5 text-[13px] px-2 py-0.5'} ${isFailed ? 'text-rose-600 dark:text-rose-400' : isDelivered ? 'text-emerald-700 dark:text-emerald-400' : isReview ? 'text-amber-600 dark:text-amber-400' : isProcessing ? 'text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)]'} bg-transparent border border-transparent linear-transition`}
-          initial={{ scale: 1.06 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className={`inline-flex items-center rounded-sm font-mono font-medium relative ${
+            size === 'xs' ? 'gap-1 text-[8px] px-1 py-0.5' : 
+            size === 'sm' ? 'gap-1.5 text-[10px] px-1.5 py-0.5' : 
+            'gap-1.5 text-xs px-2 py-0.5'
+          } ${
+            isFailed ? 'text-[var(--cad-danger)]' : 
+            isDelivered ? 'text-[var(--cad-success)]' : 
+            isReview ? 'text-[var(--cad-warning)]' : 
+            isProcessing ? 'text-[var(--cad-accent)]' : 
+            'text-[var(--cad-text-muted)]'
+          } bg-transparent border border-transparent transition-colors`}
+          initial={{ scale: 1.05, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.2 }}
         >
-          <span className={`relative rounded-full ${isFailed ? 'bg-rose-500' : isDelivered ? 'bg-emerald-500' : isReview ? 'bg-amber-500' : isProcessing ? 'bg-[var(--app-accent)]' : info.dot} ${isProcessing || isDelivered ? 'status-pulse' : ''} ${size === 'xs' ? 'w-1 h-1' : 'w-1.5 h-1.5'}`} />
-          <span className="relative">{label}</span>
+          <span className={`relative rounded-full ${
+            isFailed ? 'bg-[var(--cad-danger)]' : 
+            isDelivered ? 'bg-[var(--cad-success)]' : 
+            isReview ? 'bg-[var(--cad-warning)]' : 
+            isProcessing ? 'bg-[var(--cad-accent)]' : 
+            'bg-[var(--cad-text-muted)]'
+          } ${isProcessing || isDelivered ? 'status-pulse' : ''} ${
+            size === 'xs' ? 'w-1 h-1' : 'w-1.5 h-1.5'
+          }`} />
+          <span className="relative tracking-wider uppercase">{label}</span>
         </motion.span>
       </TooltipTrigger>
       <TooltipContent side="top">
