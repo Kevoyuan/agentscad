@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install CadCAD-managed OpenSCAD libraries with license gates."""
+"""Install AgentSCAD-managed OpenSCAD libraries with license gates."""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ def load_manifest() -> dict:
 
 def managed_dir(manifest: dict) -> pathlib.Path:
     override = os.environ.get(manifest["managed_library_dir_env"])
+    if not override and manifest.get("legacy_managed_library_dir_env"):
+        override = os.environ.get(manifest["legacy_managed_library_dir_env"])
     raw_path = override or manifest["default_managed_library_dir"]
     return pathlib.Path(raw_path).expanduser()
 
@@ -91,7 +93,7 @@ def write_install_record(root: pathlib.Path, installed: list[dict]) -> None:
         "managed_dir": str(root),
         "libraries": installed,
     }
-    (root / "cadcad-installed-libraries.json").write_text(
+    (root / "agentscad-installed-libraries.json").write_text(
         json.dumps(record, indent=2) + "\n",
         encoding="utf-8",
     )
@@ -132,7 +134,8 @@ def main(argv: list[str]) -> int:
 
     write_install_record(root, installed)
     print(f"Installed {len(installed)} librar{'y' if len(installed) == 1 else 'ies'}.")
-    print("Set OPENSCADPATH or CADCAD_OPENSCAD_LIBRARY_DIR only if using a non-default directory.")
+    print("Set OPENSCADPATH or AGENTSCAD_OPENSCAD_LIBRARY_DIR only if using a non-default directory.")
+    print("Legacy CADCAD_OPENSCAD_LIBRARY_DIR is still accepted for existing local setups.")
     return 0
 
 

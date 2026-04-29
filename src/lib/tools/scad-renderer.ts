@@ -34,7 +34,7 @@ function buildDefineArgs(definitions?: Record<string, unknown>): string {
 }
 
 export async function validateGeneratedScadSource(scadSource: string): Promise<void> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "cadcad-scad-"));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentscad-scad-"));
   const tempScadPath = path.join(tmpDir, "validate.scad");
   const tempStlPath = path.join(tmpDir, "validate.stl");
 

@@ -23,6 +23,8 @@ The learning loop is deliberately conservative:
 
 Learned patterns improve defaults and guidance, but they do not override deterministic validation or runtime contracts.
 
+Learned memory is prompt-time guidance, not automatic retraining and not an override for rendering, mesh checks, visual validation, or human review.
+
 ## Design Principles
 
 - Memory should be inspectable in database rows, generated artifacts, or versioned files.

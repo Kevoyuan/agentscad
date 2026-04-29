@@ -1,6 +1,7 @@
 {
-  "managed_library_dir_env": "CADCAD_OPENSCAD_LIBRARY_DIR",
-  "default_managed_library_dir": "~/.cadcad/openscad-libraries",
+  "managed_library_dir_env": "AGENTSCAD_OPENSCAD_LIBRARY_DIR",
+  "legacy_managed_library_dir_env": "CADCAD_OPENSCAD_LIBRARY_DIR",
+  "default_managed_library_dir": "~/.agentscad/openscad-libraries",
   "libraries": [
     {
       "name": "BOSL2",

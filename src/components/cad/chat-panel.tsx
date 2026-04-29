@@ -321,12 +321,12 @@ export function ChatPanel({
   useEffect(() => {
     fetchModels().then(data => setModels(data.models)).catch(() => {
       setModels([
-        { id: 'mimo-v2.5', name: 'MiMo-V2.5', description: 'Xiaomi MiMo 多模态模型', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
-        { id: 'mimo-v2.5-pro', name: 'MiMo-V2.5-Pro', description: 'Xiaomi MiMo 默认模型', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: false, reasoning: false, category: 'flagship' },
-        { id: 'mimo-v2-omni', name: 'MiMo-V2-Omni', description: 'Xiaomi MiMo 全模态模型', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
-        { id: 'gpt-4o', name: 'GPT-4o', description: 'OpenAI旗舰多模态模型', provider: 'openai', providerName: 'OpenAI', multimodal: true, reasoning: false, category: 'flagship' },
-        { id: 'glm-4', name: 'GLM-4', description: '智谱GLM-4高性能文本模型', provider: 'zhipu', providerName: '智谱AI', multimodal: false, reasoning: false, category: 'flagship' },
-        { id: 'glm-4v', name: 'GLM-4V', description: '智谱GLM-4V多模态模型', provider: 'zhipu', providerName: '智谱AI', multimodal: true, reasoning: false, category: 'vision' },
+        { id: 'mimo-v2.5', name: 'MiMo-V2.5', description: 'Xiaomi MiMo multimodal model', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
+        { id: 'mimo-v2.5-pro', name: 'MiMo-V2.5-Pro', description: 'Xiaomi MiMo default model', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: false, reasoning: false, category: 'flagship' },
+        { id: 'mimo-v2-omni', name: 'MiMo-V2-Omni', description: 'Xiaomi MiMo full-modal model', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
+        { id: 'gpt-4o', name: 'GPT-4o', description: 'OpenAI flagship multimodal model', provider: 'openai', providerName: 'OpenAI', multimodal: true, reasoning: false, category: 'flagship' },
+        { id: 'glm-4', name: 'GLM-4', description: 'Zhipu GLM-4 high-performance text model', provider: 'zhipu', providerName: 'Zhipu AI', multimodal: false, reasoning: false, category: 'flagship' },
+        { id: 'glm-4v', name: 'GLM-4V', description: 'Zhipu GLM-4V multimodal model', provider: 'zhipu', providerName: 'Zhipu AI', multimodal: true, reasoning: false, category: 'vision' },
       ])
     })
   }, [])

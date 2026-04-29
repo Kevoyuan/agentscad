@@ -31,6 +31,8 @@ def split_paths(value: str | None) -> list[pathlib.Path]:
 def search_paths(manifest: dict) -> list[pathlib.Path]:
     home = pathlib.Path.home()
     managed_override = os.environ.get(manifest["managed_library_dir_env"])
+    if not managed_override and manifest.get("legacy_managed_library_dir_env"):
+        managed_override = os.environ.get(manifest["legacy_managed_library_dir_env"])
     candidates = [
         pathlib.Path(managed_override).expanduser() if managed_override else None,
         pathlib.Path(manifest["default_managed_library_dir"]).expanduser(),

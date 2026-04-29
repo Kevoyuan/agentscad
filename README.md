@@ -1,10 +1,17 @@
 # AgentSCAD
 
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![OpenSCAD](https://img.shields.io/badge/OpenSCAD-required-blue)
+![Status](https://img.shields.io/badge/status-active-green)
+
 AgentSCAD is an AI-native CAD agent that turns natural-language part requests into validated OpenSCAD artifacts.
 
 It generates parametric SCAD, renders STL and preview images, validates geometry and visual intent, routes failed designs through repair or human review, and learns from user edits over time.
 
 ![AgentSCAD system overview](./docs/images/agentscad_overview.png)
+
+AgentSCAD combines LLM-based CAD generation, deterministic OpenSCAD rendering, validation-driven repair, and edit-derived memory.
 
 ## Why AgentSCAD?
 
@@ -31,6 +38,8 @@ Most text-to-CAD demos stop at code generation. AgentSCAD treats CAD as an artif
 ## Quick Start
 
 Requirements: Node.js 18+ and OpenSCAD in your PATH.
+
+Install OpenSCAD from <https://openscad.org/downloads.html>, then ensure `openscad` is available in your terminal.
 
 ```bash
 npm install
@@ -97,6 +106,8 @@ AgentSCAD uses explicit product memory instead of opaque chat history:
 - **Skill memory**: Markdown CAD skills, schemas, library policy, and in-process skill/schema caches.
 - **Learned memory**: conservative learned patterns extracted from repeated user edits and validation failures.
 
+Learned memory is used as prompt-time guidance, not as an override for rendering or validation.
+
 See [docs/MEMORY.md](./docs/MEMORY.md) for the full memory design.
 
 ## Skills at a Glance
@@ -122,7 +133,7 @@ The approved library catalog lives in `skills/scad-library-policy/manifest.json`
 The default managed library directory is outside the repository:
 
 ```bash
-~/.cadcad/openscad-libraries
+~/.agentscad/openscad-libraries
 ```
 
 Install and check default-approved libraries:
@@ -139,6 +150,17 @@ npm run scad:libs:install:gpl
 ```
 
 Generated SCAD may reference available libraries with `include` or `use`, but AgentSCAD does not copy third-party library source into generated SCAD.
+
+## Status
+
+AgentSCAD is an active prototype for AI-native CAD workflows. It is designed for local experimentation with OpenSCAD-based parametric parts.
+
+Current limitations:
+
+- Generated CAD should be reviewed before manufacturing.
+- OpenSCAD must be installed locally.
+- Visual validation depends on configured model providers.
+- Learned memory is conservative and used as guidance, not automatic retraining.
 
 ## Common Commands
 

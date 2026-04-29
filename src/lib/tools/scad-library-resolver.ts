@@ -14,6 +14,7 @@ export interface ScadLibraryInfo {
 
 interface ScadLibraryManifest {
   managed_library_dir_env: string;
+  legacy_managed_library_dir_env?: string;
   default_managed_library_dir: string;
   libraries: ScadLibraryManifestEntry[];
 }
@@ -38,7 +39,9 @@ function splitConfiguredPaths(value: string | undefined): string[] {
 function defaultOpenScadLibraryPaths(): string[] {
   const home = process.env.HOME;
   return [
+    ...(process.env.AGENTSCAD_OPENSCAD_LIBRARY_DIR ? [process.env.AGENTSCAD_OPENSCAD_LIBRARY_DIR] : []),
     ...(process.env.CADCAD_OPENSCAD_LIBRARY_DIR ? [process.env.CADCAD_OPENSCAD_LIBRARY_DIR] : []),
+    ...(home ? [path.join(home, ".agentscad", "openscad-libraries")] : []),
     ...(home ? [path.join(home, ".cadcad", "openscad-libraries")] : []),
     ...splitConfiguredPaths(process.env.OPENSCAD_LIBRARY_PATHS),
     ...splitConfiguredPaths(process.env.OPENSCADPATH),

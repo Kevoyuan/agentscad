@@ -63,7 +63,7 @@ Only use include statements listed by the runtime prompt.
 Use deterministic scripts when checking a workstation or generated artifact:
 
 - `scripts/check_scad_libraries.py`: inspect OpenSCAD library search paths and report which approved libraries are installed.
-- `scripts/install_scad_libraries.py`: install approved app-managed OpenSCAD libraries into `~/.cadcad/openscad-libraries`; defaults exclude GPL libraries.
+- `scripts/install_scad_libraries.py`: install approved app-managed OpenSCAD libraries into `~/.agentscad/openscad-libraries`; defaults exclude GPL libraries.
 - `scripts/validate_scad_includes.py <file.scad>`: fail if a generated SCAD file uses unavailable or unapproved library include/use statements.
 
 ## License Gate

@@ -9,13 +9,15 @@ import {
 
 const originalOpenScadLibraryPaths = process.env.OPENSCAD_LIBRARY_PATHS;
 const originalOpenScadPath = process.env.OPENSCADPATH;
-const originalManagedLibraryDir = process.env.CADCAD_OPENSCAD_LIBRARY_DIR;
+const originalManagedLibraryDir = process.env.AGENTSCAD_OPENSCAD_LIBRARY_DIR;
+const originalLegacyManagedLibraryDir = process.env.CADCAD_OPENSCAD_LIBRARY_DIR;
 let tempRoot: string | null = null;
 
 afterEach(async () => {
   process.env.OPENSCAD_LIBRARY_PATHS = originalOpenScadLibraryPaths;
   process.env.OPENSCADPATH = originalOpenScadPath;
-  process.env.CADCAD_OPENSCAD_LIBRARY_DIR = originalManagedLibraryDir;
+  process.env.AGENTSCAD_OPENSCAD_LIBRARY_DIR = originalManagedLibraryDir;
+  process.env.CADCAD_OPENSCAD_LIBRARY_DIR = originalLegacyManagedLibraryDir;
   if (tempRoot) {
     await rm(tempRoot, { recursive: true, force: true });
     tempRoot = null;
@@ -24,7 +26,7 @@ afterEach(async () => {
 
 describe("scad-library-resolver", () => {
   test("detects supported OpenSCAD libraries by concrete include files", async () => {
-    tempRoot = await mkdtemp(path.join(os.tmpdir(), "cadcad-libs-"));
+    tempRoot = await mkdtemp(path.join(os.tmpdir(), "agentscad-libs-"));
     await mkdir(path.join(tempRoot, "BOSL2"), { recursive: true });
     await mkdir(path.join(tempRoot, "NopSCADlib"), { recursive: true });
     await mkdir(path.join(tempRoot, "Round-Anything"), { recursive: true });
@@ -40,6 +42,7 @@ describe("scad-library-resolver", () => {
 
     process.env.OPENSCAD_LIBRARY_PATHS = tempRoot;
     process.env.OPENSCADPATH = "";
+    process.env.AGENTSCAD_OPENSCAD_LIBRARY_DIR = "";
     process.env.CADCAD_OPENSCAD_LIBRARY_DIR = "";
 
     const available = (await getAvailableScadLibraries()).filter((library) => library.available);
@@ -57,12 +60,13 @@ describe("scad-library-resolver", () => {
   });
 
   test("injects detailed library skill guidance for available libraries", async () => {
-    tempRoot = await mkdtemp(path.join(os.tmpdir(), "cadcad-libs-"));
+    tempRoot = await mkdtemp(path.join(os.tmpdir(), "agentscad-libs-"));
     await mkdir(path.join(tempRoot, "BOSL2"), { recursive: true });
     await writeFile(path.join(tempRoot, "BOSL2", "std.scad"), "");
 
     process.env.OPENSCAD_LIBRARY_PATHS = tempRoot;
     process.env.OPENSCADPATH = "";
+    process.env.AGENTSCAD_OPENSCAD_LIBRARY_DIR = "";
     process.env.CADCAD_OPENSCAD_LIBRARY_DIR = "";
 
     const prompt = await buildScadLibraryPrompt();

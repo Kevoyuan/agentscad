@@ -42,7 +42,7 @@ Do not change these contracts from skill content:
 - Prefer adding or refining skills/docs over widening orchestration code.
 - Prefer approved OpenSCAD libraries when the runtime reports them available.
 - Treat `skills/scad-library-policy/manifest.json` as the source of truth for approved OpenSCAD libraries, license gates, pinned install commits, detection files, and include examples.
-- Keep managed OpenSCAD libraries outside the repo by default at `~/.cadcad/openscad-libraries`.
+- Keep managed OpenSCAD libraries outside the repo by default at `~/.agentscad/openscad-libraries`.
 - Do not install GPL libraries by default; GPL libraries require explicit opt-in and preserved license notices.
 - Never copy third-party library source into generated SCAD or this repository without explicit human licensing review.
 - Never rename state strings, step strings, artifact filenames, or validation fields casually; the UI and job recovery depend on them.

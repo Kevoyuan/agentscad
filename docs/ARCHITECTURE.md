@@ -75,7 +75,7 @@ AgentSCAD may use approved OpenSCAD libraries when the runtime reports them as a
 The default managed library directory is outside the repository:
 
 ```bash
-~/.cadcad/openscad-libraries
+~/.agentscad/openscad-libraries
 ```
 
 Install default-approved libraries:
