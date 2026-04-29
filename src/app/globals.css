@@ -172,24 +172,24 @@
 
 /* ─── Dark Theme Variables ──────────────────────────────────── */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #0b0d10;
+  --foreground: #eef3f8;
+  --card: #111418;
+  --card-foreground: #eef3f8;
+  --popover: #111418;
+  --popover-foreground: #eef3f8;
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --secondary: #171b20;
+  --secondary-foreground: #eef3f8;
+  --muted: #171b20;
+  --muted-foreground: #75808b;
+  --accent: rgba(94, 106, 210, 0.16);
+  --accent-foreground: #5e6ad2;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: rgba(214, 224, 235, 0.12);
+  --input: rgba(214, 224, 235, 0.12);
+  --ring: #5e6ad2;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -278,21 +278,22 @@
   --app-state-neutral-text: #a1a1aa;
   --app-state-neutral-dot: #71717a;
   --app-state-neutral-border: rgba(113, 113, 122, 0.25);
-  --cad-bg: #080b10;
-  --cad-surface: #0d1117;
-  --cad-surface-raised: #141a22;
+  --cad-bg: #0b0d10;
+  --cad-surface: #111418;
+  --cad-surface-raised: #171b20;
   --cad-border: rgba(214, 224, 235, 0.12);
   --cad-border-strong: rgba(214, 224, 235, 0.22);
   --cad-text: #eef3f8;
   --cad-text-secondary: #aab5c0;
   --cad-text-muted: #75808b;
-  --cad-accent: #3b82f6;
-  --cad-accent-soft: rgba(59, 130, 246, 0.16);
+  --cad-accent: #5e6ad2;
+  --cad-accent-soft: rgba(94, 106, 210, 0.16);
   --cad-grid: rgba(140, 145, 180, 0.14);
   --cad-measure: #76d8ff;
   --cad-success: #35c46f;
   --cad-warning: #d99b2b;
   --cad-danger: #f06464;
+  --cad-info: #4aa3ff;
 }
 
 @layer base {
