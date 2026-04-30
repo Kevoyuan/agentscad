@@ -10,6 +10,10 @@ import {
   isOpenRouterModel,
 } from "@/lib/openrouter";
 import { parseJsonObject } from "@/lib/harness/structured-output";
+import {
+  createProviderChatCompletion,
+  findProviderForModel,
+} from "@/lib/provider-settings";
 
 export interface ModelRouterRequest {
   messages: MimoMessage[];
@@ -24,6 +28,18 @@ export async function createChatCompletionWithFallback({
   stream = false,
   preferMimo = true,
 }: ModelRouterRequest): Promise<string> {
+  const configuredProvider = await findProviderForModel(model);
+  if (configuredProvider) {
+    const providerResponse = await createProviderChatCompletion({
+      provider: configuredProvider.provider,
+      model: configuredProvider.model,
+      messages,
+      stream,
+    });
+    const result = await providerResponse.json();
+    return result?.choices?.[0]?.message?.content ?? JSON.stringify(result);
+  }
+
   if (isOpenRouterModel(model)) {
     const openRouterResponse = await createOpenRouterChatCompletion({
       model,

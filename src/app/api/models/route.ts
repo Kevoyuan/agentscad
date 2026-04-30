@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  readProviderSettings,
+  toProviderModelId,
+} from "@/lib/provider-settings";
 
 export interface ModelInfo {
   id: string;
@@ -448,6 +452,24 @@ const AVAILABLE_MODELS: ModelInfo[] = [
   },
 ];
 
-export async function GET() {
-  return NextResponse.json({ models: AVAILABLE_MODELS });
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const includeBuiltIns = searchParams.get("includeBuiltIns") === "true";
+  const providers = await readProviderSettings();
+  const configuredModels: ModelInfo[] = providers
+    .filter((provider) => provider.enabled)
+    .map((provider) => ({
+      id: toProviderModelId(provider),
+      name: provider.defaultModel,
+      description: `Configured in Settings > Providers via ${provider.name}.`,
+      provider: provider.id,
+      providerName: provider.name,
+      multimodal: true,
+      reasoning: true,
+      category: provider.isDefault ? "flagship" : "code",
+    }));
+
+  return NextResponse.json({
+    models: includeBuiltIns ? [...configuredModels, ...AVAILABLE_MODELS] : configuredModels,
+  });
 }
