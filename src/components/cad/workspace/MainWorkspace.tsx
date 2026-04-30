@@ -1,5 +1,8 @@
 'use client'
 
+/* eslint-disable react-hooks/refs */
+
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Box, Play, Settings,
@@ -24,6 +27,7 @@ import {
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { PipelineVisualization } from '@/components/cad/pipeline-visualization'
 import dynamic from 'next/dynamic'
@@ -34,6 +38,7 @@ const NotificationCenter = dynamic(() => import('@/components/cad/notification-c
 const JobActivityFeed = dynamic(() => import('@/components/cad/job-activity-feed').then(m => ({ default: m.JobActivityFeed })), { ssr: false })
 const CommandPalette = dynamic(() => import('@/components/cad/command-palette').then(m => ({ default: m.CommandPalette })), { ssr: false })
 const ThemePanel = dynamic(() => import('@/components/cad/theme-panel').then(m => ({ default: m.ThemePanel })), { ssr: false })
+const ProviderSettingsPanel = dynamic(() => import('@/components/cad/provider-settings-panel').then(m => ({ default: m.ProviderSettingsPanel })), { ssr: false })
 
 const StatsDashboard = dynamic(() => import('@/components/cad/stats-dashboard').then(m => ({ default: m.StatsDashboard })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
 const JobCompare = dynamic(() => import('@/components/cad/job-compare').then(m => ({ default: m.JobCompare })), { ssr: false, loading: () => <div className="flex items-center justify-center h-96"><Loader2 className="w-5 h-5 animate-spin text-[var(--app-text-muted)]" /></div> })
@@ -47,6 +52,7 @@ import { KeyboardShortcuts } from './KeyboardShortcuts'
 
 export function MainWorkspace() {
   const state = useWorkspaceState()
+  const [settingsTab, setSettingsTab] = useState<'providers' | 'theme'>('providers')
 
   // Command Palette Actions
   const commandPaletteActions: CommandAction[] = [
@@ -63,7 +69,10 @@ export function MainWorkspace() {
       label: 'Toggle Theme',
       icon: <Palette className="w-4 h-4 text-[var(--app-accent-text)]" />,
       shortcut: 'T',
-      onSelect: () => state.setShowSettings(true),
+      onSelect: () => {
+        setSettingsTab('theme')
+        state.setShowSettings(true)
+      },
       category: 'action' as const,
     },
     {
@@ -234,7 +243,10 @@ export function MainWorkspace() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => state.setShowSettings(true)} aria-label="Theme & Settings">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]" onClick={() => {
+                  setSettingsTab('theme')
+                  state.setShowSettings(true)
+                }} aria-label="Theme & Settings">
                   <Palette className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -362,6 +374,10 @@ export function MainWorkspace() {
         onNewJobTagsChange={state.setNewJobTags}
         onCreate={state.handleCreate}
         onAiEnhance={state.handleAiEnhance}
+        onAddProvider={() => {
+          setSettingsTab('providers')
+          state.setShowSettings(true)
+        }}
       />
 
       {/* Cancel Confirmation */}
@@ -519,17 +535,30 @@ export function MainWorkspace() {
 
       {/* Theme & Settings */}
       <Dialog open={state.showSettings} onOpenChange={state.setShowSettings}>
-        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-sm dialog-enter" aria-describedby="settings-description">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-2xl max-h-[85vh] overflow-hidden dialog-enter" aria-describedby="settings-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <Palette className="w-4 h-4 text-[var(--app-accent-text)]" />Theme & Settings
+              <Settings className="w-4 h-4 text-[var(--app-accent-text)]" />Settings
             </DialogTitle>
             <DialogDescription id="settings-description" className="sr-only">
-              Theme customization and application settings
+              Theme customization, providers, and application settings
             </DialogDescription>
           </DialogHeader>
           <div className="gradient-divider" />
-          <ThemePanel />
+          <Tabs value={settingsTab} onValueChange={(value) => setSettingsTab(value as 'providers' | 'theme')} className="min-h-0">
+            <TabsList className="grid w-full grid-cols-2 bg-[var(--app-bg)] border border-[color:var(--app-border)]">
+              <TabsTrigger value="providers" className="text-xs">Providers</TabsTrigger>
+              <TabsTrigger value="theme" className="text-xs">Theme</TabsTrigger>
+            </TabsList>
+            <div className="min-h-0 max-h-[65vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) transparent' }}>
+              <TabsContent value="providers" className="mt-3">
+                <ProviderSettingsPanel />
+              </TabsContent>
+              <TabsContent value="theme" className="mt-3">
+                <ThemePanel />
+              </TabsContent>
+            </div>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

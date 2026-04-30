@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         builderName: true,
         generationPath: true,
       },
-      orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ createdAt: "desc" }],
       take: 5,
     });
 

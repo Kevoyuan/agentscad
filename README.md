@@ -39,20 +39,28 @@ Most text-to-CAD demos stop at code generation. AgentSCAD treats CAD as an artif
 
 ## Quick Start
 
-Requirements: Node.js 18+ and OpenSCAD in your PATH.
+Requirements: Node.js 20 or 22 LTS, Bun, and OpenSCAD in your PATH.
 
 Install OpenSCAD from <https://openscad.org/downloads.html>, then ensure `openscad` is available in your terminal.
 
 ```bash
-npm install
-cp .env.example .env
-npm run db:push
-npm run dev:all
+bun install --frozen-lockfile
+test -f .env || cp .env.example .env
+mkdir -p db
+touch db/dev.db
+bun run db:push
+bun run dev:all
 ```
 
 Open `http://localhost:3000`.
 
-`npm run dev:all` starts the local Next.js app/API. It works on macOS, Linux, WSL, and Windows PowerShell.
+`bun run dev:all` starts the local Next.js app/API. On Windows PowerShell, use this equivalent for the environment copy step:
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+New-Item -ItemType Directory -Force db
+if (!(Test-Path db/dev.db)) { New-Item -ItemType File db/dev.db }
+```
 
 Optional setup:
 
@@ -60,8 +68,8 @@ Optional setup:
 - Install approved OpenSCAD libraries:
 
 ```bash
-npm run scad:libs:install
-npm run scad:libs:check
+bun run scad:libs:install
+bun run scad:libs:check
 ```
 
 - Run tests with Bun:
@@ -143,14 +151,14 @@ The default managed library directory is outside the repository:
 Install and check default-approved libraries:
 
 ```bash
-npm run scad:libs:install
-npm run scad:libs:check
+bun run scad:libs:install
+bun run scad:libs:check
 ```
 
 Default installation currently includes BOSL2, Round-Anything, and MCAD. GPL libraries such as NopSCADlib are not installed by default; installing them requires an explicit opt-in:
 
 ```bash
-npm run scad:libs:install:gpl
+bun run scad:libs:install:gpl
 ```
 
 Generated SCAD may reference available libraries with `include` or `use`, but AgentSCAD does not copy third-party library source into generated SCAD.
@@ -170,15 +178,15 @@ Current limitations:
 
 | Task | Command |
 |---|---|
-| Dev app | `npm run dev:all` or `npm run dev` |
-| Dev app alias | `npm run dev:app` |
+| Dev app | `bun run dev:all` or `bun run dev` |
+| Dev app alias | `bun run dev:app` |
 | Build | `bun run build` |
 | Test | `bun test` or `bun run test` |
 | Lint | `bun run lint` |
 | Audit dependency licenses | `bun run license:audit` |
-| Check OpenSCAD libraries | `npm run scad:libs:check` |
-| Install default OpenSCAD libraries | `npm run scad:libs:install` |
-| Install GPL OpenSCAD libraries explicitly | `npm run scad:libs:install:gpl` |
+| Check OpenSCAD libraries | `bun run scad:libs:check` |
+| Install default OpenSCAD libraries | `bun run scad:libs:install` |
+| Install GPL OpenSCAD libraries explicitly | `bun run scad:libs:install:gpl` |
 
 Reviewed third-party license obligations are tracked in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md). Run `bun run license:audit` before changing package dependencies or OpenSCAD library policy.
 

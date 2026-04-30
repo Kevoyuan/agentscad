@@ -39,7 +39,7 @@ yarn-error.log*
 !.env.example
 
 # database (runtime-generated)
-db/custom.db
+db/*.db
 
 # generated artifacts
 public/artifacts/
@@ -62,6 +62,7 @@ server.log
 .claude/
 .z-ai-config
 .gstack/
+.agentscad/
 
 # local scratch
 local-*

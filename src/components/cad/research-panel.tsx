@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Beaker, Lightbulb, Globe, Target, Cpu, Layers, Info } from 'lucide-react'
+import { Beaker, Lightbulb, Globe, Target, Cpu, Layers, Info, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Job, parseJSON } from './types'
 import { SchemaInfoPanel } from './parameter-panel'

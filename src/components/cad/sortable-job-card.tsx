@@ -1,6 +1,6 @@
 'use client'
 
-import { CSSProperties } from 'react'
+import { CSSProperties, useEffect, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
@@ -69,6 +69,11 @@ export function SortableJobCard({
   const isProcessing = PROCESSING_STATES.includes(job.state)
   const progressPercent = getPipelineProgress(job.state)
   const progressColor = stateHex
+  const [previewFailed, setPreviewFailed] = useState(false)
+
+  useEffect(() => {
+    setPreviewFailed(false)
+  }, [job.pngPath])
 
   return (
     <div
@@ -125,12 +130,20 @@ export function SortableJobCard({
 
         {isSelected && job.pngPath && job.state !== 'NEW' && job.state !== 'SCAD_GENERATED' && (
           <div className="mt-2 h-20 overflow-hidden rounded-md border border-[color:var(--app-border)] bg-[var(--app-empty-bg)]">
-            <img
-              src={job.pngPath}
-              alt="Preview"
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+            {previewFailed ? (
+              <div className="flex h-full w-full items-center justify-center gap-2 text-[11px] text-[var(--app-text-dim)]">
+                <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
+                <span>Preview unavailable</span>
+              </div>
+            ) : (
+              <img
+                src={job.pngPath}
+                alt="Preview"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={() => setPreviewFailed(true)}
+              />
+            )}
           </div>
         )}
         {(isProcessing || FAILED_STATES.includes(job.state)) && (

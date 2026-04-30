@@ -21,7 +21,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Parametric box for PCBs and electronics',
     template: 'A {width}×{depth}×{height}mm electronics enclosure with {wall}mm walls, snap-fit lid, and mounting holes',
     icon: CircuitBoard,
-    color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    color: 'text-[var(--cad-text-secondary)] group-hover:text-[var(--cad-text)]',
   },
   {
     id: 'spur-gear',
@@ -29,7 +29,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Standard involute gear profile',
     template: 'A spur gear with {teeth} teeth, {bore}mm bore diameter, and {faceWidth}mm face width',
     icon: Cog,
-    color: 'text-[var(--cad-accent)] bg-[var(--cad-accent-soft)] border-[color:var(--cad-border)]',
+    color: 'text-[var(--cad-text-secondary)] group-hover:text-[var(--cad-text)]',
   },
   {
     id: 'phone-stand',
@@ -37,7 +37,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Adjustable desk stand for devices',
     template: 'A phone stand with {width}mm device width, {height}mm height, and {angle}° viewing angle',
     icon: Smartphone,
-    color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+    color: 'text-[var(--cad-text-secondary)] group-hover:text-[var(--cad-text)]',
   },
   {
     id: 'l-bracket',
@@ -45,7 +45,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Structural right-angle bracket',
     template: 'A parametric L-bracket with {arm}mm arm length, {wall}mm wall thickness, and counterbore holes',
     icon: Triangle,
-    color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+    color: 'text-[var(--cad-text-secondary)] group-hover:text-[var(--cad-text)]',
   },
   {
     id: 'hex-bolt',
@@ -53,7 +53,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Standard hexagonal bolt fastener',
     template: 'A hexagonal bolt with {head}mm head diameter and {shaft}mm shaft length, M{thread} thread',
     icon: Wrench,
-    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    color: 'text-[var(--cad-text-secondary)] group-hover:text-[var(--cad-text)]',
   },
   {
     id: 'custom-pipe',
@@ -61,7 +61,7 @@ export const JOB_TEMPLATES: JobTemplate[] = [
     description: 'Hollow cylindrical pipe section',
     template: 'A {length}mm pipe with {outerDiam}mm outer diameter and {innerDiam}mm inner diameter',
     icon: Cylinder,
-    color: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+    color: 'text-[var(--cad-text-secondary)] group-hover:text-[var(--cad-text)]',
   },
 ]
 
@@ -71,25 +71,26 @@ export function JobTemplateCards({
   onSelect: (template: string) => void
 }) {
   return (
-    <div className="space-y-2">
-      <label className="text-[13px] font-mono tracking-widest text-[var(--app-text-secondary)] uppercase block">
+    <div className="space-y-2.5">
+      <label className="text-[11px] font-semibold text-[var(--cad-text-secondary)] uppercase tracking-wider block">
         Templates
       </label>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="flex flex-col gap-1.5">
         {JOB_TEMPLATES.map((t) => {
           const Icon = t.icon
           return (
             <motion.button
               key={t.id}
-              whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.98 }}
-              className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-left linear-transition ${t.color} hover:brightness-125`}
+              className="group flex items-center gap-3 p-2 rounded-md border border-transparent hover:bg-[var(--cad-surface-raised)] hover:border-[color:var(--cad-border)] text-left transition-all"
               onClick={() => onSelect(t.template)}
             >
-              <Icon className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-[13px] font-medium leading-tight">{t.name}</p>
-                <p className="text-xs opacity-70 mt-0.5 leading-tight line-clamp-2">{t.description}</p>
+              <div className="flex items-center justify-center w-6 h-6 rounded-sm bg-[var(--cad-surface-raised)] group-hover:bg-[var(--cad-surface)] border border-[color:var(--cad-border)] shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                <Icon className={`w-3.5 h-3.5 transition-colors ${t.color}`} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-medium leading-none text-[var(--cad-text)] truncate">{t.name}</p>
+                <p className="text-[11px] text-[var(--cad-text-muted)] mt-0.5 leading-none truncate">{t.description}</p>
               </div>
             </motion.button>
           )

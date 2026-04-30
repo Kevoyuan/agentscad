@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Bell, CheckCircle2, XCircle, Ban, Settings, Code2,
-  CheckCheck, Trash2, X,
+  CheckCheck, Trash2, X, Activity
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
