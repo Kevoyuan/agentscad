@@ -12,7 +12,6 @@ model Job {
   state           String   @default("NEW")
   inputRequest    String
   customerId      String?
-  priority        Int      @default(5)
   modelId         String?
   partFamily      String?
   builderName     String?
@@ -40,8 +39,8 @@ model Job {
   children        Job[]    @relation("JobHierarchy")
   versions        JobVersion[]
 
-  @@index([priority, createdAt])
-  @@index([state, priority, createdAt])
+  @@index([createdAt])
+  @@index([state, createdAt])
   @@index([parentId])
 }
 

@@ -34,7 +34,7 @@ async function retryFailed(): Promise<{
       state: { in: FAILED_STATES },
       retryCount: { lt: db.job.fields.maxRetries },
     },
-    orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    orderBy: [{ createdAt: "asc" }],
     take: MAX_RETRIES_PER_RUN,
   });
 

@@ -19,7 +19,6 @@ describe("Job Pipeline API Tests", () => {
   test("POST /api/jobs creates a new job", async () => {
     const payload = {
       inputRequest: "A test box 10x10x10",
-      priority: 5,
     };
     
     const req = new NextRequest(new URL("http://localhost:3000/api/jobs"), {

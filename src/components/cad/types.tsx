@@ -50,7 +50,6 @@ export interface Job {
   state: string
   inputRequest: string
   customerId: string | null
-  priority: number
   modelId: string | null
   partFamily: string | null
   builderName: string | null
@@ -123,19 +122,6 @@ export const FILTER_STATES = [
 
 export const CANCELABLE_STATES = ['NEW', 'SCAD_GENERATED', 'RENDERED', 'VALIDATED', 'DEBUGGING', 'REPAIRING']
 
-export const PRIORITY_COLORS: Record<number, string> = {
-  1: 'bg-[var(--app-state-neutral-bg)] text-[var(--app-state-neutral-text)] border-[color:var(--app-state-neutral-border)]',
-  2: 'bg-[var(--app-state-neutral-bg)] text-[var(--app-state-neutral-text)] border-[color:var(--app-state-neutral-border)]',
-  3: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
-  4: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
-  5: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  6: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  7: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  8: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  9: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-  10: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-}
-
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
 export function formatTime(iso: string) {
@@ -177,8 +163,4 @@ export function getPipelineProgress(state: string): number {
 export function safeNum(val: unknown, fallback: number): number {
   if (typeof val === 'number' && !isNaN(val)) return val
   return fallback
-}
-
-export function getPriorityColor(priority: number): string {
-  return PRIORITY_COLORS[priority] || PRIORITY_COLORS[5]
 }

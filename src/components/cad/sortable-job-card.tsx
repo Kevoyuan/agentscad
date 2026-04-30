@@ -70,8 +70,6 @@ export function SortableJobCard({
   const progressPercent = getPipelineProgress(job.state)
   const progressColor = stateHex
 
-  const priorityTone = job.priority >= 8 ? 'text-[var(--cad-danger)]' : job.priority >= 6 ? 'text-[var(--cad-warning)]' : 'text-[var(--cad-text-muted)]'
-
   return (
     <div
       ref={setNodeRef}
@@ -120,8 +118,6 @@ export function SortableJobCard({
             <div className="mt-1 flex min-w-0 items-center gap-1.5">
               <StateBadge state={job.state} />
               <span className="text-[10px] font-mono text-[var(--cad-text-muted)]">{timeAgo(job.createdAt)}</span>
-              <span className="text-[var(--cad-border-strong)]">·</span>
-              <span className={`text-[10px] font-mono font-medium ${priorityTone}`}>P{job.priority}</span>
             </div>
           </div>
           <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
@@ -181,8 +177,6 @@ export function SortableJobCard({
 // ─── Drag Overlay Card (rendered while dragging) ────────────────────────────
 
 export function DragOverlayCard({ job }: { job: Job }) {
-  const priorityTone = job.priority >= 8 ? 'text-rose-500' : job.priority >= 6 ? 'text-amber-500' : 'text-[var(--app-text-dim)]'
-
   return (
     <div
       className="rounded-md border border-[color:var(--app-accent-border)] bg-[var(--app-surface)] p-2.5 shadow-xl ring-2 ring-[color:var(--app-accent-border)]/40 scale-[1.02]"
@@ -192,9 +186,6 @@ export function DragOverlayCard({ job }: { job: Job }) {
           <p className="text-[12px] text-[var(--app-text-secondary)] leading-tight line-clamp-2 flex-1">{job.inputRequest}</p>
           <div className="flex items-center gap-1 shrink-0">
             <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
-            <span className={`text-xs font-medium ${priorityTone}`}>
-              P{job.priority}
-            </span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-1.5">

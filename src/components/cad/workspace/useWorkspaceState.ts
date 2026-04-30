@@ -5,16 +5,16 @@ import {
   useSensor, useSensors, PointerSensor, KeyboardSensor,
   DragStartEvent, DragEndEvent,
 } from '@dnd-kit/core'
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 
 import {
-  Job, CANCELABLE_STATES, timeAgo, getPriorityColor,
+  Job, CANCELABLE_STATES, timeAgo,
 } from '@/components/cad/types'
 import {
   fetchJobs, fetchJob, createJob, deleteJob, processJob,
-  cancelJob, batchOperation, updatePriority, sendChatMessageStream,
+  cancelJob, batchOperation, sendChatMessageStream,
   applyScadSource, repairJob,
 } from '@/components/cad/api'
 import {
@@ -43,7 +43,7 @@ export function useWorkspaceState() {
   const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newJobText, setNewJobText] = useState('')
-  const [newJobModelId, setNewJobModelId] = useState('mimo-v2.5-pro')
+  const [newJobModelId, setNewJobModelId] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [showComposer, setShowComposer] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -163,37 +163,6 @@ export function useWorkspaceState() {
     setActiveDragId(null)
 
     if (!over || active.id === over.id) return
-
-    const sortedJobs = [...jobs].sort((a, b) => b.priority - a.priority || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    const oldIndex = sortedJobs.findIndex(j => j.id === active.id)
-    const newIndex = sortedJobs.findIndex(j => j.id === over.id)
-
-    if (oldIndex === -1 || newIndex === -1) return
-
-    const reordered = arrayMove(sortedJobs, oldIndex, newIndex)
-
-    const maxPriority = Math.max(...allJobs.map(j => j.priority), 10)
-
-    const updatedJobs = reordered.map((job, idx) => ({
-      ...job,
-      priority: maxPriority - idx,
-    }))
-    setJobs(updatedJobs)
-
-    try {
-      const updates = updatedJobs.filter((uj) => {
-        const original = sortedJobs.find(j => j.id === uj.id)
-        return original && original.priority !== uj.priority
-      })
-
-      await Promise.all(
-        updates.map(uj => updatePriority(uj.id, uj.priority))
-      )
-    } catch (err) {
-      console.error('Failed to update priorities:', err)
-      toast.error('Priority update failed')
-      await loadJobs()
-    }
   }
 
   const handleDragCancel = () => {
@@ -220,7 +189,7 @@ export function useWorkspaceState() {
     try {
       const data = await fetchJobs()
       setAllJobs(prev => {
-        if (prev.length === data.jobs.length && prev.every((j, i) => j.id === data.jobs[i].id && j.state === data.jobs[i].state && j.priority === data.jobs[i].priority && j.updatedAt === data.jobs[i].updatedAt)) {
+        if (prev.length === data.jobs.length && prev.every((j, i) => j.id === data.jobs[i].id && j.state === data.jobs[i].state && j.updatedAt === data.jobs[i].updatedAt)) {
           return prev
         }
         return data.jobs
@@ -272,12 +241,12 @@ export function useWorkspaceState() {
     const request = newJobText.trim()
     try {
       const tagsCustomerId = newJobTags.trim() ? buildCustomerId(newJobTags.split(',').map(t => t.trim()).filter(t => t)) : undefined
-      const { job } = await createJob(request, tagsCustomerId, undefined, newJobModelId)
+      const { job } = await createJob(request, tagsCustomerId, newJobModelId)
       toast.success('CAD generation started', { description: newJobModelId })
       addNotification('parameter_updated', 'CAD generation started', request.slice(0, 60))
       addActivityEvent('created', request.slice(0, 30), job.id.slice(0, 8), 'Created and started')
       setNewJobText('')
-      setNewJobModelId('mimo-v2.5-pro')
+      setNewJobModelId('')
       setNewJobTags('')
       setShowComposer(false)
       await loadJobs()
@@ -427,7 +396,7 @@ export function useWorkspaceState() {
 
   const handleDuplicate = async (job: Job) => {
     try {
-      const { job: newJob } = await createJob(job.inputRequest, job.customerId ?? undefined, job.priority, job.modelId ?? undefined)
+      const { job: newJob } = await createJob(job.inputRequest, job.customerId ?? undefined, job.modelId ?? undefined)
       toast.success('Job duplicated')
       await loadJobs()
       setSelectedJob(newJob)
@@ -499,7 +468,7 @@ export function useWorkspaceState() {
     setFilterState(newFilters)
     const params = filtersToUrlParams(newFilters)
     const url = new URL(window.location.href)
-    for (const key of ['q', 'states', 'pmin', 'pmax', 'dr', 'df', 'dt', 'pf', 'bn', 'sort', 'order']) {
+    for (const key of ['q', 'states', 'dr', 'df', 'dt', 'pf', 'bn', 'sort', 'order']) {
       url.searchParams.delete(key)
     }
     params.forEach((value, key) => {
@@ -534,9 +503,6 @@ export function useWorkspaceState() {
     return [...jobs].sort((a, b) => {
       let cmp = 0
       switch (filterState.sortBy) {
-        case 'priority':
-          cmp = a.priority - b.priority
-          break
         case 'created':
           cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           break
@@ -705,6 +671,6 @@ export function useWorkspaceState() {
     successRate,
     // Misc
     loadJobs, recentRequests,
-    CANCELABLE_STATES, timeAgo, getPriorityColor,
+    CANCELABLE_STATES, timeAgo,
   }
 }

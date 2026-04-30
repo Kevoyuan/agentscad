@@ -2,6 +2,76 @@ import { Job } from './types'
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
+export interface ProviderConfig {
+  id: string
+  name: string
+  type: string
+  baseUrl: string
+  defaultModel: string
+  enabled: boolean
+  isDefault: boolean
+  hasApiKey: boolean
+  apiKeyPreview?: string
+}
+
+export interface EnvProviderConfig {
+  id: string
+  name: string
+  enabled: boolean
+  envKey: string
+}
+
+export async function fetchProviders(): Promise<{ providers: ProviderConfig[]; envProviders: EnvProviderConfig[] }> {
+  const res = await fetch('/api/providers')
+  if (!res.ok) throw new Error('Failed to fetch providers')
+  return res.json()
+}
+
+export async function saveProvider(input: {
+  id?: string
+  name: string
+  type: string
+  baseUrl: string
+  apiKey?: string
+  keepExistingApiKey?: boolean
+  defaultModel: string
+  enabled: boolean
+  isDefault: boolean
+}): Promise<{ provider: ProviderConfig }> {
+  const res = await fetch('/api/providers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    throw new Error(data?.error || 'Failed to save provider')
+  }
+  return res.json()
+}
+
+export async function deleteProvider(id: string): Promise<void> {
+  const res = await fetch(`/api/providers?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete provider')
+}
+
+export async function testProvider(input: {
+  id?: string
+  name: string
+  baseUrl: string
+  apiKey?: string
+  defaultModel: string
+}): Promise<{ ok: boolean; content?: string; error?: string }> {
+  const res = await fetch('/api/providers/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(data?.error || 'Provider test failed')
+  return data
+}
+
 export async function fetchJobs(state?: string): Promise<{ jobs: Job[]; pagination: { total: number } }> {
   const url = state ? `/api/jobs?state=${state}&limit=50&summary=true&count=false` : '/api/jobs?limit=50&summary=true&count=false'
   const res = await fetch(url)
@@ -15,11 +85,11 @@ export async function fetchJob(id: string): Promise<{ job: Job }> {
   return res.json()
 }
 
-export async function createJob(inputRequest: string, customerId?: string, priority?: number, modelId?: string): Promise<{ job: Job }> {
+export async function createJob(inputRequest: string, customerId?: string, modelId?: string): Promise<{ job: Job }> {
   const res = await fetch('/api/jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ inputRequest, customerId, priority, modelId }),
+    body: JSON.stringify({ inputRequest, customerId, modelId }),
   })
   if (!res.ok) throw new Error('Failed to create job')
   return res.json()
@@ -216,17 +286,6 @@ export async function updateNotes(id: string, notes: string): Promise<Job> {
     body: JSON.stringify({ notes }),
   })
   if (!res.ok) throw new Error('Failed to update notes')
-  const data = await res.json()
-  return data.job
-}
-
-export async function updatePriority(id: string, priority: number): Promise<Job> {
-  const res = await fetch(`/api/jobs/${id}/priority`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ priority }),
-  })
-  if (!res.ok) throw new Error('Failed to update priority')
   const data = await res.json()
   return data.job
 }

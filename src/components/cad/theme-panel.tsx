@@ -363,7 +363,7 @@ export function ThemePanel() {
           </div>
           <button
             className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-              settings.animationsEnabled ? 'bg-[var(--app-success)]' : 'bg-[var(--app-priority-inactive)]'
+              settings.animationsEnabled ? 'bg-[var(--app-success)]' : 'bg-[var(--app-border)]'
             }`}
             onClick={() => updateSettings({ animationsEnabled: !settings.animationsEnabled })}
           >

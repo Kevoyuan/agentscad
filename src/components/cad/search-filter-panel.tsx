@@ -3,48 +3,35 @@
 import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Search, SlidersHorizontal, X, ChevronDown, ChevronUp,
-  Calendar, Clock, Filter, ArrowUpDown, RotateCcw, Hash,
+  Search, SlidersHorizontal, X, ArrowUpDown, RotateCcw,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Job, FILTER_STATES, getStateInfo } from './types'
-import { StateBadge } from './state-badge'
+import { Job, FILTER_STATES } from './types'
 
 // ─── Filter Types ───────────────────────────────────────────────────────────
 
 export interface FilterState {
   search: string
   states: string[]
-  priorityMin: number
-  priorityMax: number
   dateRange: 'all' | 'today' | 'week' | 'month' | 'custom'
   dateFrom: string | null
   dateTo: string | null
   partFamily: string | null
   builderName: string | null
-  sortBy: 'priority' | 'created' | 'updated' | 'state'
+  sortBy: 'created' | 'updated' | 'state'
   sortOrder: 'asc' | 'desc'
 }
 
 export const DEFAULT_FILTER_STATE: FilterState = {
   search: '',
   states: [],
-  priorityMin: 1,
-  priorityMax: 10,
   dateRange: 'all',
   dateFrom: null,
   dateTo: null,
@@ -79,9 +66,6 @@ export function applyFilters(jobs: Job[], filters: FilterState): Job[] {
       })
     })
   }
-
-  // Priority range
-  result = result.filter(j => j.priority >= filters.priorityMin && j.priority <= filters.priorityMax)
 
   // Date range
   const now = new Date()
@@ -118,9 +102,6 @@ export function applyFilters(jobs: Job[], filters: FilterState): Job[] {
   result.sort((a, b) => {
     let cmp = 0
     switch (filters.sortBy) {
-      case 'priority':
-        cmp = a.priority - b.priority
-        break
       case 'created':
         cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         break
@@ -141,7 +122,6 @@ export function countActiveFilters(filters: FilterState): number {
   let count = 0
   if (filters.search) count++
   if (filters.states.length > 0) count++
-  if (filters.priorityMin !== 1 || filters.priorityMax !== 10) count++
   if (filters.dateRange !== 'all') count++
   if (filters.partFamily) count++
   if (filters.builderName) count++
@@ -155,8 +135,6 @@ export function filtersToUrlParams(filters: FilterState): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.search) params.set('q', filters.search)
   if (filters.states.length > 0) params.set('states', filters.states.join(','))
-  if (filters.priorityMin !== 1) params.set('pmin', String(filters.priorityMin))
-  if (filters.priorityMax !== 10) params.set('pmax', String(filters.priorityMax))
   if (filters.dateRange !== 'all') params.set('dr', filters.dateRange)
   if (filters.dateFrom) params.set('df', filters.dateFrom)
   if (filters.dateTo) params.set('dt', filters.dateTo)
@@ -171,15 +149,15 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   const filters: Partial<FilterState> = {}
   if (params.get('q')) filters.search = params.get('q')!
   if (params.get('states')) filters.states = params.get('states')!.split(',').filter(Boolean)
-  if (params.get('pmin')) filters.priorityMin = Number(params.get('pmin'))
-  if (params.get('pmax')) filters.priorityMax = Number(params.get('pmax'))
   if (params.get('dr')) filters.dateRange = params.get('dr') as FilterState['dateRange']
   if (params.get('df')) filters.dateFrom = params.get('df')
   if (params.get('dt')) filters.dateTo = params.get('dt')
   if (params.get('pf')) filters.partFamily = params.get('pf')
   if (params.get('bn')) filters.builderName = params.get('bn')
-  if (params.get('sort')) filters.sortBy = params.get('sort') as FilterState['sortBy']
-  if (params.get('order')) filters.sortOrder = params.get('order') as FilterState['sortOrder']
+  const sort = params.get('sort')
+  if (sort === 'created' || sort === 'updated' || sort === 'state') filters.sortBy = sort
+  const order = params.get('order')
+  if (order === 'asc' || order === 'desc') filters.sortOrder = order
   return filters
 }
 
@@ -206,7 +184,6 @@ const DATE_OPTIONS = [
 ]
 
 const SORT_OPTIONS = [
-  { key: 'priority', label: 'Priority' },
   { key: 'created', label: 'Created' },
   { key: 'updated', label: 'Updated' },
   { key: 'state', label: 'State' },
@@ -249,17 +226,23 @@ export function SearchFilterPanel({
     onFiltersChange(DEFAULT_FILTER_STATE)
   }, [onFiltersChange])
 
+  const chipClass = (active: boolean) => `min-h-7 max-w-full rounded-[6px] border px-2.5 py-1 text-[11px] font-medium leading-4 transition-colors active:scale-[0.98] ${
+    active
+      ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
+      : 'border-transparent text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
+  }`
+
   return (
-    <div className="border-b border-[color:var(--app-border)]">
+    <div className="border-b border-[color:var(--app-border)] bg-[var(--app-surface)]">
       {/* Search Row - Always visible */}
-      <div className="px-3 py-2 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--app-text-dim)]" />
+      <div className="px-2.5 py-2 flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--app-text-dim)]" />
           <Input
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
             placeholder="Search runs"
-            className="h-7 pl-7 pr-7 text-sm bg-[var(--app-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)]"
+            className="h-8 min-w-0 rounded-[7px] pl-8 pr-7 text-[13px] bg-[var(--app-input-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent)]"
             suppressHydrationWarning
           />
           {filters.search && (
@@ -277,34 +260,14 @@ export function SearchFilterPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-1.5 gap-1 text-xs font-mono ${filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
-                onClick={() => {
-                  if (filters.sortBy === 'created' && filters.sortOrder === 'desc') {
-                    onFiltersChange({ ...filters, sortBy: 'priority', sortOrder: 'desc' })
-                  } else {
-                    onFiltersChange({ ...filters, sortBy: 'created', sortOrder: 'desc' })
-                  }
-                }}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                  {filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Time' : 'P'}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p className="text-xs">{filters.sortBy === 'created' && filters.sortOrder === 'desc' ? 'Switch to priority sort' : 'Switch to time sort'}</p></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-7 w-7 p-0 relative ${expanded ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]'}`}
+                className={`h-8 w-8 shrink-0 rounded-[7px] p-0 relative border transition-colors active:scale-[0.98] ${expanded ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'}`}
                 onClick={() => setExpanded(!expanded)}
+                aria-label="Filter and sort"
+                aria-expanded={expanded}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 {activeCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-violet-500 text-white text-[7px] font-mono flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 rounded-full bg-[var(--app-accent)] px-1 text-white text-[7px] font-mono tabular-nums flex items-center justify-center">
                     {activeCount}
                   </span>
                 )}
@@ -316,7 +279,7 @@ export function SearchFilterPanel({
       </div>
 
       {/* State Pills - Always visible */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-t border-[color:var(--app-border-separator)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex items-center gap-1 px-2.5 py-1.5 border-t border-[color:var(--app-border-separator)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {FILTER_STATES.map(f => {
           const totalFiltered = Object.values(stateCounts).reduce((a, b) => a + b, 0)
           const count = f.key === 'ALL' ? totalFiltered :
@@ -328,8 +291,8 @@ export function SearchFilterPanel({
           return (
             <button
               key={f.key}
-              className={`shrink-0 text-xs font-medium px-2 py-1 rounded-sm transition-colors min-h-[24px] ${
-                isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)]'
+              className={`shrink-0 max-w-[128px] text-[11px] font-medium px-2 py-1 rounded-[5px] transition-colors min-h-6 active:scale-[0.98] truncate ${
+                isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
               }`}
               onClick={() => {
                 if (f.key === 'ALL') {
@@ -357,71 +320,38 @@ export function SearchFilterPanel({
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="px-3 py-2.5 space-y-3 border-t border-[color:var(--app-border-separator)] bg-[var(--app-code-bg)]">
-              {/* Row 1: Priority Range + Date Range */}
-              <div className="flex items-start gap-4">
-                {/* Priority Range */}
-                <div className="flex-1">
-                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
-                    Priority Range
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min={1}
-                      max={10}
-                      value={filters.priorityMin}
-                      onChange={e => updateFilter('priorityMin', Math.min(Number(e.target.value), filters.priorityMax))}
-                      className="flex-1 accent-violet-500 h-1"
-                    />
-                    <span className="text-xs font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMin}</span>
-                    <span className="text-xs text-[var(--app-text-dim)]">—</span>
-                    <input
-                      type="range"
-                      min={1}
-                      max={10}
-                      value={filters.priorityMax}
-                      onChange={e => updateFilter('priorityMax', Math.max(Number(e.target.value), filters.priorityMin))}
-                      className="flex-1 accent-violet-500 h-1"
-                    />
-                    <span className="text-xs font-mono text-[var(--app-text-muted)] min-w-[28px] text-center">P{filters.priorityMax}</span>
-                  </div>
-                </div>
-
-                {/* Date Range */}
-                <div className="flex-1">
-                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+            <div className="px-2.5 py-3 space-y-3 border-t border-[color:var(--app-border-separator)] bg-[var(--app-bg)]">
+              {/* Row 1: Date Range */}
+              <div className="min-w-0">
+                <div className="min-w-0">
+                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
                     Date Range
                   </label>
-                  <div className="flex items-center gap-1">
+                  <div className="grid grid-cols-2 gap-1">
                     {DATE_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
-                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
-                          filters.dateRange === opt.key
-                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
-                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
-                        }`}
+                        className={chipClass(filters.dateRange === opt.key)}
                         onClick={() => updateFilter('dateRange', opt.key as FilterState['dateRange'])}
                       >
-                        {opt.label}
+                        <span className="block truncate">{opt.label}</span>
                       </button>
                     ))}
                   </div>
                   {filters.dateRange === 'custom' && (
-                    <div className="flex items-center gap-2 mt-1.5">
+                    <div className="grid grid-cols-1 gap-1.5 mt-2">
                       <Input
                         type="date"
                         value={filters.dateFrom || ''}
                         onChange={e => updateFilter('dateFrom', e.target.value || null)}
-                        className="h-6 text-[13px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
+                        className="h-8 min-w-0 text-[12px] bg-[var(--app-input-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
                       />
-                      <span className="text-xs text-[var(--app-text-dim)]">to</span>
+                      <span className="sr-only">to</span>
                       <Input
                         type="date"
                         value={filters.dateTo || ''}
                         onChange={e => updateFilter('dateTo', e.target.value || null)}
-                        className="h-6 text-[13px] bg-[var(--app-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
+                        className="h-8 min-w-0 text-[12px] bg-[var(--app-input-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
                       />
                     </div>
                   )}
@@ -429,19 +359,15 @@ export function SearchFilterPanel({
               </div>
 
               {/* Row 2: Part Family + Builder + Sort */}
-              <div className="flex items-start gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 {/* Part Family */}
-                <div className="flex-1">
-                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                <div className="min-w-0">
+                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
                     Part Family
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
-                      className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
-                        !filters.partFamily
-                          ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
-                          : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
-                      }`}
+                      className={chipClass(!filters.partFamily)}
                       onClick={() => updateFilter('partFamily', null)}
                     >
                       All
@@ -449,31 +375,24 @@ export function SearchFilterPanel({
                     {partFamilies.map(pf => (
                       <button
                         key={pf}
-                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
-                          filters.partFamily === pf
-                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
-                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
-                        }`}
+                        className={chipClass(filters.partFamily === pf)}
                         onClick={() => updateFilter('partFamily', pf === filters.partFamily ? null : pf)}
+                        title={pf.replace(/_/g, ' ')}
                       >
-                        {pf.replace(/_/g, ' ')}
+                        <span className="block max-w-[120px] truncate">{pf.replace(/_/g, ' ')}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Builder Name */}
-                <div className="flex-1">
-                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                <div className="min-w-0">
+                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
                     Builder
                   </label>
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
-                      className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
-                        !filters.builderName
-                          ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
-                          : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
-                      }`}
+                      className={chipClass(!filters.builderName)}
                       onClick={() => updateFilter('builderName', null)}
                     >
                       All
@@ -481,40 +400,33 @@ export function SearchFilterPanel({
                     {builderNames.map(bn => (
                       <button
                         key={bn}
-                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
-                          filters.builderName === bn
-                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
-                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
-                        }`}
+                        className={chipClass(filters.builderName === bn)}
                         onClick={() => updateFilter('builderName', bn === filters.builderName ? null : bn)}
+                        title={bn}
                       >
-                        {bn}
+                        <span className="block max-w-[120px] truncate">{bn}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Sort */}
-                <div className="flex-1">
-                  <label className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-1.5 block">
+                <div className="min-w-0">
+                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
                     Sort By
                   </label>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     {SORT_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
-                        className={`text-xs px-2.5 py-1.5 rounded-md min-h-[28px] transition-colors ${
-                          filters.sortBy === opt.key
-                            ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
-                            : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
-                        }`}
+                        className={chipClass(filters.sortBy === opt.key)}
                         onClick={() => updateFilter('sortBy', opt.key as FilterState['sortBy'])}
                       >
-                        {opt.label}
+                        <span className="block truncate">{opt.label}</span>
                       </button>
                     ))}
                     <button
-                      className="text-xs px-1.5 py-1 rounded-md text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
+                      className="h-7 w-7 rounded-[6px] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)] transition-colors active:scale-[0.98] flex items-center justify-center"
                       onClick={() => updateFilter('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
                       title={filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                     >
@@ -526,17 +438,18 @@ export function SearchFilterPanel({
 
               {/* Clear All */}
               {activeCount > 0 && (
-                <div className="flex items-center justify-between pt-1 border-t border-[color:var(--app-border-separator)]">
-                  <span className="text-xs text-[var(--app-text-dim)]">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-[color:var(--app-border-separator)]">
+                  <span className="min-w-0 text-[11px] text-[var(--app-text-dim)] truncate">
                     {activeCount} active filter{activeCount !== 1 ? 's' : ''}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-5 text-xs gap-1 text-rose-400 hover:text-rose-300"
+                    className="h-7 shrink-0 text-[11px] gap-1 text-[var(--app-danger)] hover:bg-[var(--app-danger-bg)]"
                     onClick={clearAll}
                   >
-                    <RotateCcw className="w-2.5 h-2.5" />Clear all filters
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Clear filters</span>
                   </Button>
                 </div>
               )}

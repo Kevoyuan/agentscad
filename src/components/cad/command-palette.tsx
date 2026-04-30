@@ -158,7 +158,7 @@ export function CommandPalette({
               <PartFamilyIcon family={job.partFamily || 'unknown'} size="xs" />
               <div className="flex-1 min-w-0 ml-1">
                 <span className="text-sm truncate block max-w-[280px]">{job.inputRequest}</span>
-                <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{job.id.slice(0, 8)} · P{job.priority}</span>
+                <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{job.id.slice(0, 8)}</span>
               </div>
               <StateBadge state={job.state} />
             </CommandItem>

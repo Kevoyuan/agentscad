@@ -143,10 +143,6 @@
   --app-input-bg: #ffffff;
   --app-input-border: rgba(0, 0, 0, 0.14);
   --app-input-focus-border: rgba(37, 99, 235, 0.45);
-  --app-priority-high: #ef4444;
-  --app-priority-medium: #f59e0b;
-  --app-priority-low: #6b7280;
-  --app-priority-inactive: rgba(0, 0, 0, 0.08);
   --app-hover-subtle: rgba(0, 0, 0, 0.04);
   --app-border-separator: rgba(0, 0, 0, 0.08);
   --app-state-neutral-bg: rgba(100, 100, 116, 0.12);
@@ -268,10 +264,6 @@
   --app-input-bg: #090a0d;
   --app-input-border: var(--cad-border);
   --app-input-focus-border: rgba(94, 106, 210, 0.5);
-  --app-priority-high: var(--cad-danger);
-  --app-priority-medium: var(--cad-warning);
-  --app-priority-low: var(--cad-text-muted);
-  --app-priority-inactive: rgba(255, 255, 255, 0.04);
   --app-hover-subtle: rgba(255, 255, 255, 0.02);
   --app-border-separator: var(--cad-border);
   --app-state-neutral-bg: rgba(113, 113, 122, 0.12);
@@ -827,15 +819,6 @@ pre:hover .code-copy-btn { opacity: 1; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 .status-icon-pulse { animation: statusIconPulse 2s ease-out infinite; }
-
-/* Priority bar indicator with animation */
-.priority-bar-animate {
-  animation: priorityBarFill 0.5s ease-out both;
-}
-@keyframes priorityBarFill {
-  0% { transform: scaleY(0); }
-  100% { transform: scaleY(1); }
-}
 
 /* Line clamp for 2 lines */
 .line-clamp-2 {

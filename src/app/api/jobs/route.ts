@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const jobs = summary
       ? await db.job.findMany({
           where,
-          orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+          orderBy: [{ createdAt: "desc" }],
           take,
           skip: offset,
           select: {
@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
             state: true,
             inputRequest: true,
             customerId: true,
-            priority: true,
             modelId: true,
             partFamily: true,
             builderName: true,
@@ -73,7 +72,7 @@ export async function GET(request: NextRequest) {
         })
       : await db.job.findMany({
         where,
-        orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+        orderBy: [{ createdAt: "desc" }],
         take,
         skip: offset,
         include: {
@@ -107,12 +106,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/jobs
- * Create a new job with inputRequest, customerId, priority, modelId
+ * Create a new job with inputRequest, customerId, modelId
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { inputRequest, customerId, priority, modelId } = body;
+    const { inputRequest, customerId, modelId } = body;
 
     if (!inputRequest || typeof inputRequest !== "string" || inputRequest.trim().length === 0) {
       return NextResponse.json(
@@ -121,7 +120,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const jobPriority = typeof priority === "number" ? Math.min(Math.max(priority, 1), 10) : 5;
     const selectedModelId =
       typeof modelId === "string" && modelId.trim().length > 0
         ? modelId.trim()
@@ -203,7 +201,6 @@ export async function POST(request: NextRequest) {
       data: {
         inputRequest: inputRequest.trim(),
         customerId: customerId || null,
-        priority: jobPriority,
         modelId: selectedModelId,
         state: "NEW",
         parameterSchema: defaultParameterSchema,

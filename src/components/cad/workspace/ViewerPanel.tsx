@@ -86,21 +86,6 @@ export function ViewerPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <div className="hidden lg:flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-1.5 h-3 rounded-sm transition-colors duration-200 ${
-                          i < Math.ceil(selectedJob.priority / 2)
-                            ? selectedJob.priority >= 8 ? 'bg-[var(--app-priority-high)]' :
-                              selectedJob.priority >= 6 ? 'bg-[var(--app-priority-medium)]' :
-                              selectedJob.priority >= 4 ? 'bg-[var(--app-priority-medium)]' :
-                              'bg-[var(--app-priority-low)]'
-                            : 'bg-[var(--app-priority-inactive)]'
-                        }`}
-                      ></div>
-                    ))}
-                  </div>
                   <StateBadge state={selectedJob.state} size="md" />
                 </div>
               </div>
