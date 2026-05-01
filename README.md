@@ -37,6 +37,8 @@ Most text-to-CAD demos stop at code generation. AgentSCAD treats CAD as an artif
 
 ![Create a CAD job from natural language, reusable case memory, model selection, and manufacturing constraints.](./docs/images/spec.png)
 
+![AgentSCAD's generation and repair agents work together to deliver validated CAD artifacts.](./docs/images/repair.png)
+
 ## Quick Start
 
 Requirements: Node.js 20 or 22 LTS, Bun, and OpenSCAD in your PATH.
