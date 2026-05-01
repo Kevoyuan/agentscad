@@ -103,12 +103,16 @@ export async function POST(
     let stlPath: string | null = null;
     let pngPath: string | null = null;
     let renderLog: Record<string, unknown> | null = null;
+    let stlFilePath: string | null = null;
+    let pngFilePath: string | null = null;
 
     try {
       const artifacts = await renderScadArtifacts(id, sanitized);
       clearValidationCache();
       stlPath = artifacts.stlPath;
       pngPath = artifacts.pngPath;
+      stlFilePath = artifacts.stlFilePath;
+      pngFilePath = artifacts.pngFilePath;
       renderLog = artifacts.renderLog;
       renderSucceeded = true;
     } catch (renderError) {
@@ -134,16 +138,15 @@ export async function POST(
       });
     }
 
-    // Re-validate
+    // Re-validate using artifacts from the render above
     let revalidationResults: Array<Record<string, unknown>> = [];
-    if (renderSucceeded && stlPath) {
-      const artifacts = await renderScadArtifacts(id, sanitized);
+    if (renderSucceeded && stlFilePath) {
       revalidationResults = await validateRenderedArtifacts({
         inputRequest: job.inputRequest,
         partFamily: job.partFamily,
         scadSource: sanitized,
-        stlFilePath: artifacts.stlFilePath,
-        previewImagePath: artifacts.pngFilePath,
+        stlFilePath,
+        previewImagePath: pngFilePath!,
         wallThickness: 2,
         renderLog: renderLog as Parameters<typeof validateRenderedArtifacts>[0]["renderLog"],
         validationTargets: cadIntent?.validation_targets as Parameters<typeof validateRenderedArtifacts>[0]["validationTargets"],

@@ -411,7 +411,7 @@ export async function validateStl(
     // Wall thickness validation uses the FDM manufacturing minimum,
     // not the design-level wall_thickness parameter.
     const { stdout, stderr } = await execAsync(
-      `${shellQuote(validator.pythonPath)} ${shellQuote(scriptPath)} ${shellQuote(stlPath)} --min-wall ${FDM_MIN_WALL_MM}`,
+      `${shellQuote(validator.pythonPath)} ${shellQuote(scriptPath)} ${shellQuote(stlPath)} --min-wall ${shellQuote(String(FDM_MIN_WALL_MM))}`,
       { timeout: VALIDATION_TIMEOUT_MS }
     );
 
