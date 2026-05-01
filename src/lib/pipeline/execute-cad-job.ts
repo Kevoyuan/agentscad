@@ -14,6 +14,10 @@ import {
   validateRenderedArtifacts,
 } from "@/lib/tools/validation-tool";
 import { runRepair } from "@/lib/repair/repair-controller";
+import {
+  recordParameterDrift,
+  recordValidationFailure,
+} from "@/lib/improvement-analyzer";
 import type {
   ParameterDef,
   PartFamily,
@@ -246,6 +250,21 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
     });
     const criticalFailures = getCriticalValidationFailures(validationResults);
     let wasRepaired = false;
+
+    // v3.0 memory: record validation failures for learning
+    try {
+      for (const result of validationResults) {
+        if (!result.passed) {
+          recordValidationFailure({
+            family: partFamily ?? "unknown",
+            ruleId: result.rule_id,
+            ruleName: result.rule_name,
+            passed: false,
+            repairSucceeded: null, // repair hasn't run yet
+          }).catch(() => { /* non-critical */ });
+        }
+      }
+    } catch { /* memory system is non-critical */ }
 
     if (criticalFailures.length > 0) {
       // Attempt auto-repair once (Phase 3: validation-driven repair)
@@ -497,6 +516,26 @@ export async function executeCadJob(jobId: string, sendEvent: ProcessEventSink) 
     });
 
     const finalJob = await db.job.findUnique({ where: { id: jobId } });
+
+    // v3.0 memory: record parameter drift for learning
+    try {
+      for (const param of generationResult.parameters) {
+        const schemaDefault = param.value;
+        const finalParams = paramValues;
+        const userValue = (finalParams as Record<string, unknown>)[param.key] as number | undefined;
+        if (userValue !== undefined && Math.abs(userValue - schemaDefault) > 0.01) {
+          recordParameterDrift({
+            family: partFamily ?? "unknown",
+            parameter: param.key,
+            default_value: schemaDefault,
+            user_value: userValue,
+            source: "user_edit",
+            deliverySucceeded: true,
+            repairSucceeded: wasRepaired ? true : null,
+          }).catch(() => { /* non-critical */ });
+        }
+      }
+    } catch { /* memory system is non-critical */ }
 
     sendEvent({
       state: "DELIVERED",
