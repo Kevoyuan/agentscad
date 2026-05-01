@@ -198,7 +198,7 @@ AgentSCAD is centered around two CAD agents: a generation agent that creates Ope
 | Agent workflow | Job state machine, retries, SSE progress, automatic workspace refresh | `src/lib/pipeline/`, `src/app/api/jobs/[id]/process/route.ts`, `src/app/api/cron/route.ts` |
 | Skills | CAD reasoning contracts, repair strategy, validation review, library usage policy | `skills/scad-*`, `skills/RESOLVER.md` |
 | Tools | Deterministic render, validation, SCAD sanitization, parameter extraction, artifact IO | `src/lib/tools/`, `scripts/validate_stl.py` |
-| Memory | Job state, version history, generated artifacts, learned patterns from edits | `prisma/schema.prisma`, `src/lib/version-tracker.ts`, `src/lib/improvement-analyzer.ts`, `skills/scad-generation/learned-patterns.json` |
+| Memory | Job state, version history, artifacts, structured learned observations (v3.0: append-only JSONL, pipeline-triggered) | `prisma/schema.prisma`, `src/lib/version-tracker.ts`, `src/lib/improvement-analyzer.ts`, `skills/scad-generation/learned-observations.jsonl` |
 | Workspace UI | CAD viewport, job queue, parameter editing, review panels, chat helper | `src/components/cad/`, `src/app/` |
 
 ## Memory at a Glance
@@ -209,7 +209,7 @@ AgentSCAD uses explicit product memory instead of opaque chat history:
 - **Episodic memory**: field-level `JobVersion` history for parameter, source, and note edits.
 - **Artifact memory**: generated `model.scad`, `model.stl`, `preview.png`, and reports under `public/artifacts/{jobId}/`.
 - **Skill memory**: Markdown CAD skills, schemas, library policy, and in-process skill/schema caches.
-- **Learned memory**: conservative learned patterns extracted from repeated user edits and validation failures.
+- **Learned memory**: structured numerical observations (v3.0) extracted from user edits, validation failures, and repair outcomes. Pipeline-triggered writes, append-only JSONL, prompt injection defense on user content.
 
 Learned memory is used as prompt-time guidance, not as an override for rendering or validation.
 
