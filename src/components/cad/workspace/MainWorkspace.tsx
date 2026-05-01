@@ -465,9 +465,9 @@ export function MainWorkspace() {
 
       {/* Stats Dashboard */}
       <Dialog open={state.showStats} onOpenChange={state.setShowStats}>
-        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-2xl dialog-enter" aria-describedby="stats-description" aria-labelledby="stats-dashboard-title">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-2xl dialog-enter" aria-describedby="stats-description">
           <DialogHeader>
-            <DialogTitle id="stats-dashboard-title" className="text-sm flex items-center gap-2">
+            <DialogTitle className="text-sm flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[var(--app-accent-text)]" />Stats Dashboard
             </DialogTitle>
             <DialogDescription id="stats-description" className="sr-only">
