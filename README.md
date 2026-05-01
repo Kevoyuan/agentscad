@@ -213,6 +213,8 @@ AgentSCAD uses explicit product memory instead of opaque chat history:
 
 Learned memory is used as prompt-time guidance, not as an override for rendering or validation.
 
+**v3.0 improvements**: Observations are structured numerical data (not prose), stored in append-only JSONL for data safety, and written automatically by the pipeline on job completion and validation events. Source trust levels (user_edit > repair_success > validation_pattern) give higher confidence to user-driven changes. Prompt injection defense sanitizes user-sourced SCAD content before it enters the generation prompt. Quality metrics (delivery rate, repair rate) close the feedback loop — the system knows not just what users change, but whether those changes lead to successful deliveries.
+
 See the [Memory at a Glance](#memory-at-a-glance) section above for the memory design overview.
 
 ## Skills at a Glance
