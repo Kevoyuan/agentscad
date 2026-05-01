@@ -2,32 +2,13 @@ import { NextResponse } from "next/server";
 
 import {
   deleteProviderSettings,
+  getEnvProviderConfigs,
   readProviderSettings,
   toPublicProvider,
   upsertProviderSettings,
   type ProviderType,
 } from "@/lib/provider-settings";
-
-const ENV_PROVIDERS = [
-  {
-    id: "env-mimo",
-    name: "Xiaomi MiMo",
-    enabled: Boolean(process.env.MIMO_API_KEY?.trim()),
-    envKey: "MIMO_API_KEY",
-  },
-  {
-    id: "env-deepseek",
-    name: "DeepSeek",
-    enabled: Boolean(process.env.DEEPSEEK_API_KEY?.trim()),
-    envKey: "DEEPSEEK_API_KEY",
-  },
-  {
-    id: "env-openrouter",
-    name: "OpenRouter",
-    enabled: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
-    envKey: "OPENROUTER_API_KEY",
-  },
-];
+import { getProviderPreset } from "@/lib/provider-catalog";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -37,7 +18,12 @@ export async function GET() {
   const providers = await readProviderSettings();
   return NextResponse.json({
     providers: providers.map(toPublicProvider),
-    envProviders: ENV_PROVIDERS,
+    envProviders: getEnvProviderConfigs().map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      enabled: provider.enabled,
+      envKey: getProviderPreset(provider.id.replace(/^env-/, ""))?.apiKeyEnv || "No key required",
+    })),
   });
 }
 
@@ -54,7 +40,9 @@ export async function POST(request: Request) {
   if (!name) return badRequest("Provider name is required");
   if (!baseUrl) return badRequest("Base URL is required");
   if (!defaultModel) return badRequest("Default model is required");
-  if (!apiKey?.trim() && !keepExistingApiKey && body.type !== "ollama") {
+  const preset = typeof body.preset === "string" ? getProviderPreset(body.preset) : undefined;
+  const requiresApiKey = preset?.requiresApiKey ?? body.type !== "ollama";
+  if (!apiKey?.trim() && !keepExistingApiKey && requiresApiKey) {
     return badRequest("API key is required");
   }
 

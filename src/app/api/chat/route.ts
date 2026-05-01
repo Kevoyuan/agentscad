@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createMimoChatCompletion, getMimoConfig, MIMO_DEFAULT_MODEL } from "@/lib/mimo";
 import { createOpenRouterChatCompletion, isOpenRouterModel } from "@/lib/openrouter";
+import { createProviderChatCompletion, findProviderForModel } from "@/lib/provider-settings";
 import { loadSkill } from "@/lib/skill-resolver";
 
 type ContentPart =
@@ -139,6 +140,101 @@ ${job.scadSource ? `\nGenerated SCAD Code:\n\`\`\`openscad\n${job.scadSource}\n\
 
     const mimoConfig = getMimoConfig();
     const requestedOpenRouter = isOpenRouterModel(requestedModel);
+
+    const streamOpenAICompatibleResponse = (providerResponse: Response, providerName: string) => {
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = providerResponse.body?.getReader();
+
+          if (!reader) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "error", message: `${providerName} response body unavailable` })}\n\n`)
+            );
+            controller.close();
+            return;
+          }
+
+          let buffer = "";
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() || "";
+
+              for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line.startsWith("data:")) continue;
+
+                const payload = line.slice(5).trim();
+                if (!payload) continue;
+
+                if (payload === "[DONE]") {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+                  );
+                  controller.close();
+                  return;
+                }
+
+                try {
+                  const chunk = JSON.parse(payload);
+                  const content = chunk?.choices?.[0]?.delta?.content ?? "";
+                  if (content) {
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ type: "token", content })}\n\n`)
+                    );
+                  }
+                } catch {
+                  // Ignore malformed provider SSE lines
+                }
+              }
+            }
+
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+            );
+            controller.close();
+          } catch (streamErr) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "error", message: streamErr instanceof Error ? streamErr.message : `${providerName} stream interrupted` })}\n\n`)
+            );
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    };
+
+    try {
+      const configuredProvider = await findProviderForModel(model);
+
+      if (configuredProvider) {
+        const providerResponse = await createProviderChatCompletion({
+          provider: configuredProvider.provider,
+          model: configuredProvider.model,
+          messages: formattedMessages,
+          stream: true,
+        });
+
+        return streamOpenAICompatibleResponse(providerResponse, configuredProvider.provider.name);
+      }
+    } catch (providerError) {
+      console.warn("Configured provider chat request failed, falling back:", providerError);
+    }
 
     try {
       if (requestedOpenRouter) {

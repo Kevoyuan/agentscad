@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getEnvProviderConfigs,
   readProviderSettings,
   toProviderModelId,
 } from "@/lib/provider-settings";
@@ -468,8 +469,22 @@ export async function GET(request: Request) {
       reasoning: true,
       category: provider.isDefault ? "flagship" : "code",
     }));
+  const envModels: ModelInfo[] = getEnvProviderConfigs()
+    .filter((provider) => provider.enabled)
+    .map((provider) => ({
+      id: provider.defaultModel,
+      name: provider.defaultModel,
+      description: `Detected from environment or local preset via ${provider.name}.`,
+      provider: provider.id.replace(/^env-/, ""),
+      providerName: provider.name,
+      multimodal: true,
+      reasoning: true,
+      category: "code",
+    }));
 
   return NextResponse.json({
-    models: includeBuiltIns ? [...configuredModels, ...AVAILABLE_MODELS] : configuredModels,
+    models: includeBuiltIns
+      ? [...configuredModels, ...envModels, ...AVAILABLE_MODELS]
+      : [...configuredModels, ...envModels],
   });
 }

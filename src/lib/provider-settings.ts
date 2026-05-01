@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import type { MimoMessage } from "@/lib/mimo";
+import { getProviderPresetByModel, PROVIDER_PRESETS } from "@/lib/provider-catalog";
 
 export type ProviderType =
   | "openai-compatible"
@@ -157,10 +158,63 @@ export async function findProviderForModel(model?: string) {
   const exact = providers.find((provider) => provider.enabled && provider.defaultModel === model);
   if (exact) return { provider: exact, model: exact.defaultModel };
 
+  const envProvider = findEnvProviderForModel(model);
+  if (envProvider) return envProvider;
+
   if (model) return null;
 
   const defaultProvider = providers.find((provider) => provider.enabled && provider.isDefault);
-  return defaultProvider ? { provider: defaultProvider, model: model || defaultProvider.defaultModel } : null;
+  if (defaultProvider) {
+    return { provider: defaultProvider, model: model || defaultProvider.defaultModel };
+  }
+
+  return null;
+}
+
+export function getEnvProviderConfigs(): PublicProviderConfig[] {
+  const now = new Date(0).toISOString();
+  return PROVIDER_PRESETS
+    .filter((preset) => preset.apiKeyEnv || !preset.requiresApiKey)
+    .map((preset) => {
+      const apiKey = preset.apiKeyEnv ? process.env[preset.apiKeyEnv]?.trim() : undefined;
+      const enabled = preset.requiresApiKey ? Boolean(apiKey) : true;
+      return toPublicProvider({
+        id: `env-${preset.id}`,
+        name: preset.label,
+        type: preset.type,
+        baseUrl: preset.baseUrl,
+        apiKey,
+        defaultModel: preset.defaultModel,
+        enabled,
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+}
+
+function findEnvProviderForModel(model?: string) {
+  const preset = getProviderPresetByModel(model);
+  if (!preset) return null;
+  const apiKey = preset.apiKeyEnv ? process.env[preset.apiKeyEnv]?.trim() : undefined;
+  if (preset.requiresApiKey && !apiKey) return null;
+
+  const now = new Date(0).toISOString();
+  return {
+    provider: {
+      id: `env-${preset.id}`,
+      name: preset.label,
+      type: preset.type,
+      baseUrl: preset.baseUrl,
+      apiKey,
+      defaultModel: preset.defaultModel,
+      enabled: true,
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    model: model || preset.defaultModel,
+  };
 }
 
 export async function createProviderChatCompletion(args: {
@@ -175,6 +229,11 @@ export async function createProviderChatCompletion(args: {
 
   if (args.provider.apiKey) {
     headers.Authorization = `Bearer ${args.provider.apiKey}`;
+  }
+  if (args.provider.type === "openrouter") {
+    const referer = process.env.OPENROUTER_HTTP_REFERER?.trim();
+    headers["X-Title"] = process.env.OPENROUTER_APP_TITLE?.trim() || "AgentSCAD";
+    if (referer) headers["HTTP-Referer"] = referer;
   }
 
   const response = await fetch(`${args.provider.baseUrl}/chat/completions`, {
