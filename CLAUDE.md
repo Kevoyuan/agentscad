@@ -20,6 +20,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Generate Prisma client | `bun run db:generate` |
 | Run DB migrations | `bun run db:migrate` |
 | Reset DB | `bun run db:reset` |
+| Eval all benchmarks | `bun run cad:eval` |
+| Eval simple cases only | `bun run cad:eval:fast` |
+| Eval report as JSON | `bun run cad:eval:report` |
 
 Tests use Bun's built-in test runner. Run `bun run test` before handing off CAD pipeline or skill resolver changes.
 
