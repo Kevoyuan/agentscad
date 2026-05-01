@@ -27,6 +27,9 @@ RUN bun run db:generate
 # Build Next.js
 RUN bun run build
 
+# Run as non-root user (bun user exists in oven/bun base image, uid 1000)
+USER bun
+
 EXPOSE 3000
 
 CMD ["bun", "run", "start"]
