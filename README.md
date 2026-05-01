@@ -1,3 +1,5 @@
+**English** | [中文](./README_CN.md)
+
 # AgentSCAD
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
@@ -24,20 +26,21 @@ Most text-to-CAD demos stop at code generation. AgentSCAD treats CAD as an artif
 5. Repair failed geometry or route the job to human review.
 6. Store edits, artifacts, and learned patterns for future jobs.
 
-## Features
-
-- **Artifact-first CAD generation**: OpenSCAD source is the source of truth; model-provided parameter JSON is compatibility metadata and fallback.
-- **CAD generation and repair agents**: A generation agent creates OpenSCAD artifacts, while a repair agent fixes failed geometry, validation blockers, and human-review edits.
-- **Validation-driven workflow**: When validation fails, AgentSCAD keeps the generated STL, preview, and SCAD available for inspection, then routes the job into human review or repair.
-- **Live workspace updates**: Server-Sent Events stream active generation progress, and the job workspace refreshes automatically.
-- **Parametric editing**: Users can tweak extracted CAD parameters such as wall thickness, hole diameter, or gear teeth within schema constraints.
-- **Edit-derived memory**: Version history and edit analysis feed recurring corrections back into future generation prompts.
-- **Managed OpenSCAD libraries**: Approved libraries such as BOSL2, Round-Anything, and MCAD can be installed into a local managed bundle with license gates.
-- **Multi-provider LLM support**: The runtime can route generation through OpenAI, Anthropic, Google, DeepSeek, OpenRouter, Zhipu, Qwen, Mistral, and other configured providers.
+## Demo Flow
 
 ![Create a CAD job from natural language, reusable case memory, model selection, and manufacturing constraints.](./docs/images/spec.png)
 
 ![AgentSCAD's generation and repair agents work together to deliver validated CAD artifacts.](./docs/images/repair.png)
+
+![Delivered CAD artifacts remain inspectable with preview, STL readiness, SCAD source, and validation status.](./docs/images/Example.png)
+
+The main workflow is:
+
+1. Describe a part in natural language and choose the model/provider.
+2. Generate parameterized OpenSCAD source.
+3. Render `model.stl` and `preview.png` through the local OpenSCAD CLI.
+4. Review validation results for mesh health, manufacturing constraints, and visual intent.
+5. Edit extracted parameters or SCAD, then re-render, repair, or export the STL.
 
 ## Quick Start
 
@@ -56,29 +59,92 @@ bun run dev:all
 
 Open `http://localhost:3000`.
 
-`bun run dev:all` starts the local Next.js app/API. On Windows PowerShell, use this equivalent for the environment copy step:
+`bun run dev:all` starts the local Next.js app/API.
+
+Bun is the tested package manager for this repo because the project commits `bun.lock`, uses `bun test`, and runs the production standalone server with Bun. npm can also run the development app:
+
+```bash
+npm install
+npm run db:push
+npm run dev:all
+```
+
+If you use npm, avoid committing the generated `package-lock.json` unless the project intentionally switches package managers. Tests still require Bun because the test script uses `bun test`.
+
+On Windows PowerShell, use this equivalent for the setup shell commands:
 
 ```powershell
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 New-Item -ItemType Directory -Force db
 if (!(Test-Path db/dev.db)) { New-Item -ItemType File db/dev.db }
+bun install --frozen-lockfile
+bun run db:push
+bun run dev:all
 ```
 
-Optional setup:
+## First-Run Walkthrough
 
-- Add model API keys in `.env`.
-- Install approved OpenSCAD libraries:
+1. Start the app with `bun run dev:all`.
+2. Open `http://localhost:3000`.
+3. Create a new job with a prompt such as:
+
+```text
+Create a wall-mountable phone holder with rounded corners and two screw holes.
+```
+
+4. Pick a configured model provider, or use the built-in fallback/template path if you are evaluating the UI and pipeline shape.
+5. Inspect the generated preview, STL readiness, SCAD source, validation report, and editable parameters.
+6. Change a parameter such as wall thickness or screw-hole diameter, re-render, then export the STL.
+
+## What Works Without API Keys?
+
+You can clone the repo, install dependencies, open the workspace UI, initialize SQLite, inspect any local artifacts that are present, edit SCAD/parameters, and run deterministic OpenSCAD rendering and mesh/manufacturing validation with no paid model key.
+
+LLM-backed CAD generation, repair, chat help, and visual-intent review work best when at least one provider is configured in `.env` or through provider settings. Visual validation specifically uses `MIMO_API_KEY`; if it is missing, AgentSCAD records that check as skipped rather than blocking the job.
+
+## Configuration
+
+Model providers are optional for local exploration and required for full AI-assisted generation/repair quality. Start by copying `.env.example` to `.env`, then add the providers you want to use.
+
+Common variables:
+
+| Variable | Required | Purpose |
+|---|---:|---|
+| `DATABASE_URL` | Yes | SQLite database path used by Prisma. Defaults to `file:../db/dev.db`. |
+| `MIMO_API_KEY` | Optional | Enables MiMo generation fallback and visual validation. |
+| `OPENROUTER_API_KEY` | Optional | Enables OpenRouter model routing. |
+| `DEEPSEEK_API_KEY` | Optional | Enables DeepSeek model routing. |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DASHSCOPE_API_KEY`, etc. | Optional | Enable additional configured providers. |
+| `AGENTSCAD_OPENSCAD_LIBRARY_DIR` | Optional | Overrides the managed OpenSCAD library directory. |
+| `OPENSCAD_LIBRARY_PATHS` | Optional | Adds extra local OpenSCAD library search paths. |
+| `CRON_SECRET` | Production | Protects the cron endpoint in production. |
+| `API_SECRET` | Production | Protects job/chat API routes in production. |
+
+Optional OpenSCAD library setup:
+
+Install approved OpenSCAD libraries:
 
 ```bash
 bun run scad:libs:install
 bun run scad:libs:check
 ```
 
-- Run tests with Bun:
+Run tests with Bun:
 
 ```bash
 bun test
 ```
+
+## Features
+
+- **Artifact-first CAD generation**: OpenSCAD source is the source of truth; model-provided parameter JSON is compatibility metadata and fallback.
+- **CAD generation and repair agents**: A generation agent creates OpenSCAD artifacts, while a repair agent fixes failed geometry, validation blockers, and human-review edits.
+- **Validation-driven workflow**: When validation fails, AgentSCAD keeps the generated STL, preview, and SCAD available for inspection, then routes the job into human review or repair.
+- **Live workspace updates**: Server-Sent Events stream active generation progress, and the job workspace refreshes automatically.
+- **Parametric editing**: Users can tweak extracted CAD parameters such as wall thickness, hole diameter, or gear teeth within schema constraints.
+- **Edit-derived memory**: Version history and edit analysis feed recurring corrections back into future generation prompts.
+- **Managed OpenSCAD libraries**: Approved libraries such as BOSL2, Round-Anything, and MCAD can be installed into a local managed bundle with license gates.
+- **Multi-provider LLM support**: The runtime can route generation through OpenAI, Anthropic, Google, DeepSeek, OpenRouter, Zhipu, Qwen, Mistral, and other configured providers.
 
 ## Example Job
 
@@ -95,8 +161,6 @@ Output:
 - `preview.png`: generated preview image.
 - Validation report: mesh, manufacturing, and visual-intent checks.
 - Editable parameters: constrained values exposed in the workspace UI.
-
-![Delivered CAD artifacts remain inspectable with preview, STL readiness, SCAD source, and validation status.](./docs/images/Example.png)
 
 AgentSCAD is centered around two CAD agents: a generation agent that creates OpenSCAD artifacts, and a repair agent that fixes failed geometry, validation blockers, or human-review edits. The workspace chat helper stays outside the main generation pipeline and is used for CAD explanations, parameter advice, and user-facing SCAD patches.
 
@@ -122,7 +186,7 @@ AgentSCAD uses explicit product memory instead of opaque chat history:
 
 Learned memory is used as prompt-time guidance, not as an override for rendering or validation.
 
-See [docs/MEMORY.md](./docs/MEMORY.md) for the full memory design.
+See the [Memory at a Glance](#memory-at-a-glance) section above for the memory design overview.
 
 ## Skills at a Glance
 
@@ -207,7 +271,6 @@ Reviewed third-party license obligations are tracked in [THIRD_PARTY_NOTICES.md]
 ## Deeper Docs
 
 - [Architecture](./docs/ARCHITECTURE.md)
-- [Memory](./docs/MEMORY.md)
 - [Skills](./docs/SKILLS.md)
 - [Frontend redesign plan](./docs/FRONTEND_REDESIGN_PLAN.md)
 - [Design system](./DESIGN.md)
