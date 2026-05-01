@@ -48,6 +48,15 @@ skills/scad-generation/learned-patterns.json
 # agent/IDE context directories
 .codex/
 .context/
+.agent-ctx/
+agent-ctx/
+
+# development artifacts
+download/
+upload/
+worklog*.md
+keep-dev-alive.sh
+replace_models.py
 
 # vercel
 .vercel
