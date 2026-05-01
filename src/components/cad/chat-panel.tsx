@@ -319,15 +319,20 @@ export function ChatPanel({
 
   // Load available models
   useEffect(() => {
-    fetchModels().then(data => setModels(data.models)).catch(() => {
-      setModels([
+    fetchModels().then(data => {
+      setModels(data.models)
+      setSelectedModel(prev => data.models.length > 0 && !data.models.some(model => model.id === prev) ? data.models[0].id : prev)
+    }).catch(() => {
+      const fallbackModels: ModelInfo[] = [
         { id: 'mimo-v2.5', name: 'MiMo-V2.5', description: 'Xiaomi MiMo multimodal model', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
         { id: 'mimo-v2.5-pro', name: 'MiMo-V2.5-Pro', description: 'Xiaomi MiMo default model', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: false, reasoning: false, category: 'flagship' },
         { id: 'mimo-v2-omni', name: 'MiMo-V2-Omni', description: 'Xiaomi MiMo full-modal model', provider: 'mimo', providerName: 'Xiaomi MiMo', multimodal: true, reasoning: true, category: 'vision' },
         { id: 'gpt-4o', name: 'GPT-4o', description: 'OpenAI flagship multimodal model', provider: 'openai', providerName: 'OpenAI', multimodal: true, reasoning: false, category: 'flagship' },
         { id: 'glm-4', name: 'GLM-4', description: 'Zhipu GLM-4 high-performance text model', provider: 'zhipu', providerName: 'Zhipu AI', multimodal: false, reasoning: false, category: 'flagship' },
         { id: 'glm-4v', name: 'GLM-4V', description: 'Zhipu GLM-4V multimodal model', provider: 'zhipu', providerName: 'Zhipu AI', multimodal: true, reasoning: false, category: 'vision' },
-      ])
+      ]
+      setModels(fallbackModels)
+      setSelectedModel(prev => !fallbackModels.some(model => model.id === prev) ? fallbackModels[0].id : prev)
     })
   }, [])
 
@@ -519,7 +524,7 @@ export function ChatPanel({
         setPendingImages([])
         abortRef.current = null
       },
-      selectedModel !== DEFAULT_CHAT_MODEL ? selectedModel : undefined,
+      selectedModel,
       imagesToSend.length > 0 ? imagesToSend : undefined,
     )
     abortRef.current = abort

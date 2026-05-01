@@ -1,12 +1,9 @@
 'use client'
 
-/* eslint-disable react-hooks/refs */
-
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   Box, Play, Settings,
-  Loader2, Activity,
+  Loader2,
   Plus, ArrowUpDown, Keyboard,
   BarChart3, GitCompare, Palette,
   Sun, Moon, Zap,
@@ -35,7 +32,6 @@ import { Footer } from '@/components/cad/footer'
 import type { CommandAction } from '@/components/cad/command-palette'
 
 const NotificationCenter = dynamic(() => import('@/components/cad/notification-center').then(m => ({ default: m.NotificationCenter })), { ssr: false })
-const JobActivityFeed = dynamic(() => import('@/components/cad/job-activity-feed').then(m => ({ default: m.JobActivityFeed })), { ssr: false })
 const CommandPalette = dynamic(() => import('@/components/cad/command-palette').then(m => ({ default: m.CommandPalette })), { ssr: false })
 const ThemePanel = dynamic(() => import('@/components/cad/theme-panel').then(m => ({ default: m.ThemePanel })), { ssr: false })
 const ProviderSettingsPanel = dynamic(() => import('@/components/cad/provider-settings-panel').then(m => ({ default: m.ProviderSettingsPanel })), { ssr: false })
@@ -139,7 +135,7 @@ export function MainWorkspace() {
       <header className="flex items-center justify-between px-3 py-1.5 border-b border-[color:var(--app-border)] bg-[var(--app-surface)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[var(--cad-accent)] flex items-center justify-center shadow-[0_0_12px_rgba(94,106,210,0.3)]">
+            <div className="w-5 h-5 rounded bg-[var(--cad-accent)] flex items-center justify-center shadow-[0_0_12px_var(--cad-accent-soft)]">
               <Box className="w-3 h-3 text-white" />
             </div>
             <h1 className="text-sm font-semibold tracking-tight text-[var(--app-text-primary)]">
@@ -178,55 +174,19 @@ export function MainWorkspace() {
           </TooltipProvider>
           <NotificationCenter
             notifications={state.notifications}
+            activityEvents={state.activityEvents}
             onMarkRead={state.markNotificationRead}
             onMarkAllRead={state.markAllNotificationsRead}
             onClearAll={state.clearAllNotifications}
+            onClearActivity={state.clearActivityEvents}
+            onActivityClick={(event) => {
+              const found = state.allJobs.find(j => j.id.slice(0, 8) === event.jobId)
+              if (found) {
+                state.setSelectedJob(found)
+                state.setActiveTab('SPEC')
+              }
+            }}
           />
-          {/* Activity Feed - Bell with popover */}
-          <div className="relative" ref={state.activityFeedRef}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
-              onClick={() => state.setShowActivityFeed(!state.showActivityFeed)}
-              aria-label="Activity Feed"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              {state.activityEvents.length > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] rounded-full bg-[var(--cad-warning)] text-black text-[7px] font-bold flex items-center justify-center px-0.5"
-                >
-                  {state.activityEvents.length > 9 ? '9+' : state.activityEvents.length}
-                </motion.span>
-              )}
-            </Button>
-            <AnimatePresence>
-              {state.showActivityFeed && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="absolute right-0 top-8 w-80 bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_24px_-6px_rgba(0,0,0,0.3)] rounded-lg z-50 max-h-[420px]"
-                >
-                  <JobActivityFeed
-                    events={state.activityEvents}
-                    onClear={state.clearActivityEvents}
-                    onEventClick={(event) => {
-                      const found = state.allJobs.find(j => j.id.slice(0, 8) === event.jobId)
-                      if (found) {
-                        state.setSelectedJob(found)
-                        state.setActiveTab('SPEC')
-                      }
-                      state.setShowActivityFeed(false)
-                    }}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -247,7 +207,7 @@ export function MainWorkspace() {
                   setSettingsTab('theme')
                   state.setShowSettings(true)
                 }} aria-label="Theme & Settings">
-                  <Palette className="w-3.5 h-3.5" />
+                  <Settings className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Theme & Settings</p></TooltipContent>
@@ -535,7 +495,7 @@ export function MainWorkspace() {
 
       {/* Theme & Settings */}
       <Dialog open={state.showSettings} onOpenChange={state.setShowSettings}>
-        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl max-w-2xl max-h-[85vh] overflow-hidden dialog-enter" aria-describedby="settings-description">
+        <DialogContent className="bg-[var(--app-dialog-bg)] border border-[color:var(--app-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.4)] rounded-xl flex h-[min(760px,calc(100vh-3rem))] w-[min(42rem,calc(100vw-2rem))] max-w-none flex-col overflow-hidden dialog-enter" aria-describedby="settings-description">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Settings className="w-4 h-4 text-[var(--app-accent-text)]" />Settings
@@ -545,16 +505,16 @@ export function MainWorkspace() {
             </DialogDescription>
           </DialogHeader>
           <div className="gradient-divider" />
-          <Tabs value={settingsTab} onValueChange={(value) => setSettingsTab(value as 'providers' | 'theme')} className="min-h-0">
+          <Tabs value={settingsTab} onValueChange={(value) => setSettingsTab(value as 'providers' | 'theme')} className="min-h-0 flex-1">
             <TabsList className="grid w-full grid-cols-2 bg-[var(--app-bg)] border border-[color:var(--app-border)]">
               <TabsTrigger value="providers" className="text-xs">Providers</TabsTrigger>
               <TabsTrigger value="theme" className="text-xs">Theme</TabsTrigger>
             </TabsList>
-            <div className="min-h-0 max-h-[65vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) transparent' }}>
-              <TabsContent value="providers" className="mt-3">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--app-scrollbar-thumb) transparent' }}>
+              <TabsContent value="providers" forceMount className="mt-3 data-[state=inactive]:hidden">
                 <ProviderSettingsPanel />
               </TabsContent>
-              <TabsContent value="theme" className="mt-3">
+              <TabsContent value="theme" forceMount className="mt-3 data-[state=inactive]:hidden">
                 <ThemePanel />
               </TabsContent>
             </div>

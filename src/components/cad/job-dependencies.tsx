@@ -191,8 +191,8 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                 </div>
                 <div className="relative ml-2">
                   {/* Connecting line */}
-                  <div className="absolute left-0 top-0 bottom-0 w-px bg-violet-500/30" />
-                  <div className="absolute left-0 top-1/2 w-3 h-px bg-violet-500/30" />
+                  <div className="absolute left-0 top-0 bottom-0 w-px bg-[var(--app-accent-border)]" />
+                  <div className="absolute left-0 top-1/2 w-3 h-px bg-[var(--app-accent-border)]" />
                   <motion.div
                     className="ml-4 flex items-center gap-2 px-2 py-1.5 rounded-md border border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] hover:bg-[var(--app-accent-bg)] linear-transition cursor-pointer group"
                     onClick={() => onNavigateToJob?.(parentJob.id)}
@@ -236,7 +236,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
             {/* Current job (center) */}
             <div className="relative">
               <div className="flex items-center gap-2 px-2 py-2 rounded-md border border-[color:var(--app-border)] bg-[var(--app-empty-bg)]">
-                <div className="w-5 h-5 rounded-md bg-violet-500/80 flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-md bg-[var(--app-accent)] flex items-center justify-center shrink-0">
                   <FileCode className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -249,7 +249,7 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
               </div>
               {/* Vertical line from current to children */}
               {childJobs.length > 0 && (
-                <div className="absolute left-[14px] top-full w-px bg-violet-500/30" style={{ height: '8px' }} />
+                <div className="absolute left-[14px] top-full w-px bg-[var(--app-accent-border)]" style={{ height: '8px' }} />
               )}
             </div>
 
@@ -268,8 +268,8 @@ export function JobDependencies({ job, allJobs, onUpdate, onNavigateToJob }: Job
                     className="relative ml-2"
                   >
                     {/* Connecting line */}
-                    <div className="absolute left-0 top-1/2 w-3 h-px bg-violet-500/30" />
-                    <div className="absolute left-0 top-0 bottom-0 w-px bg-violet-500/30" style={{ height: idx === 0 ? '50%' : '100%', top: idx === 0 ? '50%' : '0' }} />
+                    <div className="absolute left-0 top-1/2 w-3 h-px bg-[var(--app-accent-border)]" />
+                    <div className="absolute left-0 top-0 bottom-0 w-px bg-[var(--app-accent-border)]" style={{ height: idx === 0 ? '50%' : '100%', top: idx === 0 ? '50%' : '0' }} />
                     <motion.div
                       className="ml-4 flex items-center gap-2 px-2 py-1.5 rounded-md border border-cyan-500/15 bg-cyan-500/5 hover:bg-cyan-500/10 linear-transition cursor-pointer group"
                       onClick={() => onNavigateToJob?.(child.id)}

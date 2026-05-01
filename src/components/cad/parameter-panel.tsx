@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Wrench, Loader2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
@@ -81,6 +81,8 @@ export function ParameterPanel({
   )
 
   const groups = [...new Set(schema.parameters.map(p => p.group || 'general'))]
+  const meaningfulSources = new Set(schema.parameters.map(p => p.source).filter(source => source && source !== 'artifact'))
+  const showSourceBadges = meaningfulSources.size > 0 && new Set(schema.parameters.map(p => p.source).filter(Boolean)).size > 1
 
   const handleParamChange = (key: string, value: number, defaultValue: number) => {
     const newValues = { ...localValues, [key]: value }
@@ -148,6 +150,14 @@ export function ParameterPanel({
     derived: 'text-[var(--cad-info)]',
     llm_declared: 'text-[var(--cad-success)]',
   }
+  const sourceLabel: Record<string, string> = {
+    user: 'user',
+    inferred: 'inferred',
+    design_derived: 'design',
+    engineering: 'engineering',
+    derived: 'derived',
+    llm_declared: 'model',
+  }
   const changedCount = changedKeys.size
 
   return (
@@ -181,9 +191,9 @@ export function ParameterPanel({
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="stable-scrollbar min-h-0 flex-1 overflow-y-auto">
         <motion.div
-          className="space-y-4 p-3 pb-24"
+          className="space-y-2.5 p-2.5 pb-16"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
@@ -194,14 +204,14 @@ export function ParameterPanel({
               key={group}
               variants={staggerChild}
               transition={staggerTransition}
-              className={`rounded-lg border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3 ${groupIdx > 0 ? 'border-t-[color:var(--cad-accent-soft)]' : ''}`}
+              className={`rounded-[8px] border border-[color:var(--app-border)] bg-[var(--app-surface)] px-2.5 py-2 ${groupIdx > 0 ? 'border-t-[color:var(--cad-accent-soft)]' : ''}`}
             >
-              <div className="text-xs font-mono tracking-widest text-[var(--app-text-dim)] uppercase mb-3 px-1 flex items-center gap-1.5">
+              <div className="mb-2 flex items-center gap-1.5 px-0.5 text-[11px] font-medium uppercase text-[var(--app-text-dim)]">
                 <div className="w-1 h-1 rounded-full bg-[var(--cad-accent)] opacity-70" />
-                {group}
+                <span className="tracking-[0.08em]">{group}</span>
               </div>
               <motion.div
-                className="space-y-3"
+                className="space-y-1.5"
                 variants={staggerContainer}
                 initial="initial"
                 animate="animate"
@@ -221,18 +231,23 @@ export function ParameterPanel({
                       key={param.key}
                       variants={slideInLeft}
                       transition={{ ...slideInLeftTransition, delay: 0.02 }}
-                      className={`space-y-1 group/param relative ${isChanged ? 'ring-1 ring-[color:var(--cad-accent-soft)] rounded-md p-1.5 -m-1.5' : ''}`}
+                      className={`group/param relative rounded-[6px] px-1 py-1 ring-1 transition-[box-shadow] ${isChanged ? 'bg-[var(--cad-accent-soft)]/40 ring-[color:var(--cad-accent-soft)]' : 'ring-transparent hover:bg-[var(--app-surface-hover)]'}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-[var(--app-text-secondary)] group-hover/param:text-[var(--app-text-primary)] transition-colors">{param.label}</span>
-                          <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${sourceColor[param.source] || 'text-[var(--app-text-muted)]'} bg-[var(--app-surface-raised)]`}>
-                            {param.source.replace('_', ' ')}
-                          </span>
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate text-[13px] font-medium text-[var(--app-text-secondary)] transition-colors group-hover/param:text-[var(--app-text-primary)]">{param.label}</span>
+                          {showSourceBadges && param.source !== 'artifact' && (
+                            <span
+                              className={`rounded bg-[var(--app-surface-raised)] px-1 py-0.5 text-[9px] font-mono ${sourceColor[param.source] || 'text-[var(--app-text-muted)]'}`}
+                              title={`Source: ${sourceLabel[param.source] || param.source.replace('_', ' ')}`}
+                            >
+                              {sourceLabel[param.source] || param.source.replace('_', ' ')}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="grid shrink-0 grid-cols-[4.5rem_2rem_2.75rem_1.25rem] items-center justify-items-end gap-1">
                           <motion.span
-                            className="text-xs font-mono text-[var(--app-text-primary)] tabular-nums"
+                            className="text-[13px] font-mono text-[var(--app-text-primary)] tabular-nums"
                             key={value}
                             initial={{ scale: 1.15, color: 'var(--cad-accent)' }}
                             animate={{ scale: 1, color: 'var(--cad-text)' }}
@@ -240,36 +255,32 @@ export function ParameterPanel({
                           >
                             {typeof localValues[param.key] === 'number' ? localValues[param.key].toFixed(precision) : param.value?.toFixed(precision) ?? '0'}
                           </motion.span>
-                          <span className="text-xs text-[var(--app-text-dim)]">{param.unit}</span>
-                          {isChanged && (
-                            <span className="rounded bg-[var(--cad-accent-soft)] px-1 py-0.5 text-[8px] font-mono text-[var(--cad-accent)]">
+                          <span className="justify-self-start text-[12px] text-[var(--app-text-dim)]">{param.unit}</span>
+                          <span className={`rounded px-1 py-0.5 text-[8px] font-mono ${isChanged ? 'bg-[var(--cad-accent-soft)] text-[var(--cad-accent)]' : 'text-transparent'}`}>
+                            {isChanged ? (
+                              <>
                               {delta > 0 ? '+' : ''}{delta.toFixed(precision)}
-                            </span>
-                          )}
+                              </>
+                            ) : '+0'}
+                          </span>
                           {/* Reset to default button - appears on hover */}
-                          <AnimatePresence>
-                            {isChanged && (
-                              <motion.button
-                                initial={{ opacity: 0, scale: 0.7 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.7 }}
-                                transition={{ duration: 0.15 }}
-                                onClick={() => handleResetParam(param.key, param.value)}
-                                className="ml-1 p-0.5 rounded hover:bg-[var(--app-surface-raised)] text-[var(--app-text-muted)] hover:text-[var(--app-accent-text)] transition-colors"
-                                title="Reset to default"
-                              >
-                                <RotateCcw className="w-2.5 h-2.5" />
-                              </motion.button>
-                            )}
-                          </AnimatePresence>
+                          <button
+                            onClick={() => handleResetParam(param.key, param.value)}
+                            className={`rounded p-0.5 transition-colors ${isChanged ? 'text-[var(--app-text-muted)] hover:bg-[var(--app-surface-raised)] hover:text-[var(--app-accent-text)]' : 'pointer-events-none text-transparent'}`}
+                            title="Reset to default"
+                            aria-hidden={!isChanged}
+                            tabIndex={isChanged ? 0 : -1}
+                          >
+                            <RotateCcw className="w-2.5 h-2.5" />
+                          </button>
                         </div>
                       </div>
                       {param.kind === 'number' || param.kind === 'float' || param.kind === 'integer' ? (
                         <div className="relative py-1">
                           {/* Custom colored fill indicator behind the slider */}
-                          <div className="absolute top-1/2 left-0 -translate-y-1/2 h-2 rounded-full pointer-events-none overflow-hidden w-full bg-[var(--cad-border)]">
+                          <div className="absolute top-1/2 left-0 h-[7px] w-full -translate-y-1/2 overflow-hidden border-y border-[color:var(--app-border-subtle)] bg-[linear-gradient(90deg,var(--app-border-subtle)_1px,transparent_1px)] bg-[length:25%_100%] pointer-events-none">
                             <div
-                              className="h-full bg-[var(--cad-accent-soft)] rounded-full transition-all duration-150"
+                              className="h-full bg-[color-mix(in_srgb,var(--cad-accent)_26%,transparent)] transition-all duration-150"
                               style={{ width: `${fillPercent}%` }}
                             />
                           </div>
@@ -281,22 +292,24 @@ export function ParameterPanel({
                             onValueChange={([v]) => handleParamChange(param.key, v, param.value)}
                             onValueCommit={([v]) => handleParamCommit(param.key, v)}
                             disabled={isUpdating || !param.editable}
-                            className="py-0.5 relative z-10"
+                            className="relative z-10 py-0"
                           />
                           <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-0 flex -translate-y-1/2 justify-between px-0.5">
                             {Array.from({ length: 5 }).map((_, idx) => (
-                              <span key={idx} className="h-2.5 w-px bg-[var(--cad-border-strong)] opacity-60" />
+                              <span key={idx} className="h-3 w-px bg-[var(--cad-border-strong)] opacity-55" />
                             ))}
                           </div>
                         </div>
                       ) : null}
-                      <div className="flex justify-between text-[8px] text-[var(--app-text-dim)] font-mono">
+                      <div className="flex justify-between text-[9px] text-[var(--app-text-dim)] font-mono leading-3">
                         <span>{min}</span>
-                        <span className="text-[8px] font-mono text-[var(--app-text-dim)]">{param.key}</span>
+                        <span className="max-w-[45%] truncate opacity-0 transition-opacity group-hover/param:opacity-100">{param.key}</span>
                         <span>{max} {param.unit}</span>
                       </div>
                       {param.description && (
-                        <p className="text-[13px] text-[var(--app-text-dim)] leading-relaxed hidden group-hover/param:block transition-all">{param.description}</p>
+                        <div className="pointer-events-none absolute left-1 top-full z-20 mt-1 hidden max-w-[calc(100%-0.5rem)] rounded-[6px] border border-[color:var(--app-border)] bg-[var(--app-surface)] px-2 py-1 text-[12px] leading-4 text-[var(--app-text-dim)] shadow-[0_8px_24px_rgba(15,23,42,0.12)] group-hover/param:block">
+                          {param.description}
+                        </div>
                       )}
                     </motion.div>
                   )

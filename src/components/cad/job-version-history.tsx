@@ -166,7 +166,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-[var(--app-text-dim)] gap-3 p-6">
-        <div className="w-8 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-7 border-2 border-[color:var(--app-accent)] border-t-transparent rounded-full animate-spin" />
         <p className="text-[13px]">Loading history...</p>
       </div>
     )
@@ -208,7 +208,7 @@ export function JobVersionHistory({ job }: JobVersionHistoryProps) {
               <button
                 key={f}
                 className={`shrink-0 text-[8px] font-mono px-1.5 py-0.5 rounded linear-transition ${
-                  isActive ? 'bg-violet-600/20 text-[var(--app-accent-text)] border border-violet-500/30' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
+                  isActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]' : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
                 }`}
                 onClick={() => setFilterField(f === 'all' ? null : f)}
               >

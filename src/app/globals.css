@@ -291,11 +291,24 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  html {
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground;
     transition: background-color 0.3s ease, color 0.2s ease;
+    overflow-x: hidden;
   }
+}
+
+.stable-scrollbar {
+  scrollbar-gutter: stable;
+}
+
+.stable-scrollbar-both {
+  scrollbar-gutter: stable both-edges;
 }
 
 /* ─── AgentSCAD CAD Design System ────────────────────── */
@@ -318,7 +331,7 @@
 [data-radix-slider-root] > span:first-child {
   position: relative;
   flex-grow: 1;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
   background: var(--app-border);
 }
@@ -332,8 +345,8 @@
 
 [data-radix-slider-thumb] {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: var(--app-surface);
   border: 2px solid var(--app-accent);
@@ -674,24 +687,6 @@ pre:hover .code-copy-btn { opacity: 1; }
 .footer-metric {
   position: relative;
   cursor: default;
-}
-.footer-metric:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 3px 8px;
-  background: var(--app-footer-tooltip-bg);
-  border: 1px solid var(--app-footer-tooltip-border);
-  border-radius: 4px;
-  font-size: 9px;
-  font-family: var(--font-mono), monospace;
-  color: var(--app-footer-tooltip-text);
-  white-space: nowrap;
-  z-index: 50;
-  pointer-events: none;
-  animation: content-fade 0.15s ease-out;
 }
 
 /* ─── Linear Design Utilities ──────────────────────────────── */

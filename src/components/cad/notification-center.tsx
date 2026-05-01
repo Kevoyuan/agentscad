@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { JobActivityFeed, type ActivityEvent } from './job-activity-feed'
 
 // ─── Notification Types ────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const NOTIFICATION_CONFIG: Record<NotificationType, { icon: typeof CheckCircle2;
   job_completed: { icon: CheckCircle2, color: 'text-lime-400', bgColor: 'bg-lime-500/10' },
   job_failed: { icon: XCircle, color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
   job_cancelled: { icon: Ban, color: 'text-[var(--app-state-neutral-text)]', bgColor: 'bg-[var(--app-state-neutral-bg)]' },
-  parameter_updated: { icon: Settings, color: 'text-violet-400', bgColor: 'bg-violet-500/10' },
+  parameter_updated: { icon: Settings, color: 'text-[var(--app-accent-text)]', bgColor: 'bg-[var(--app-accent-bg)]' },
   scad_updated: { icon: Code2, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
 }
 
@@ -69,7 +70,7 @@ function NotificationItem({
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
       className={`flex items-start gap-2.5 px-3 py-2.5 cursor-pointer linear-transition hover:bg-[var(--app-hover-subtle)] ${
-        !notification.read ? 'border-l-2 border-l-violet-500/60' : 'border-l-2 border-l-transparent'
+        !notification.read ? 'border-l-2 border-l-[color:var(--app-accent)]' : 'border-l-2 border-l-transparent'
       }`}
       onClick={() => {
         if (!notification.read) onMarkRead(notification.id)
@@ -86,7 +87,7 @@ function NotificationItem({
         <p className="text-[8px] text-[var(--app-text-dim)] mt-1 font-mono">{notifTimeAgo(notification.timestamp)}</p>
       </div>
       {!notification.read && (
-        <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5" />
+        <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--app-accent)] mt-1.5" />
       )}
     </motion.div>
   )
@@ -96,18 +97,25 @@ function NotificationItem({
 
 interface NotificationCenterProps {
   notifications: Notification[]
+  activityEvents: ActivityEvent[]
   onMarkRead: (id: string) => void
   onMarkAllRead: () => void
   onClearAll: () => void
+  onClearActivity: () => void
+  onActivityClick?: (event: ActivityEvent) => void
 }
 
 export function NotificationCenter({
   notifications,
+  activityEvents,
   onMarkRead,
   onMarkAllRead,
   onClearAll,
+  onClearActivity,
+  onActivityClick,
 }: NotificationCenterProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [activeView, setActiveView] = useState<'notifications' | 'activity'>('notifications')
   const panelRef = useRef<HTMLDivElement>(null)
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -132,7 +140,10 @@ export function NotificationCenter({
         variant="ghost"
         size="sm"
         className="h-6 text-xs gap-1 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] relative"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setActiveView(unreadCount > 0 || notifications.length > 0 ? 'notifications' : 'activity')
+          setIsOpen(!isOpen)
+        }}
       >
         <Bell className="w-3.5 h-3.5" />
         {unreadCount > 0 && (
@@ -160,7 +171,7 @@ export function NotificationCenter({
             <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
               <div className="flex items-center gap-2">
                 <Bell className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
-                <span className="text-sm font-medium text-[var(--app-text-secondary)]">Notifications</span>
+                <span className="text-sm font-medium text-[var(--app-text-secondary)]">Updates</span>
                 {unreadCount > 0 && (
                   <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
                     {unreadCount} new
@@ -199,30 +210,67 @@ export function NotificationCenter({
               </div>
             </div>
 
+            <div className="flex items-center gap-1 border-b border-[color:var(--app-border)] px-2 py-1.5">
+              <button
+                className={`h-6 rounded-md px-2 text-[11px] font-medium transition-colors ${
+                  activeView === 'notifications'
+                    ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
+                    : 'text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
+                }`}
+                onClick={() => setActiveView('notifications')}
+              >
+                Notifications {notifications.length > 0 ? notifications.length : ''}
+              </button>
+              <button
+                className={`h-6 rounded-md px-2 text-[11px] font-medium transition-colors ${
+                  activeView === 'activity'
+                    ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
+                    : 'text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
+                }`}
+                onClick={() => setActiveView('activity')}
+              >
+                Activity {activityEvents.length > 0 ? activityEvents.length : ''}
+              </button>
+            </div>
+
             {/* Notifications List */}
-            <ScrollArea className="max-h-70">
-              {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <div className="w-10 h-10 rounded border border-[color:var(--cad-border-strong)] flex items-center justify-center opacity-40">
-                  <Activity className="w-5 h-5 text-[var(--cad-text-muted)]" />
-                </div>
-                  <p className="text-sm text-[var(--app-text-dim)]">No notifications</p>
-                  <p className="text-xs text-[var(--app-text-dim)]">You&apos;re all caught up</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-[color:var(--app-border)]">
-                  <AnimatePresence>
-                    {notifications.map(n => (
-                      <NotificationItem
-                        key={n.id}
-                        notification={n}
-                        onMarkRead={onMarkRead}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-            </ScrollArea>
+            {activeView === 'notifications' ? (
+              <ScrollArea className="max-h-70">
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <div className="w-10 h-10 rounded border border-[color:var(--cad-border-strong)] flex items-center justify-center opacity-40">
+                      <Activity className="w-5 h-5 text-[var(--cad-text-muted)]" />
+                    </div>
+                    <p className="text-sm text-[var(--app-text-dim)]">No notifications</p>
+                    <p className="text-xs text-[var(--app-text-dim)]">You&apos;re all caught up</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[color:var(--app-border)]">
+                    <AnimatePresence>
+                      {notifications.map(n => (
+                        <NotificationItem
+                          key={n.id}
+                          notification={n}
+                          onMarkRead={onMarkRead}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </ScrollArea>
+            ) : (
+              <div className="max-h-[420px]">
+                <JobActivityFeed
+                  events={activityEvents}
+                  onClear={onClearActivity}
+                  onEventClick={(event) => {
+                    onActivityClick?.(event)
+                    setIsOpen(false)
+                  }}
+                  showHeader={false}
+                />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

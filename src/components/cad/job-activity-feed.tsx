@@ -26,7 +26,7 @@ export interface ActivityEvent {
 // ─── Activity Icon & Color Mapping ──────────────────────────────────────
 
 const EVENT_CONFIG: Record<ActivityEventType, { icon: typeof Plus; color: string; bgColor: string }> = {
-  created: { icon: Plus, color: 'text-violet-400', bgColor: 'bg-violet-500/10' },
+  created: { icon: Plus, color: 'text-[var(--app-accent-text)]', bgColor: 'bg-[var(--app-accent-bg)]' },
   processed: { icon: Play, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
   delivered: { icon: CheckCircle2, color: 'text-lime-400', bgColor: 'bg-lime-500/10' },
   failed: { icon: XCircle, color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
@@ -61,6 +61,7 @@ interface JobActivityFeedProps {
   events: ActivityEvent[]
   onClear: () => void
   onEventClick?: (event: ActivityEvent) => void
+  showHeader?: boolean
 }
 
 // ─── Job Activity Feed ──────────────────────────────────────────────────
@@ -69,6 +70,7 @@ export function JobActivityFeed({
   events,
   onClear,
   onEventClick,
+  showHeader = true,
 }: JobActivityFeedProps) {
   const [filter, setFilter] = useState<ActivityEventType | 'ALL'>('ALL')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -86,28 +88,29 @@ export function JobActivityFeed({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
-        <div className="flex items-center gap-2">
-          <Activity className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
-          <span className="text-sm font-medium text-[var(--app-text-secondary)]">Activity Feed</span>
-          <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
-            {filteredEvents.length}
-          </span>
+      {showHeader && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[color:var(--app-border)]">
+          <div className="flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
+            <span className="text-sm font-medium text-[var(--app-text-secondary)]">Activity Feed</span>
+            <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]">
+              {filteredEvents.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {events.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-muted)] px-1"
+                onClick={onClear}
+              >
+                <Trash2 className="w-2.5 h-2.5" />Clear
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          {events.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 text-[8px] gap-0.5 text-[var(--app-text-muted)] hover:text-[var(--app-text-muted)] px-1"
-              onClick={onClear}
-            >
-              <Trash2 className="w-2.5 h-2.5" />Clear
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Filter Pills */}
       <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[color:var(--app-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>

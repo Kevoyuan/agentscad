@@ -65,13 +65,11 @@ export function useWorkspaceState() {
   const [newJobTags, setNewJobTags] = useState('')
   const [isAiEnhancing, setIsAiEnhancing] = useState(false)
   const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
-  const [showActivityFeed, setShowActivityFeed] = useState(false)
   const [showThemePanel, setShowThemePanel] = useState(false)
   const [processingJobId, setProcessingJobId] = useState<string | null>(null)
   const [pipelineEvents, setPipelineEvents] = useState<Array<{ step: string; state: string; message: string; timestamp: string }>>([])
 
   const startTimeRef = useRef(Date.now())
-  const activityFeedRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -112,19 +110,6 @@ export function useWorkspaceState() {
   const clearActivityEvents = useCallback(() => {
     setActivityEvents([])
   }, [])
-
-  // Close activity feed on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (activityFeedRef.current && !activityFeedRef.current.contains(e.target as Node)) {
-        setShowActivityFeed(false)
-      }
-    }
-    if (showActivityFeed) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showActivityFeed])
 
   // ── Recent Requests (for composer) ────────────────────────────────────
 
@@ -645,9 +630,8 @@ export function useWorkspaceState() {
     uptime, activeDragId,
     notifications, newJobTags, setNewJobTags,
     isAiEnhancing,
-    activityEvents, showActivityFeed, setShowActivityFeed,
+    activityEvents,
     showThemePanel, setShowThemePanel,
-    activityFeedRef,
     processingJobId, pipelineEvents,
     // DnD
     sensors, handleDragStart, handleDragEnd, handleDragCancel,

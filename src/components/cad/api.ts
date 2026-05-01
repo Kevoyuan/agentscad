@@ -29,6 +29,7 @@ export async function fetchProviders(): Promise<{ providers: ProviderConfig[]; e
 
 export async function saveProvider(input: {
   id?: string
+  preset?: string
   name: string
   type: string
   baseUrl: string

@@ -99,7 +99,7 @@ function FooterMetric({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={`footer-metric ${className}`} data-tooltip={tooltip}>
+          <span className={`footer-metric ${className}`}>
             {children}
           </span>
         </TooltipTrigger>

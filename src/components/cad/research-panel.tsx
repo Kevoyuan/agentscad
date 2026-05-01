@@ -52,7 +52,7 @@ export function ResearchPanel({ job }: { job: Job }) {
                 variants={scaleIn}
                 transition={scaleInTransition}
               >
-                <Badge variant="outline" className="text-xs h-5 bg-violet-500/10 text-violet-400 border-violet-500/20 gap-1">
+                <Badge variant="outline" className="text-xs h-5 bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border-[color:var(--app-accent-border)] gap-1">
                   <Target className="w-2.5 h-2.5" />{job.partFamily.replace(/_/g, ' ')}
                 </Badge>
               </motion.div>

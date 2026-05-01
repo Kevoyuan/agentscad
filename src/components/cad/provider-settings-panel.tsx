@@ -18,45 +18,7 @@ import {
   type EnvProviderConfig,
   type ProviderConfig,
 } from '@/components/cad/api'
-
-const PROVIDER_PRESETS = [
-  {
-    id: 'openai',
-    label: 'OpenAI',
-    baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4.1',
-  },
-  {
-    id: 'openrouter',
-    label: 'OpenRouter',
-    baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'openai/gpt-5.5',
-  },
-  {
-    id: 'deepseek',
-    label: 'DeepSeek',
-    baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-chat',
-  },
-  {
-    id: 'mimo',
-    label: 'Xiaomi MiMo',
-    baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
-    model: 'mimo-v2.5-pro',
-  },
-  {
-    id: 'ollama',
-    label: 'Ollama',
-    baseUrl: 'http://localhost:11434/v1',
-    model: 'llama3.1',
-  },
-  {
-    id: 'custom',
-    label: 'Custom API',
-    baseUrl: 'https://example.com/v1',
-    model: 'model-name',
-  },
-]
+import { PROVIDER_PRESETS } from '@/lib/provider-catalog'
 
 const EMPTY_FORM = {
   id: undefined as string | undefined,
@@ -111,10 +73,10 @@ export function ProviderSettingsPanel() {
       ...prev,
       preset: preset.id,
       name: preset.label,
-      type: preset.id === 'ollama' ? 'ollama' : 'openai-compatible',
+      type: preset.type,
       baseUrl: preset.baseUrl,
-      defaultModel: preset.model,
-      apiKey: preset.id === 'ollama' ? '' : prev.apiKey,
+      defaultModel: preset.defaultModel,
+      apiKey: preset.requiresApiKey ? prev.apiKey : '',
       keepExistingApiKey: false,
     }))
   }
@@ -273,6 +235,9 @@ export function ProviderSettingsPanel() {
               ))}
             </SelectContent>
           </Select>
+          <div className="text-[10px] leading-4 text-[var(--app-text-muted)]">
+            {PROVIDER_PRESETS.find(preset => preset.id === form.preset)?.description}
+          </div>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-[var(--app-text-muted)]">Name</Label>

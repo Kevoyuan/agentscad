@@ -71,26 +71,26 @@ export function JobTemplateCards({
   onSelect: (template: string) => void
 }) {
   return (
-    <div className="space-y-2.5">
-      <label className="text-[11px] font-semibold text-[var(--cad-text-secondary)] uppercase tracking-wider block">
+    <div className="space-y-3">
+      <label className="block text-[11px] font-semibold uppercase text-[var(--cad-text-secondary)]">
         Templates
       </label>
-      <div className="flex flex-col gap-1.5">
+      <div className="grid gap-1.5 sm:grid-cols-2">
         {JOB_TEMPLATES.map((t) => {
           const Icon = t.icon
           return (
             <motion.button
               key={t.id}
               whileTap={{ scale: 0.98 }}
-              className="group flex items-center gap-3 p-2 rounded-md border border-transparent hover:bg-[var(--cad-surface-raised)] hover:border-[color:var(--cad-border)] text-left transition-all"
+              className="group flex min-w-0 items-center gap-2.5 rounded-[7px] border border-[color:var(--cad-border)] bg-[var(--cad-surface)] p-2 text-left shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all hover:border-[color:var(--cad-accent)] hover:bg-[var(--cad-accent-soft)]"
               onClick={() => onSelect(t.template)}
             >
-              <div className="flex items-center justify-center w-6 h-6 rounded-sm bg-[var(--cad-surface-raised)] group-hover:bg-[var(--cad-surface)] border border-[color:var(--cad-border)] shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                <Icon className={`w-3.5 h-3.5 transition-colors ${t.color}`} />
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[5px] border border-[color:var(--cad-border)] bg-[var(--cad-surface-raised)] shadow-[0_1px_2px_rgba(15,23,42,0.03)] group-hover:bg-[var(--cad-surface)]">
+                <Icon className={`h-3.5 w-3.5 transition-colors ${t.color}`} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-medium leading-none text-[var(--cad-text)] truncate">{t.name}</p>
-                <p className="text-[11px] text-[var(--cad-text-muted)] mt-0.5 leading-none truncate">{t.description}</p>
+                <p className="truncate text-[12px] font-medium leading-4 text-[var(--cad-text)]">{t.name}</p>
+                <p className="mt-0.5 truncate text-[11px] leading-4 text-[var(--cad-text-muted)]">{t.description}</p>
               </div>
             </motion.button>
           )

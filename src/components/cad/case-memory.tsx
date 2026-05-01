@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Brain, ArrowRight } from 'lucide-react'
 import { PartFamilyIcon, getPartFamilyLabel } from './part-family-icon'
 import { StateBadge } from './state-badge'
@@ -102,37 +102,34 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
     }
   }, [])
 
-  if (!debouncedQuery || debouncedQuery.trim().length < 3) {
+  const rawQueryReady = searchQuery.trim().length >= 3
+  const debouncedQueryReady = debouncedQuery.trim().length >= 3
+  const isWaitingForDebounce = rawQueryReady && !debouncedQueryReady
+
+  if (!rawQueryReady) {
     return null
   }
 
   return (
-    <div className="mt-3">
-      <div className="flex items-center gap-1.5 mb-2">
+    <div className="mt-0">
+      <div className="mb-2 flex h-4 items-center gap-1.5">
         <Brain className="w-3.5 h-3.5 text-[var(--app-accent-text)]" />
         <span className="text-xs font-mono text-[var(--app-text-muted)] tracking-widest uppercase">
           Case Memory
         </span>
-        {isSearching && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-[8px] text-[var(--app-accent-text)] animate-pulse"
-          >
-            searching...
-          </motion.span>
-        )}
+        <span className={`text-[8px] text-[var(--app-accent-text)] transition-opacity ${(isSearching || isWaitingForDebounce) ? 'animate-pulse opacity-100' : 'opacity-0'}`}>
+          searching...
+        </span>
       </div>
 
-      <AnimatePresence>
-        {similarJobs.length > 0 ? (
+      <div className="min-h-10">
+        {similarJobs.length > 0 && debouncedQueryReady ? (
           <motion.div
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            exit="exit"
             transition={staggerTransition}
-            className="space-y-1.5 max-h-48 overflow-y-auto pr-1"
+            className="stable-scrollbar space-y-1.5 max-h-48 overflow-y-auto pr-1"
           >
             {similarJobs.map((job) => (
               <motion.div
@@ -173,17 +170,11 @@ export function CaseMemory({ searchQuery, onSuggestionClick }: CaseMemoryProps) 
             ))}
           </motion.div>
         ) : (
-          !isSearching && debouncedQuery.trim().length >= 3 && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-[13px] text-[var(--app-text-dim)] py-2 text-center"
-            >
-              No similar past jobs found
-            </motion.div>
-          )
+          <div className="flex min-h-10 items-center justify-center text-[13px] text-[var(--app-text-dim)]">
+            {isSearching || isWaitingForDebounce ? 'Searching past jobs...' : 'No similar past jobs found'}
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }

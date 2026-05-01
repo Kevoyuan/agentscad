@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X, ArrowUpDown, RotateCcw,
@@ -189,6 +190,25 @@ const SORT_OPTIONS = [
   { key: 'state', label: 'State' },
 ]
 
+function FilterSection({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <section className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-[10px] font-medium uppercase text-[var(--app-text-dim)]">
+          {label}
+        </label>
+      </div>
+      {children}
+    </section>
+  )
+}
+
 export function SearchFilterPanel({
   filters,
   onFiltersChange,
@@ -226,23 +246,23 @@ export function SearchFilterPanel({
     onFiltersChange(DEFAULT_FILTER_STATE)
   }, [onFiltersChange])
 
-  const chipClass = (active: boolean) => `min-h-7 max-w-full rounded-[6px] border px-2.5 py-1 text-[11px] font-medium leading-4 transition-colors active:scale-[0.98] ${
+  const chipClass = (active: boolean) => `min-h-7 max-w-full rounded-[6px] border px-2.5 py-1 text-[11px] font-medium leading-4 transition-all active:scale-[0.98] ${
     active
-      ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]'
-      : 'border-transparent text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
+      ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]'
+      : 'border-transparent text-[var(--app-text-muted)] hover:border-[color:var(--app-border-subtle)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
   }`
 
   return (
     <div className="border-b border-[color:var(--app-border)] bg-[var(--app-surface)]">
       {/* Search Row - Always visible */}
-      <div className="px-2.5 py-2 flex items-center gap-2">
+      <div className="px-2.5 pt-2.5 pb-2 flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--app-text-dim)]" />
           <Input
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
             placeholder="Search runs"
-            className="h-8 min-w-0 rounded-[7px] pl-8 pr-7 text-[13px] bg-[var(--app-input-bg)] border-[color:var(--app-border)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent)]"
+            className="h-8 min-w-0 rounded-[7px] border-[color:var(--app-border-subtle)] bg-[var(--app-input-bg)] pl-8 pr-7 text-[13px] shadow-[0_1px_0_rgba(15,23,42,0.03)] placeholder:text-[var(--app-text-dim)] focus:border-[color:var(--app-accent)]"
             suppressHydrationWarning
           />
           {filters.search && (
@@ -260,7 +280,7 @@ export function SearchFilterPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-8 w-8 shrink-0 rounded-[7px] p-0 relative border transition-colors active:scale-[0.98] ${expanded ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'border-[color:var(--app-border)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'}`}
+                className={`h-8 w-8 shrink-0 rounded-[7px] p-0 relative border transition-all active:scale-[0.98] ${expanded ? 'border-[color:var(--app-accent-border)] bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] shadow-[0_0_0_3px_var(--app-focus-ring)]' : 'border-[color:var(--app-border-subtle)] text-[var(--app-text-muted)] hover:border-[color:var(--app-border)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'}`}
                 onClick={() => setExpanded(!expanded)}
                 aria-label="Filter and sort"
                 aria-expanded={expanded}
@@ -279,7 +299,8 @@ export function SearchFilterPanel({
       </div>
 
       {/* State Pills - Always visible */}
-      <div className="flex items-center gap-1 px-2.5 py-1.5 border-t border-[color:var(--app-border-separator)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+      <div className="px-2.5 pb-2">
+        <div className="flex items-center gap-0.5 overflow-x-auto rounded-[7px] border border-[color:var(--app-border-subtle)] bg-[var(--app-bg)] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]" style={{ scrollbarWidth: 'none' }}>
         {FILTER_STATES.map(f => {
           const totalFiltered = Object.values(stateCounts).reduce((a, b) => a + b, 0)
           const count = f.key === 'ALL' ? totalFiltered :
@@ -291,8 +312,8 @@ export function SearchFilterPanel({
           return (
             <button
               key={f.key}
-              className={`shrink-0 max-w-[128px] text-[11px] font-medium px-2 py-1 rounded-[5px] transition-colors min-h-6 active:scale-[0.98] truncate ${
-                isMultiActive ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)]' : 'text-[var(--app-text-dim)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
+              className={`shrink-0 max-w-[128px] text-[10px] font-semibold px-2 py-1 rounded-[5px] transition-all min-h-6 active:scale-[0.98] truncate ${
+                isMultiActive ? 'bg-[var(--app-surface)] text-[var(--app-text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.06),inset_0_0_0_1px_var(--app-border-subtle)]' : 'text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'
               }`}
               onClick={() => {
                 if (f.key === 'ALL') {
@@ -308,6 +329,7 @@ export function SearchFilterPanel({
             </button>
           )
         })}
+        </div>
       </div>
 
       {/* Expanded Filter Panel */}
@@ -320,14 +342,11 @@ export function SearchFilterPanel({
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="px-2.5 py-3 space-y-3 border-t border-[color:var(--app-border-separator)] bg-[var(--app-bg)]">
+            <div className="mx-2.5 mb-2.5 rounded-[8px] border border-[color:var(--app-border-subtle)] bg-[var(--app-surface)] p-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
               {/* Row 1: Date Range */}
-              <div className="min-w-0">
-                <div className="min-w-0">
-                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
-                    Date Range
-                  </label>
-                  <div className="grid grid-cols-2 gap-1">
+              <div className="space-y-3">
+                <FilterSection label="Date range">
+                  <div className="grid grid-cols-2 gap-1 rounded-[7px] bg-[var(--app-bg)] p-1">
                     {DATE_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
@@ -344,28 +363,22 @@ export function SearchFilterPanel({
                         type="date"
                         value={filters.dateFrom || ''}
                         onChange={e => updateFilter('dateFrom', e.target.value || null)}
-                        className="h-8 min-w-0 text-[12px] bg-[var(--app-input-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
+                        className="h-8 min-w-0 rounded-[7px] border-[color:var(--app-border-subtle)] bg-[var(--app-input-bg)] text-[12px] text-[var(--app-text-secondary)]"
                       />
                       <span className="sr-only">to</span>
                       <Input
                         type="date"
                         value={filters.dateTo || ''}
                         onChange={e => updateFilter('dateTo', e.target.value || null)}
-                        className="h-8 min-w-0 text-[12px] bg-[var(--app-input-bg)] border-[color:var(--app-border)] text-[var(--app-text-secondary)]"
+                        className="h-8 min-w-0 rounded-[7px] border-[color:var(--app-border-subtle)] bg-[var(--app-input-bg)] text-[12px] text-[var(--app-text-secondary)]"
                       />
                     </div>
                   )}
-                </div>
-              </div>
+                </FilterSection>
 
-              {/* Row 2: Part Family + Builder + Sort */}
-              <div className="grid grid-cols-1 gap-3">
                 {/* Part Family */}
-                <div className="min-w-0">
-                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
-                    Part Family
-                  </label>
-                  <div className="flex items-center gap-1 flex-wrap">
+                <FilterSection label="Part family">
+                  <div className="flex items-center gap-1 flex-wrap rounded-[7px] bg-[var(--app-bg)] p-1">
                     <button
                       className={chipClass(!filters.partFamily)}
                       onClick={() => updateFilter('partFamily', null)}
@@ -383,14 +396,11 @@ export function SearchFilterPanel({
                       </button>
                     ))}
                   </div>
-                </div>
+                </FilterSection>
 
                 {/* Builder Name */}
-                <div className="min-w-0">
-                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
-                    Builder
-                  </label>
-                  <div className="flex items-center gap-1 flex-wrap">
+                <FilterSection label="Builder">
+                  <div className="flex items-center gap-1 flex-wrap rounded-[7px] bg-[var(--app-bg)] p-1">
                     <button
                       className={chipClass(!filters.builderName)}
                       onClick={() => updateFilter('builderName', null)}
@@ -408,14 +418,11 @@ export function SearchFilterPanel({
                       </button>
                     ))}
                   </div>
-                </div>
+                </FilterSection>
 
                 {/* Sort */}
-                <div className="min-w-0">
-                  <label className="text-[10px] font-mono tracking-[0.14em] text-[var(--app-text-dim)] uppercase mb-1.5 block truncate">
-                    Sort By
-                  </label>
-                  <div className="flex flex-wrap items-center gap-1">
+                <FilterSection label="Sort by">
+                  <div className="flex flex-wrap items-center gap-1 rounded-[7px] bg-[var(--app-bg)] p-1">
                     {SORT_OPTIONS.map(opt => (
                       <button
                         key={opt.key}
@@ -426,26 +433,26 @@ export function SearchFilterPanel({
                       </button>
                     ))}
                     <button
-                      className="h-7 w-7 rounded-[6px] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)] transition-colors active:scale-[0.98] flex items-center justify-center"
+                      className="h-7 w-7 rounded-[6px] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)] transition-all active:scale-[0.98] flex items-center justify-center"
                       onClick={() => updateFilter('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
                       title={filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                     >
                       <ArrowUpDown className={`w-3.5 h-3.5 transition-transform ${filters.sortOrder === 'asc' ? 'rotate-180' : ''}`} />
                     </button>
                   </div>
-                </div>
+                </FilterSection>
               </div>
 
               {/* Clear All */}
               {activeCount > 0 && (
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-[color:var(--app-border-separator)]">
+                <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-[color:var(--app-border-separator)]">
                   <span className="min-w-0 text-[11px] text-[var(--app-text-dim)] truncate">
                     {activeCount} active filter{activeCount !== 1 ? 's' : ''}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 shrink-0 text-[11px] gap-1 text-[var(--app-danger)] hover:bg-[var(--app-danger-bg)]"
+                    className="h-7 shrink-0 rounded-[6px] text-[11px] gap-1 text-[var(--app-text-muted)] hover:bg-[var(--app-danger-bg)] hover:text-[var(--app-danger)]"
                     onClick={clearAll}
                   >
                     <RotateCcw className="w-3 h-3" />

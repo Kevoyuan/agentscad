@@ -192,9 +192,8 @@ export function BatchParameterEditor({ selectedJobs, onApply }: BatchParameterEd
                     step={param.step}
                     value={hasChange ? editValue : (param.currentMin + param.currentMax) / 2}
                     onChange={e => handleSliderChange(param.key, Number(e.target.value))}
-                    className={`w-full h-1 rounded-full appearance-none cursor-pointer accent-violet-500 ${
-                      hasChange ? 'accent-violet-500' : 'accent-zinc-600'
-                    }`}
+                    className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: hasChange ? 'var(--app-accent)' : 'var(--app-text-dim)' }}
                   />
                   <div className="flex justify-between text-[7px] text-[var(--app-text-dim)] font-mono">
                     <span>{param.min}</span>

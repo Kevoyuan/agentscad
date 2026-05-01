@@ -72,9 +72,12 @@ function applyThemeToDOM(settings: ThemeSettings) {
   const accent = ACCENT_COLORS.find(a => a.hue === settings.accentHue) || ACCENT_COLORS[0]
   const isDark = root.classList.contains('dark')
 
-  // Apply accent as --app-accent CSS custom properties
-  // This makes all components using var(--app-accent) update automatically
+  // Apply accent as shared CSS custom properties.
+  // CAD surfaces use --cad-accent; app chrome uses --app-accent.
   root.style.setProperty('--app-accent', accent.hex)
+  root.style.setProperty('--cad-accent', accent.hex)
+  root.style.setProperty('--primary', accent.hex)
+  root.style.setProperty('--ring', accent.hex)
   root.style.setProperty('--accent-hue', String(settings.accentHue))
 
   // Accent hover: slightly lighter in dark, slightly darker in light
@@ -86,12 +89,14 @@ function applyThemeToDOM(settings: ThemeSettings) {
   // Accent background: subtle tint
   const accentBg = `hsla(${settings.accentHue}, 70%, 50%, 0.08)`
   root.style.setProperty('--app-accent-bg', accentBg)
+  root.style.setProperty('--accent', accentBg)
 
   // Accent text: lighter in dark mode, darker in light mode
   const accentText = isDark
     ? `hsl(${settings.accentHue}, 70%, 72%)`
     : `hsl(${settings.accentHue}, 70%, 42%)`
   root.style.setProperty('--app-accent-text', accentText)
+  root.style.setProperty('--accent-foreground', accentText)
 
   // Accent border
   const accentBorder = `hsla(${settings.accentHue}, 70%, 50%, 0.25)`
@@ -102,6 +107,10 @@ function applyThemeToDOM(settings: ThemeSettings) {
     ? `hsla(${settings.accentHue}, 60%, 72%, 0.7)`
     : `hsla(${settings.accentHue}, 60%, 42%, 0.7)`
   root.style.setProperty('--app-accent-text-secondary', accentTextSec)
+
+  // CAD accent companions used by sliders, viewport glow, chips, and inspector states.
+  root.style.setProperty('--cad-accent-soft', `hsla(${settings.accentHue}, 70%, 50%, ${isDark ? '0.16' : '0.10'})`)
+  root.style.setProperty('--cad-grid', `hsla(${settings.accentHue}, 70%, 50%, ${isDark ? '0.14' : '0.06'})`)
 
   // Batch bar
   const batchBarBg = `hsla(${settings.accentHue}, 70%, 50%, 0.06)`
@@ -114,6 +123,7 @@ function applyThemeToDOM(settings: ThemeSettings) {
   // Focus ring
   const focusRing = `hsla(${settings.accentHue}, 70%, 50%, ${isDark ? '0.3' : '0.2'})`
   root.style.setProperty('--app-focus-ring', focusRing)
+  root.style.setProperty('--app-input-focus-border', `hsla(${settings.accentHue}, 70%, 50%, ${isDark ? '0.5' : '0.45'})`)
 
   // Interactive hover
   const interactiveHover = `hsla(${settings.accentHue}, 70%, 50%, 0.06)`

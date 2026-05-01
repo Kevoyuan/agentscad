@@ -74,7 +74,7 @@ export function JobListPanel({
 }) {
   return (
     <ResizablePanel id="agentscad-job-list-panel" order={1} defaultSize={18} minSize={14} maxSize={30} className="cad-left-panel">
-      <div className="flex flex-col h-full bg-[var(--app-surface)]">
+      <div className="flex flex-col h-full bg-[var(--app-bg)]">
         {/* Search & Filter Panel */}
         <SearchFilterPanel
           filters={filterState}
@@ -126,7 +126,7 @@ export function JobListPanel({
               items={sortedJobs.map(j => j.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="p-2 space-y-1">
+              <div className="p-2 space-y-1.5">
                 {sortedJobs.map(job => (
                   <JobContextMenu
                     key={job.id}
@@ -156,13 +156,13 @@ export function JobListPanel({
                   </div>
                 )}
                 {jobs.length === 0 && isFirstLoadComplete && (
-                  <div className="relative flex flex-col items-center justify-center py-12 text-[var(--app-text-muted)] gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-[var(--app-empty-bg)] flex items-center justify-center empty-float">
-                      <Layers className="w-7 h-7 opacity-20" />
+                  <div className="relative flex flex-col items-center justify-center px-4 py-14 text-[var(--app-text-muted)] gap-3">
+                    <div className="w-14 h-14 rounded-[8px] border border-[color:var(--app-border-subtle)] bg-[var(--app-surface)] flex items-center justify-center shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                      <Layers className="w-6 h-6 text-[var(--app-text-dim)] opacity-50" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-[var(--app-text-muted)]">No jobs found</p>
-                      <p className="text-[13px] text-[var(--app-text-dim)] mt-1">Create a new job or adjust filters</p>
+                      <p className="text-[13px] font-medium text-[var(--app-text-secondary)]">No jobs found</p>
+                      <p className="text-[12px] leading-5 text-[var(--app-text-dim)] mt-1">Create a new job or adjust filters</p>
                     </div>
                   </div>
                 )}

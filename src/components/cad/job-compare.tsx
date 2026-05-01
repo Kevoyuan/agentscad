@@ -309,7 +309,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
         </Select>
 
         <div className="flex items-center justify-center">
-          <span className="text-xs font-mono font-bold text-[var(--app-accent-text)] bg-violet-500/15 rounded-full w-7 h-7 flex items-center justify-center border border-violet-500/20">VS</span>
+          <span className="text-xs font-mono font-bold text-[var(--app-accent-text)] bg-[var(--app-accent-bg)] rounded-full w-7 h-7 flex items-center justify-center border border-[color:var(--app-accent-border)]">VS</span>
         </div>
 
         <Select value={rightId} onValueChange={setRightId}>
@@ -342,7 +342,7 @@ export function JobCompare({ jobs }: JobCompareProps) {
               text-[13px] font-mono tracking-widest px-3 py-1.5 rounded-md transition-all
               ${
                 activeTab === tab.key
-                  ? 'bg-violet-500/20 text-[var(--app-accent-text)] border border-violet-500/30'
+                  ? 'bg-[var(--app-accent-bg)] text-[var(--app-accent-text)] border border-[color:var(--app-accent-border)]'
                   : 'text-[var(--app-text-dim)] hover:text-[var(--app-text-muted)] border border-transparent'
               }
             `}
