@@ -9,7 +9,7 @@ import { checkCompile } from "@/lib/validation/compile-check";
 import { checkBoundingBox } from "@/lib/validation/bbox-check";
 import { checkComponents } from "@/lib/validation/component-check";
 import { checkHoleCount } from "@/lib/validation/hole-check";
-import { computeReport, type ValidationCheck, type ValidationReport } from "@/lib/validation/validation-types";
+import { computeReport, type ValidationCheck, type ValidationReport } from "@/lib/validation/report";
 import type { CadValidationTargets } from "@/lib/harness/types";
 
 export { clearValidationCache, validateStl, validatePreviewAgainstRequest };

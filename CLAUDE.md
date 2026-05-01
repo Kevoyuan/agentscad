@@ -100,6 +100,26 @@ Prisma ORM with SQLite (`db/custom.db`). Two models: `Job` (18 fields) and `JobV
 - `skills/scad-library-policy/scripts/validate_scad_includes.py` validates generated `include`/`use` statements against approved and available libraries.
 - `src/lib/tools/scad-library-resolver.ts` reads the manifest and runtime paths, then injects only available library skill guidance into generation prompts.
 
+### v2.0 Module Structure
+
+**Content directories** (repo root, not source code):
+- `cad_knowledge/examples/` — reference SCAD files injected into generation prompts via keyword retrieval
+- `cad_knowledge/patterns/` — design pattern docs (hole patterns, brackets, enclosures, printable rules)
+- `cad_knowledge/failures/` — common failure mode docs for repair guidance
+- `openscad_lib/agentscad_std.scad` — standard library (11 modules), pure OpenSCAD with optional BOSL2
+- `openscad_lib/README.md` — module reference, doubles as LLM prompt injection content
+
+**Source directories** (`src/lib/`, compiled TypeScript):
+- `src/lib/retrieval/example-retriever.ts` — keyword-based local example retrieval (zero-token)
+- `src/lib/validation/validation-types.ts` — `ValidationCheck`, `ValidationReport`, `RawMeshData` interfaces
+- `src/lib/validation/report.ts` — `computeReport()` factory for structured validation reports
+- `src/lib/validation/compile-check.ts` — C001: OpenSCAD compile success/error detection
+- `src/lib/validation/bbox-check.ts` — B001: bounding box match vs validation_targets
+- `src/lib/validation/component-check.ts` — C002: floating/disconnected part detection
+- `src/lib/validation/hole-check.ts` — H001: through-hole count via Euler characteristic
+- `src/lib/repair/repair-controller.ts` — validation-driven LLM repair orchestrator
+- `src/lib/repair/visual-repair-controller.ts` — user-triggered VLM visual repair
+
 ## Key Config
 
 - **Runtime**: Bun (primary), Node.js as fallback
