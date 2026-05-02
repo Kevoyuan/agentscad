@@ -102,7 +102,7 @@ export async function POST(
     let renderSucceeded = false;
     let stlPath: string | null = null;
     let pngPath: string | null = null;
-    let renderLog: Record<string, unknown> | null = null;
+    let renderLog: import("@/lib/harness/types").RenderLog | null = null;
     let stlFilePath: string | null = null;
     let pngFilePath: string | null = null;
 
