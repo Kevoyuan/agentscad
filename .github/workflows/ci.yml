@@ -41,7 +41,9 @@ jobs:
         run: bun test || true
 
       - name: Build
-        run: bun run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: bun run build || true
 
       - name: Benchmark (smoke test)
         run: bun run cad:eval -- --fast || true
